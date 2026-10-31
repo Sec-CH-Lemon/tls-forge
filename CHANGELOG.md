@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Complete A12 native acceptance on3faef706:28/28 main jobs and8/8 full fork
+  gates; actual Linux23-package race coverage, unchanged20m/40m limits and
+  zero allowances/exclusions. Preserve original failures and all before/after
+  evidence. A13 catalogue/network estimator and A14 overall acceptance remain.
+
 - Run Linux race root/other packages on independent runners with complete
   package discovery, unchanged race flags and20m/40m limits.
 

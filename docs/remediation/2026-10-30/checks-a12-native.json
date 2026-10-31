@@ -1,0 +1,1000 @@
+{
+  "stage": "A12 native acceptance complete on exact3faef706",
+  "source": "3faef70627937a04e9a092202d7032d16988e53a",
+  "source_archive_sha256": "8bec35ff732b4917876931b07fded7f4423c538bd5ab87360012a963154663de",
+  "main": {
+    "databaseId": 41150201102,
+    "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41150201102",
+    "headSha": "3faef70627937a04e9a092202d7032d16988e53a",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "main_jobs": 28,
+  "fork_workflow": {
+    "databaseId": 41150201097,
+    "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41150201097",
+    "headSha": "3faef70627937a04e9a092202d7032d16988e53a",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "fork_jobs": 8,
+  "raw_fork_test_runs": 11118,
+  "fork_checks": {
+    "fork (quic-go-utls, standalone)": {
+      "accepted": true,
+      "test_runs": 2566,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSendConnDetectGSOFailure"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSendConnSendmsgFailures"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSysConnSendGSO"
+        ]
+      ],
+      "unexpected": [],
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+      "fork": "quic-go-utls",
+      "source_commit": "5c4149bd840a7bc3c44af01c17f4b1ae49708560",
+      "toolchain": "go1.26.10",
+      "graph": "standalone",
+      "returncodes": [
+        0
+      ],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "source_sha256": "46574c99579a44d17d298d20f1e293d9b84bfc51403bf650c08d7a7cbb3f1662",
+      "skips": []
+    },
+    "fork (utls, production)": {
+      "accepted": true,
+      "test_runs": 645,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/utls",
+          "TestUTLSHandshakeClientParrotGolang"
+        ]
+      ],
+      "unexpected": [],
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+      "fork": "utls",
+      "source_commit": "a80d50e9f2b7051c0bb0797625ebae88e4977873",
+      "toolchain": "go1.26.10",
+      "graph": "production",
+      "returncodes": [
+        0
+      ],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "source_sha256": "a03861b48a743b68c1fcd3c464bddb5789d59de8b5543cb7d641db659560e3e3",
+      "skips": []
+    },
+    "fork (fhttp, standalone)": {
+      "accepted": true,
+      "test_runs": 1886,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestFinishLine"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestHeaderWriteSubsetAllocs"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestLinuxSendfile"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTraceRealDNS"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_NoHooks"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_NoHooks_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportIDNA_h1"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportIDNA_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportMaxIdleConns"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestWithCert"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicGet"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicGetAbsPath"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicPost"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIEnvIPv6"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIPostChunked"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCopyError"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDirUnix"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDirWindows"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDropProxyHeader"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDupHeaders"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestEnvOverride"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestHandlerStderr"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestInternalRedirect"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfo"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfoDirRoot"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfoNoRoot"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestRedirect"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestClient_Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestGClient_Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithCurl"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithCurl_LenientCipherSuites"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithH2Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestSpecCoverage"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestTransportExternal"
+        ]
+      ],
+      "unexpected": [],
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+      "fork": "fhttp",
+      "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+      "toolchain": "go1.26.10",
+      "graph": "standalone",
+      "returncodes": [
+        0,
+        0,
+        0
+      ],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97",
+      "skips": []
+    },
+    "fork (utls, standalone)": {
+      "accepted": true,
+      "test_runs": 645,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/utls",
+          "TestUTLSHandshakeClientParrotGolang"
+        ]
+      ],
+      "unexpected": [],
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+      "fork": "utls",
+      "source_commit": "a80d50e9f2b7051c0bb0797625ebae88e4977873",
+      "toolchain": "go1.26.10",
+      "graph": "standalone",
+      "returncodes": [
+        0
+      ],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "source_sha256": "a03861b48a743b68c1fcd3c464bddb5789d59de8b5543cb7d641db659560e3e3",
+      "skips": []
+    },
+    "fork (tls-client, production)": {
+      "accepted": true,
+      "test_runs": 462,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5E2E_HTTP3ThroughProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5PacketConn_ReadFromDropsForeignSource"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_HappyPath"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_ProtocolRacingUsesProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_SetProxyAtRuntime"
+        ]
+      ],
+      "unexpected": [],
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+      "fork": "tls-client",
+      "source_commit": "7b5e8ee614f865a78700c00c9efaaab6dbe071b9",
+      "toolchain": "go1.26.10",
+      "graph": "production",
+      "returncodes": [
+        0
+      ],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "source_sha256": "1682373647ec96dbc180b7bc70773071c4e5cfda9dea54f27e6452c865c5ab45",
+      "skips": []
+    },
+    "fork (fhttp, production)": {
+      "accepted": true,
+      "test_runs": 1886,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestFinishLine"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestHeaderWriteSubsetAllocs"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestLinuxSendfile"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTraceRealDNS"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_NoHooks"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_NoHooks_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportEventTrace_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportIDNA_h1"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportIDNA_h2"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestTransportMaxIdleConns"
+        ],
+        [
+          "github.com/igor-lemon/fhttp",
+          "TestWithCert"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicGet"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicGetAbsPath"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIBasicPost"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIEnvIPv6"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCGIPostChunked"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestCopyError"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDirUnix"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDirWindows"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDropProxyHeader"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestDupHeaders"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestEnvOverride"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestHandlerStderr"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestInternalRedirect"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfo"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfoDirRoot"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestPathInfoNoRoot"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/cgi",
+          "TestRedirect"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestClient_Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestGClient_Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithCurl"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithCurl_LenientCipherSuites"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestServerWithH2Load"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestSpecCoverage"
+        ],
+        [
+          "github.com/igor-lemon/fhttp/http2",
+          "TestTransportExternal"
+        ]
+      ],
+      "unexpected": [],
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+      "fork": "fhttp",
+      "source_commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+      "toolchain": "go1.26.10",
+      "graph": "production",
+      "returncodes": [
+        0,
+        0,
+        0
+      ],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "source_sha256": "523724f65d7d370afa65915eef175888dd74b41ee52d6619583a651fbfdf6d97",
+      "skips": []
+    },
+    "fork (quic-go-utls, production)": {
+      "accepted": true,
+      "test_runs": 2566,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSendConnDetectGSOFailure"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSendConnSendmsgFailures"
+        ],
+        [
+          "github.com/igor-lemon/quic-go-utls",
+          "TestSysConnSendGSO"
+        ]
+      ],
+      "unexpected": [],
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+      "fork": "quic-go-utls",
+      "source_commit": "5c4149bd840a7bc3c44af01c17f4b1ae49708560",
+      "toolchain": "go1.26.10",
+      "graph": "production",
+      "returncodes": [
+        0
+      ],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "source_sha256": "46574c99579a44d17d298d20f1e293d9b84bfc51403bf650c08d7a7cbb3f1662",
+      "skips": []
+    },
+    "fork (tls-client, standalone)": {
+      "accepted": true,
+      "test_runs": 462,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5E2E_HTTP3ThroughProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5PacketConn_ReadFromDropsForeignSource"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_HappyPath"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_ProtocolRacingUsesProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_SetProxyAtRuntime"
+        ]
+      ],
+      "unexpected": [],
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+      "fork": "tls-client",
+      "source_commit": "7b5e8ee614f865a78700c00c9efaaab6dbe071b9",
+      "toolchain": "go1.26.10",
+      "graph": "standalone",
+      "returncodes": [
+        0
+      ],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "source_sha256": "1682373647ec96dbc180b7bc70773071c4e5cfda9dea54f27e6452c865c5ab45",
+      "skips": []
+    }
+  },
+  "Go_native_results": {
+    "go (macos-latest, all)": [
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge",
+        "seconds": 259.947,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/browser",
+        "seconds": 0.136,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/capture",
+        "seconds": 0.016,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge",
+        "seconds": 124.56,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/cookie",
+        "seconds": 0.022,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/daemon",
+        "seconds": 2.355,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/echo",
+        "seconds": 9.552,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/engine",
+        "seconds": 0.019,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/fingerprint",
+        "seconds": 0.796,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/accept",
+        "seconds": 0.013,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile",
+        "seconds": 0.085,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/chromehash",
+        "seconds": 0.011,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/conntap",
+        "seconds": 0.009,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn",
+        "seconds": 0.359,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness",
+        "seconds": 32.183,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness/measure",
+        "seconds": 61.346,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/localhost",
+        "seconds": 0.01,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pcapng",
+        "seconds": 0.031,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pinned",
+        "seconds": 5.026,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/proctree",
+        "seconds": 0.035,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/redact",
+        "seconds": 0.01,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/profile",
+        "seconds": 22.375,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/proxy",
+        "seconds": 7.352,
+        "cached": false
+      }
+    ],
+    "go (ubuntu-latest, packages)": [
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/browser",
+        "seconds": 1.103,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/capture",
+        "seconds": 1.02,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge",
+        "seconds": 690.178,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/cookie",
+        "seconds": 1.137,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/daemon",
+        "seconds": 24.78,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/echo",
+        "seconds": 16.23,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/engine",
+        "seconds": 1.023,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/fingerprint",
+        "seconds": 3.987,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/accept",
+        "seconds": 1.012,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile",
+        "seconds": 1.187,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/chromehash",
+        "seconds": 1.014,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/conntap",
+        "seconds": 1.019,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn",
+        "seconds": 1.358,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness",
+        "seconds": 38.65,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness/measure",
+        "seconds": 62.598,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/localhost",
+        "seconds": 1.016,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pcapng",
+        "seconds": 1.059,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pinned",
+        "seconds": 36.279,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/proctree",
+        "seconds": 1.035,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/redact",
+        "seconds": 1.015,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/profile",
+        "seconds": 156.824,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/proxy",
+        "seconds": 22.893,
+        "cached": false
+      }
+    ],
+    "go (ubuntu-latest, root)": [
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge",
+        "seconds": 656.762,
+        "cached": false
+      }
+    ],
+    "go (windows-latest, all)": [
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge",
+        "seconds": 323.264,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/browser",
+        "seconds": 0.064,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/capture",
+        "seconds": 0.035,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge",
+        "seconds": 159.146,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/cookie",
+        "seconds": 0.036,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/daemon",
+        "seconds": 3.231,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/echo",
+        "seconds": 11.373,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/engine",
+        "seconds": 0.028,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/fingerprint",
+        "seconds": 0.81,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/accept",
+        "seconds": 0.026,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile",
+        "seconds": 0.203,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/chromehash",
+        "seconds": 0.055,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/conntap",
+        "seconds": 0.038,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn",
+        "seconds": 0.375,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness",
+        "seconds": 35.828,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness/measure",
+        "seconds": 62.12,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/localhost",
+        "seconds": 0.039,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pcapng",
+        "seconds": 0.066,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pinned",
+        "seconds": 7.345,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/redact",
+        "seconds": 0.041,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/profile",
+        "seconds": 46.61,
+        "cached": false
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/proxy",
+        "seconds": 15.711,
+        "cached": false
+      }
+    ]
+  },
+  "Linux_actual_package_union": {
+    "root": [
+      "github.com/Sec-CH-Lemon/tls-forge"
+    ],
+    "others": [
+      "github.com/Sec-CH-Lemon/tls-forge/browser",
+      "github.com/Sec-CH-Lemon/tls-forge/capture",
+      "github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge",
+      "github.com/Sec-CH-Lemon/tls-forge/cookie",
+      "github.com/Sec-CH-Lemon/tls-forge/daemon",
+      "github.com/Sec-CH-Lemon/tls-forge/echo",
+      "github.com/Sec-CH-Lemon/tls-forge/engine",
+      "github.com/Sec-CH-Lemon/tls-forge/fingerprint",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/accept",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/chromehash",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/conntap",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/harness",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/harness/measure",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/localhost",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/pcapng",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/pinned",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/proctree",
+      "github.com/Sec-CH-Lemon/tls-forge/internal/redact",
+      "github.com/Sec-CH-Lemon/tls-forge/profile",
+      "github.com/Sec-CH-Lemon/tls-forge/proxy"
+    ],
+    "unique": 23,
+    "each_exactly_once": true,
+    "test_flags": "-race -timeout20m",
+    "job_timeout_minutes": 40
+  },
+  "original_refusals": {
+    "main41146570390": "26/27;prematuremeasurementdeadline/root20m",
+    "fork41146570134": "7/8;standaloneH3peer200instead421"
+  },
+  "hashes": {
+    "124384660590.raw.log": "f3c7702fc2d778c600980ebda30dbe8d73cda797cd097b71eba177e378d157af",
+    "124384660770.raw.log": "8a2c93eae72227cf66a3ed4336ce4cbf13206a6b03e5121999a1537fde1f273e",
+    "124384660802.raw.log": "45a8117ef66d713094d088bd3d61492d9c66a065ee0758fdf644ab852a71212c",
+    "124384660808.raw.log": "b91c404eda5b79dfd41a8f3081bc3276d1ed98a3d09336ff6e92ff1caae8594a",
+    "124384660821.raw.log": "03a4c1428538e2f807f3de08535d5216a9707fc2be8eda84764dedb14efcdf6a",
+    "124384660838.raw.log": "89eef9647edd35260bb011053672ba5b3183152bd78f8b3f9e9c4e9f723d3204",
+    "124384660842.raw.log": "e5012a914b850cff507d27b684c3a9f77c1a7722705d35c1d95a570e0a0880ee",
+    "124384660856.raw.log": "002ba3aff78d9802fc18e298b059b9d103e9dda690dc0a85997ad79c201bea8c",
+    "124384660863.raw.log": "f4e67c3dd63f195355bbc55dd33d03bb4e4ad1c3e95e9e2a239ed66d2bc06541",
+    "124384660867.raw.log": "217b373fd714855cdeabff462e057f25348d24fd9ec27ad3371ea8f831a6c390",
+    "124384660884.raw.log": "ddb33afdd59c5f2f20be7c847240bdf31fd3d6e7d3a1ac0ed5a0367ce70b53e1",
+    "124384660910.raw.log": "d521d9a5bf10e491588c66bc6afb8324a222b015cb29b47d4b5c531b2381121c",
+    "124384660926.raw.log": "8b93e545350c233c11d777f0fcbab0cbc52fa7c59a34233a73d129f0de54cba5",
+    "124384660937.raw.log": "0cce89dfa94975d5a55f3ddbff4b74fe49e60a95cb7320b4453074d09d04b014",
+    "124384660943.raw.log": "f74ef09f6f0fab4a0bf2fb36ac154edb2cb49f2738bf2cec782025c1c31be7d3",
+    "124384660977.raw.log": "5cb4989565f790899a4c5e1f813cb5a67af1a0fb1f8ae31959348a03a5ba6d0d",
+    "124384660982.raw.log": "602d674f8a42648a9a336ae269c0eb77d8b5b6e10e458c0f6a454057f7eaaf53",
+    "124384660984.raw.log": "299bf24f84f0b6e4acf571cdea8ec83ff4df805a561d14d6cb82d47733a803e3",
+    "124384660996.raw.log": "cf340aa212e2e2347968fabb5f93406aedd280ffcca880f5ff3959635e5f34cd",
+    "124384661017.raw.log": "90825281a8eb17ed2c7184c69c46f1eb0f74c00455d8f1757931b76dfb231f5e",
+    "124384661022.raw.log": "4e05025ca6d03a53e16d2e6f05761432009588cb4e81278c842ed359f24840a5",
+    "124384661168.raw.log": "e593d5cf141ad9fb36791ab80cb5bd5fd96b571e8c6b7b589408b3a57a4bfbce",
+    "124384666796.raw.log": "5ec6809345795ba30ca0d9f08a271c14a7e52911e5156802cb5af2cc303b36ea",
+    "124385682090.raw.log": "f219d1848a3c70d641bbbde8af04a9fb77b223452db95660b1c75b391214e16b",
+    "124385682111.raw.log": "f11449a2791e6368cec86226199e9f28b3892e62d6bd68d1eb7ef61c5ce39330",
+    "124385682162.raw.log": "4fbf1f862e8c138444eaf44ad4a94ac55d42f31e90e05f336bc85a0a52683bf7",
+    "124385682212.raw.log": "9934d04727f584a1fb2db890e6d9cff53dfc5c4932bf7b225b55883a96697414",
+    "124385682237.raw.log": "49c0de94ce49267be7f71864d16e46ce6d1e3927da4bd47d916fff4e3c8aad73",
+    "124384660832.raw.log": "c15c142c4090f9d85881a2c9e18ba3deb8efc814ce9ad17d7ca26f309f30b27e",
+    "124384660968.raw.log": "ca929b4f6e7b51ec78514865492976ff6cefb0fbf5b822f5d0caa263fb1ed690",
+    "124384660986.raw.log": "9143c4107bbe71687aa156e00b985e7cc2fd37a0795b54c33f8fce6bb87cdc3d",
+    "124384661000.raw.log": "c7face00d5c855afb9718ac220bef3730f895bbeb78959b452574934bc311b07",
+    "124384661063.raw.log": "9ef563657c3fd67525f5b3f9de95eab53434b65fcd47f51678d969d29f047d8f",
+    "124384661096.raw.log": "2e3332cdedcc16811571f7a8c891084815b1aee1934483576a9be40dfe8de58a",
+    "124384661126.raw.log": "567ffaeceeacae91e861e8e6046e783443efdbda2336b79abc247cbad6df1ca3",
+    "124384661422.raw.log": "7f55fc2e79b1d4d9e5d88f7b460e705f1038e24d53568869cf5119e5bd40d219"
+  },
+  "limits": [
+    "Finite156macOS DNS/TLS/ACK observations only;nativeGoCI doesnotvalidateeveryhistoricalbrowser/platformwire",
+    "IntentionalTLS/ACK/earlyQUICclose/replayexceptions retained perownerdecision",
+    "A13catalogue/networkestimator andA14overallreadiness remainopen;no universalindistinguishabilityclaim"
+  ],
+  "local_followup_evidence": {
+    "LOCAL-ALT-SVC": {
+      "directory": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a12-20261030/NATIVE-20261031/LOCAL-ALT-SVC",
+      "files": 38,
+      "bytes": 7869489,
+      "manifest_sha256": "470e3c93b7a385971aee6fd3b0edfc02697464205ac9ca48232568b450d3279b"
+    },
+    "LOCAL-LINUX-REPAIR": {
+      "directory": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a12-20261030/NATIVE-20261031/LOCAL-LINUX-REPAIR",
+      "files": 37,
+      "bytes": 27954170,
+      "manifest_sha256": "741c6ea5b0d3b2e1aa7834c3debe106d40f4f485fde852f72e192dbc2254b88c"
+    }
+  },
+  "publication": {
+    "root": "origin/development@3faef70627937a04e9a092202d7032d16988e53a",
+    "tls_client": "origin/tls-forge@7b5e8ee614f865a78700c00c9efaaab6dbe071b9",
+    "authorized": "Explicitownerapproval forinitialA12 andfork/rootfollowup;bothperformed"
+  },
+  "final_native_capsule": {
+    "directory": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a12-20261030/NATIVE-20261031/FINAL",
+    "files": 211,
+    "bytes": 45848292,
+    "manifest_sha256": "e29885f08e3abfbce45dcd981a19bf4a4bfdc1744892af19d9d1e2f93eb32815"
+  },
+  "knowledge_base": {
+    "entries": 268,
+    "observations": 1550,
+    "render_check": "PASS"
+  }
+}
