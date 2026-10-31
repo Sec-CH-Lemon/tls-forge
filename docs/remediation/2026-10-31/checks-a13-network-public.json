@@ -1,0 +1,195 @@
+{
+  "scope": "A13/F03 A-B additional controlled H2 public-input experiment; production estimator remains open",
+  "browser": "Chrome156.0.8078.76 headed macOS27.0.1 arm64",
+  "flags": [
+    "--disable-quic",
+    "--disable-background-networking",
+    "MAP *.nqe.test ->127.0.0.1",
+    "SPKI exception only for owned loopback collector"
+  ],
+  "public_peer": "https://fp.tls-forge.com",
+  "peer_operation": "Existing bounded page/delay/bytes routes;no deployment or host settings changes",
+  "cohorts": 2,
+  "processes_per_cohort": 3,
+  "checked_delay_responses": 108,
+  "checked_downloads": 24,
+  "download_size_each": 1048576,
+  "owned_header_probe_requests": 264,
+  "per_process": {
+    "a0": {
+      "browser_product": "Chrome/156.0.8078.76",
+      "prelaunch_binary_sha256": "a0cd10cb5c31255959ffce60457762f0cf44709ae5f583a765f4b0b0535071cc",
+      "public_protocols": [
+        "h2"
+      ],
+      "remote_ips": [
+        "207.154.241.152"
+      ],
+      "quality_events": [
+        {
+          "downstream_throughput_kbps": 1600,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 116,
+          "transport_rtt_ms": 125
+        }
+      ]
+    },
+    "a1": {
+      "browser_product": "Chrome/156.0.8078.76",
+      "prelaunch_binary_sha256": "a0cd10cb5c31255959ffce60457762f0cf44709ae5f583a765f4b0b0535071cc",
+      "public_protocols": [
+        "h2"
+      ],
+      "remote_ips": [
+        "207.154.241.152"
+      ],
+      "quality_events": [
+        {
+          "downstream_throughput_kbps": 1600,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 116,
+          "transport_rtt_ms": 125
+        }
+      ]
+    },
+    "a2": {
+      "browser_product": "Chrome/156.0.8078.76",
+      "prelaunch_binary_sha256": "a0cd10cb5c31255959ffce60457762f0cf44709ae5f583a765f4b0b0535071cc",
+      "public_protocols": [
+        "h2"
+      ],
+      "remote_ips": [
+        "207.154.241.152"
+      ],
+      "quality_events": [
+        {
+          "downstream_throughput_kbps": 1600,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 116,
+          "transport_rtt_ms": 125
+        },
+        {
+          "downstream_throughput_kbps": 101307,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 46,
+          "transport_rtt_ms": 125
+        },
+        {
+          "downstream_throughput_kbps": 134702,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 116,
+          "transport_rtt_ms": 125
+        },
+        {
+          "downstream_throughput_kbps": 274954,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 119,
+          "transport_rtt_ms": 125
+        },
+        {
+          "downstream_throughput_kbps": 361475,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 129,
+          "transport_rtt_ms": 125
+        }
+      ]
+    },
+    "b0": {
+      "browser_product": "Chrome/156.0.8078.76",
+      "prelaunch_binary_sha256": "a0cd10cb5c31255959ffce60457762f0cf44709ae5f583a765f4b0b0535071cc",
+      "public_protocols": [
+        "h2"
+      ],
+      "remote_ips": [
+        "207.154.241.152"
+      ],
+      "quality_events": [
+        {
+          "downstream_throughput_kbps": 1600,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 46,
+          "transport_rtt_ms": 125
+        }
+      ]
+    },
+    "b1": {
+      "browser_product": "Chrome/156.0.8078.76",
+      "prelaunch_binary_sha256": "a0cd10cb5c31255959ffce60457762f0cf44709ae5f583a765f4b0b0535071cc",
+      "public_protocols": [
+        "h2"
+      ],
+      "remote_ips": [
+        "207.154.241.152"
+      ],
+      "quality_events": [
+        {
+          "downstream_throughput_kbps": 1600,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 116,
+          "transport_rtt_ms": 125
+        },
+        {
+          "downstream_throughput_kbps": 1600,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 45,
+          "transport_rtt_ms": 0
+        }
+      ]
+    },
+    "b2": {
+      "browser_product": "Chrome/156.0.8078.76",
+      "prelaunch_binary_sha256": "a0cd10cb5c31255959ffce60457762f0cf44709ae5f583a765f4b0b0535071cc",
+      "public_protocols": [
+        "h2"
+      ],
+      "remote_ips": [
+        "207.154.241.152"
+      ],
+      "quality_events": [
+        {
+          "downstream_throughput_kbps": 1600,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 45,
+          "transport_rtt_ms": 125
+        },
+        {
+          "downstream_throughput_kbps": 1600,
+          "effective_connection_type": "4G",
+          "http_rtt_ms": 37,
+          "transport_rtt_ms": 7
+        }
+      ]
+    }
+  },
+  "primary_observer_sources": [
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/net/nqe/event_creator.cc?format=TEXT",
+      "bytes": 3770,
+      "sha256": "1c7242822dca8a8096782a5fc86089cfed337c3bb6fa50e8478140cdb034fbad"
+    },
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/services/network/network_quality_estimator_manager.cc?format=TEXT",
+      "bytes": 7654,
+      "sha256": "7c0614eb81d53702740b6417b1b31495ab0ad4a64835b51b80ae2ebd3ba70a27"
+    },
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/net/base/features.cc?format=TEXT",
+      "bytes": 40952,
+      "sha256": "1c2923bbfbb057e4eecfa9abbcdb2b900ddd0279755fafef71aff562ff6c6831"
+    }
+  ],
+  "observer_rule": "NetLog metric absolute threshold100 +ratio1.2;browser publisher latency threshold20ms +ratio1.2;publisher bandwidth100kbps +ratio1.2;availability andECT changes separate",
+  "limitations": [
+    "No complete sample-by-sample NQE observer timeline is exposed by sparse NetLog",
+    "No controlled ECT transition or network-change/reset acceptance",
+    "H2 technical flags;not defaultH3/otherplatforms/historicalbuilds",
+    "Existing public server deployment source was not newly pinned;request/response protocol,status,size,timing andremoteIP retained",
+    "No implemented production estimator or paired product acceptance"
+  ],
+  "evidence": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/NQE-PUBLIC",
+    "files": 78,
+    "bytes": 1183370944,
+    "manifest_sha256": "86b34e23a6a8a71868ec5e6d96df062e16816564f0d41bf2a16a887aa6208315"
+  }
+}

@@ -3126,3 +3126,7 @@ neutral internal adapter ID, preventing `Golang`, `CustomInternal` and
 A13 network-hint research has [six headed156/macOS observations](docs/remediation/2026-10-31/A13-network-observations.ru.md)
 with raw headers/NetLog and pinned Chromium/libc++ rules. The production
 network estimator and historical/platform acceptance remain open.
+
+The [A13 public-input follow-up](docs/remediation/2026-10-31/A13-network-public.ru.md)
+retains six additional Chrome processes and explains the different NetLog and
+latency-publication thresholds; production estimator acceptance remains open.

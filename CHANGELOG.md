@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Extend A13 NQE evidence with six public-input Chrome processes,108 checked
+  delay responses and24 checked1-MiB downloads; retain separate NetLog/publisher
+  thresholds and the open production-estimator criteria.
+
 - Record A13 network-hint experiments: two cohorts, six headed Chrome156
   processes, four origins each, raw192 requests and explicit noise negative
   controls. Keep production estimator and historical/platform acceptance open.
