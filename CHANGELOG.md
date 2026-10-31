@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Pin approved uTLS bfb5cb3, QUIC 6f655a61 and tls-client 48691d4 for explicit
+  independent QUIC factories, transport/layout and ACK policies. Preserve the
+  original timing failures and accept the corrected test peer with unchanged
+  wire assertions. Record public dependency and root checks; A13 remains open.
+
 - Retain A13 before/after evidence for fresh hybrid/X25519 reuse, strict shared
   JSON validation and H3 test-peer ownership. Close accepted fixture connections
   and join readers; keep wire assertions and deadlines unchanged. Record complete

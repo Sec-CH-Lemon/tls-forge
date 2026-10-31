@@ -5,7 +5,7 @@ go 1.26.10
 require (
 	github.com/andybalholm/brotli v1.2.3
 	github.com/andybalholm/cascadia v1.3.3
-	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261031104912-0c35ebb0af98
+	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261031222915-6f655a6167d6
 	github.com/klauspost/compress v1.20.0
 	github.com/spf13/pflag v1.0.10
 	golang.org/x/crypto v0.58.0
@@ -20,8 +20,8 @@ require (
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/igor-lemon/fhttp v0.6.10-0.20261030170200-24c1c55ecaf2
-	github.com/igor-lemon/tls-client v1.15.2-0.20261031111436-d22be148271f
-	github.com/igor-lemon/utls v1.7.8-barnius.0.20261031104910-8bfa7feee58e
+	github.com/igor-lemon/tls-client v1.15.2-0.20261031232038-48691d443162
+	github.com/igor-lemon/utls v1.7.8-barnius.0.20261031222600-bfb5cb3ef7ea
 	github.com/quic-go/qpack v0.6.0
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	golang.org/x/sys v0.49.0

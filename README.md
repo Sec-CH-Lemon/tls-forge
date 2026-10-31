@@ -3177,3 +3177,8 @@ The [A13 QUIC/JSON foundation](docs/remediation/2026-10-31/A13-foundation.ru.md)
 records accepted key generation, strict JSON and H3 fixture lifetime controls.
 Its full23normal/23race catalogue snapshot passes without changing wire checks
 or deadlines; complete native-QUIC/catalogue and network-estimator acceptance remains open.
+
+The [published QUIC runtime foundation](docs/remediation/2026-10-31/A13-public-foundation.ru.md)
+pins independent QUIC factories, explicit transport/layout and ACK choices.
+Its dependency and root checks retain the original timing failures and their
+limits. Catalogue materialization and production network estimation continue.

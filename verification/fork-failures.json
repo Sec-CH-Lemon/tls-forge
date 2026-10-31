@@ -6,7 +6,7 @@
     "utls": {
       "module": "github.com/igor-lemon/utls",
       "repository": "https://github.com/igor-lemon/utls",
-      "commit": "8bfa7feee58e6691811ac64ed21c499fa273dc82"
+      "commit": "bfb5cb3ef7ea4c0e1836cdf2dfd2fda60ff522a0"
     },
     "fhttp": {
       "module": "github.com/igor-lemon/fhttp",
@@ -16,12 +16,12 @@
     "tls-client": {
       "module": "github.com/igor-lemon/tls-client",
       "repository": "https://github.com/igor-lemon/tls-client",
-      "commit": "d22be148271f4a6897ee05b6f5ec45ad9d4f88bd"
+      "commit": "48691d443162c7637223be2907bf466564bb9bf5"
     },
     "quic-go-utls": {
       "module": "github.com/igor-lemon/quic-go-utls",
       "repository": "https://github.com/igor-lemon/quic-go-utls",
-      "commit": "0c35ebb0af9881906e19b83581a359ccfdc30677"
+      "commit": "6f655a6167d6e254965047cdd7cd3cd7592b95f1"
     }
   },
   "known_failures": [],

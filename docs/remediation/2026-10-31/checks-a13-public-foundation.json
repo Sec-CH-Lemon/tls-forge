@@ -1,0 +1,51 @@
+{
+  "scope": "published dependency foundation only; full A13/F03 remains open",
+  "forks": {
+    "utls": {
+      "head": "bfb5cb3ef7ea4c0e1836cdf2dfd2fda60ff522a0",
+      "graphs_each": 695
+    },
+    "quic-go-utls": {
+      "head": "6f655a6167d6e254965047cdd7cd3cd7592b95f1",
+      "graphs_each": 2592,
+      "initial_standalone_1s_timeout_cause_proven": false,
+      "fixed_diagnostic_cohorts": {
+        "before": 32,
+        "after": 32
+      }
+    },
+    "tls-client": {
+      "head": "48691d443162c7637223be2907bf466564bb9bf5",
+      "graphs_each": 466,
+      "fixed_h3_scenarios": 384,
+      "initial_c098_coupled_5s_timeout_cause_proven": false,
+      "separate_fixture_collision_reproduced": true,
+      "runtime_change_vs_c098": false
+    }
+  },
+  "root_before_catalogue": {
+    "normal_packages": 23,
+    "race_packages": 23,
+    "source_drift": [],
+    "final_lint_issues": 0,
+    "final_pin_module_verify": true,
+    "final_pin_build": true,
+    "final_pin_targeted_peer_race": true,
+    "full_normal_race_tls_client_pin": "c098a97 runtime byte-identical to48691d4; final fixture pin verified separately"
+  },
+  "new_browser_processes": 0,
+  "checks_not_weakened": true,
+  "additional_diagnostic_limitation": "broad wire -race allocation assertion failed both old/new source; normal zero-allocation assertion retained, not a green broad wire-race claim",
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/PUBLIC-QUIC-FOUNDATION-R11",
+    "files": 245,
+    "bytes": 126365748,
+    "manifest_sha256": "df9b0fa75e9733a12c1703274148d2b817f1539d9241c06980508557c0e4fb7f",
+    "verified": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  },
+  "root_normal_covered_statements": 17059,
+  "root_normal_uncovered_statements": 0
+}
