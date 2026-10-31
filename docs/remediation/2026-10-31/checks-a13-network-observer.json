@@ -34,5 +34,14 @@
   ],
   "new_browser_processes": 0,
   "active_trials_receipt_sha256": "d636ff3a59fb194261660c9e87d769492bad5c66e19b9d45628ae8a637f1fa4c",
-  "measured_combinations": "existing 12 macOS processes only; no new reset/ECT/historical/platform acceptance"
+  "measured_combinations": "existing 12 macOS processes only; no new reset/ECT/historical/platform acceptance",
+  "private_source_capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/NQE-OBSERVER-SOURCE",
+    "files": 14,
+    "bytes": 384029,
+    "manifest_sha256": "289694ff237a6f672452cf43afc19cee8bec2a6244b0cbf2dc5cb3403c540856",
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  }
 }

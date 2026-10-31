@@ -11,6 +11,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Preserve the83-entry catalogue candidate, original/after wire evidence,
+  strict JSON controls and full fork receipts. Keep the native-QUIC JSON-first
+  counterexample and full-race H3 timeout open; runtime materialization is not
+  yet installed or accepted as A13 completion.
+  Seal private catalogue, QUIC-oracle and NQE-source capsules with manifests;
+  keep raw packets and secrets outside git.
+
 - Correct the QUIC idle-close test oracle to check canonical elapsed units
   against pinned QUICHE source, including duration bounds and negative controls.
   Preserve the original `1005ms` refusal and all packet/timing assertions;

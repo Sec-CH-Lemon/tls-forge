@@ -1,0 +1,713 @@
+{
+  "status": "UNACCEPTED full A13; private local catalogue candidate",
+  "engine": {
+    "version": "1.0.0",
+    "engine_major": 1,
+    "release_status": "unreleased",
+    "latest_published_anchor": "0.2.2",
+    "profile_schema": 4
+  },
+  "root_restore_base": "ee94b42a7806c2ddbf02a572ca4f51a525b64945",
+  "runtime_installed_in_root": false,
+  "forks_published_for_this_candidate": false,
+  "only_completed_authorized_push": "utls785f3ba73f67b8cf704e77bbd973282fc3c3fccf",
+  "candidate_graph": {
+    "GOWORK": "off",
+    "local_replaces": [
+      "utls",
+      "quic-go-utls",
+      "tls-client"
+    ],
+    "forks": {
+      "utls": {
+        "commit": "8bfa7feee58e6691811ac64ed21c499fa273dc82",
+        "branch": "tls-forge",
+        "status": ""
+      },
+      "quic-go-utls": {
+        "commit": "0c35ebb0af9881906e19b83581a359ccfdc30677",
+        "branch": "tls-forge",
+        "status": ""
+      },
+      "tls-client": {
+        "commit": "d22be148271f4a6897ee05b6f5ec45ad9d4f88bd",
+        "branch": "tls-forge",
+        "status": ""
+      },
+      "fhttp": {
+        "commit": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61",
+        "branch": "tls-forge",
+        "status": ""
+      }
+    },
+    "source_manifest_sha256": "47a70491fad525c68bdbabc12be1c91fc7b2eea17c8448f3416d85e449c844e3"
+  },
+  "catalogue": {
+    "entries": 83,
+    "production_go_preset_fallback": false,
+    "provenance": "Go preset export/import; zero new browser observations",
+    "native_quic_entries": [
+      "cloudscraper",
+      "confirmed_android",
+      "confirmed_ios",
+      "firefox_102",
+      "firefox_104",
+      "firefox_105",
+      "firefox_106",
+      "firefox_108",
+      "firefox_110",
+      "firefox_117",
+      "firefox_120",
+      "firefox_123",
+      "firefox_132",
+      "firefox_133",
+      "firefox_135",
+      "firefox_146_PSK",
+      "firefox_147",
+      "firefox_147_PSK",
+      "firefox_148",
+      "mesh_android",
+      "mesh_android_1",
+      "mesh_android_2",
+      "mesh_ios",
+      "mesh_ios_1",
+      "mesh_ios_2",
+      "mms_ios",
+      "mms_ios_1",
+      "mms_ios_2",
+      "mms_ios_3",
+      "nike_android_mobile",
+      "nike_ios_mobile",
+      "okhttp4_android_10",
+      "okhttp4_android_11",
+      "okhttp4_android_12",
+      "okhttp4_android_13",
+      "okhttp4_android_7",
+      "okhttp4_android_8",
+      "okhttp4_android_9",
+      "safari_15_6_1",
+      "safari_16_0",
+      "safari_ios_15_5",
+      "safari_ios_15_6",
+      "safari_ios_16_0",
+      "safari_ios_17_0",
+      "safari_ios_18_0",
+      "safari_ios_18_5",
+      "safari_ios_26_0",
+      "safari_ipad_15_6",
+      "zalando_android_mobile",
+      "zalando_ios_mobile"
+    ],
+    "all_representable_choices_json_owned": false,
+    "before_h1_h2_requests_after_separate_sentinel_repair": 498,
+    "before_h3_successful_requests": 204,
+    "before_h3_placeholder_failure_aliases": 15,
+    "after_h1_h2_requests": 498,
+    "after_h3_requests": 249,
+    "after_wire_files": 747,
+    "entry_route_rejection_cases": 336,
+    "dynamic_comparison": "Original bytes retained. TLS generation/session rules are checked by source-pinned descriptor oracle; H3 GREASE draws checked by declared integer/range/count rules, authority port normalized to owned-peer identity. Original nil-map order was undeclared; new6,51 order is an explicit change, not claimed equal."
+  },
+  "normal": {
+    "packages": [
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/engine",
+        "status": "pass",
+        "seconds": 0.199
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/capture",
+        "status": "pass",
+        "seconds": 0.204
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/conntap",
+        "status": "pass",
+        "seconds": 0.408
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/chromehash",
+        "status": "pass",
+        "seconds": 0.414
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/accept",
+        "status": "pass",
+        "seconds": 0.415
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/cookie",
+        "status": "pass",
+        "seconds": 0.421
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile",
+        "status": "pass",
+        "seconds": 0.498
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/localhost",
+        "status": "pass",
+        "seconds": 0.206
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/fingerprint",
+        "status": "pass",
+        "seconds": 0.636
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/proctree",
+        "status": "pass",
+        "seconds": 0.219
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pcapng",
+        "status": "pass",
+        "seconds": 0.242
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/redact",
+        "status": "pass",
+        "seconds": 0.191
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn",
+        "status": "pass",
+        "seconds": 0.756
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/browser",
+        "status": "pass",
+        "seconds": 1.135
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/daemon",
+        "status": "pass",
+        "seconds": 1.7149999999999999
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pinned",
+        "status": "pass",
+        "seconds": 3.387
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/proxy",
+        "status": "pass",
+        "seconds": 7.796
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/echo",
+        "status": "pass",
+        "seconds": 9.076
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/profile",
+        "status": "pass",
+        "seconds": 12.187
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness",
+        "status": "pass",
+        "seconds": 32.514
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness/measure",
+        "status": "pass",
+        "seconds": 61.37
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge",
+        "status": "pass",
+        "seconds": 72.25
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge",
+        "status": "pass",
+        "seconds": 182.271
+      }
+    ],
+    "returncode": 0,
+    "coverage_statements": 17082,
+    "uncovered_statements": 0,
+    "lint": "0 issues."
+  },
+  "race": {
+    "packages": [
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/engine",
+        "status": "pass",
+        "seconds": 1.409
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/cookie",
+        "status": "pass",
+        "seconds": 1.438
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/capture",
+        "status": "pass",
+        "seconds": 1.439
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile",
+        "status": "pass",
+        "seconds": 1.4889999999999999
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/accept",
+        "status": "pass",
+        "seconds": 1.5779999999999998
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/chromehash",
+        "status": "pass",
+        "seconds": 1.58
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/conntap",
+        "status": "pass",
+        "seconds": 1.6640000000000001
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn",
+        "status": "pass",
+        "seconds": 1.933
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/browser",
+        "status": "pass",
+        "seconds": 2.087
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/localhost",
+        "status": "pass",
+        "seconds": 1.207
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pcapng",
+        "status": "pass",
+        "seconds": 1.284
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/proctree",
+        "status": "pass",
+        "seconds": 1.214
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/redact",
+        "status": "pass",
+        "seconds": 1.199
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/fingerprint",
+        "status": "pass",
+        "seconds": 2.9130000000000003
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/daemon",
+        "status": "pass",
+        "seconds": 13.613
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/echo",
+        "status": "pass",
+        "seconds": 13.69
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/proxy",
+        "status": "pass",
+        "seconds": 15.421
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pinned",
+        "status": "pass",
+        "seconds": 26.239
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness",
+        "status": "pass",
+        "seconds": 37.415
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness/measure",
+        "status": "pass",
+        "seconds": 62.682
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/profile",
+        "status": "pass",
+        "seconds": 114.477
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge",
+        "status": "pass",
+        "seconds": 514.643
+      },
+      {
+        "package": "github.com/Sec-CH-Lemon/tls-forge",
+        "status": "fail",
+        "seconds": 687.479
+      }
+    ],
+    "returncode": 1,
+    "failed_tests": [
+      "TestA13CatalogueHTTP3Production/okhttp4_android_10",
+      "TestA13CatalogueHTTP3Production"
+    ],
+    "cause": "not established; H3 timeout remains open",
+    "source_drift": []
+  },
+  "fuzz": {
+    "result": "pass",
+    "executions": 198541,
+    "seconds": 31.371,
+    "log_sha256": "3a75c151884939e7e1b0bfb54ef3dc069ed33839b9cd4bd78a6f0ecfe83a63f7",
+    "scope": "After strict decoder change. R09 subsequent changes are comment, inventory and test-only oracle; production decoder bytes identical."
+  },
+  "fork_graphs": {
+    "utls": {
+      "standalone": {
+        "source_commit": "8bfa7feee58e6691811ac64ed21c499fa273dc82",
+        "accepted": true,
+        "test_runs": 648,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/utls",
+            "TestUTLSHandshakeClientParrotGolang"
+          ]
+        ],
+        "returncodes": [
+          0
+        ],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "source_archive_sha256": "f580a02c24278a96c982412270190514cc78f2fe86ceaface7749f77a0092bc4"
+      },
+      "production": {
+        "source_commit": "8bfa7feee58e6691811ac64ed21c499fa273dc82",
+        "accepted": true,
+        "test_runs": 648,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/utls",
+            "TestUTLSHandshakeClientParrotGolang"
+          ]
+        ],
+        "returncodes": [
+          0
+        ],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "source_archive_sha256": "f580a02c24278a96c982412270190514cc78f2fe86ceaface7749f77a0092bc4"
+      }
+    },
+    "quic-go-utls": {
+      "standalone": {
+        "source_commit": "0c35ebb0af9881906e19b83581a359ccfdc30677",
+        "accepted": true,
+        "test_runs": 2589,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSendConnDetectGSOFailure"
+          ],
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSendConnSendmsgFailures"
+          ],
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSysConnSendGSO"
+          ]
+        ],
+        "returncodes": [
+          0
+        ],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "source_archive_sha256": "e1cc1ed762c697bf2d5c7f2f07474e5ef3bf839ad6aa5ece8613083dfe599943"
+      },
+      "production": {
+        "source_commit": "0c35ebb0af9881906e19b83581a359ccfdc30677",
+        "accepted": true,
+        "test_runs": 2589,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSendConnDetectGSOFailure"
+          ],
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSendConnSendmsgFailures"
+          ],
+          [
+            "github.com/igor-lemon/quic-go-utls",
+            "TestSysConnSendGSO"
+          ]
+        ],
+        "returncodes": [
+          0
+        ],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "source_archive_sha256": "e1cc1ed762c697bf2d5c7f2f07474e5ef3bf839ad6aa5ece8613083dfe599943"
+      }
+    },
+    "tls-client": {
+      "standalone": {
+        "source_commit": "d22be148271f4a6897ee05b6f5ec45ad9d4f88bd",
+        "accepted": true,
+        "test_runs": 463,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/tls-client",
+            "TestSocks5E2E_HTTP3ThroughProxy"
+          ],
+          [
+            "github.com/igor-lemon/tls-client",
+            "TestSocks5PacketConn_ReadFromDropsForeignSource"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_HappyPath"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_ProtocolRacingUsesProxy"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_SetProxyAtRuntime"
+          ]
+        ],
+        "returncodes": [
+          0
+        ],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "source_archive_sha256": "528674063ef7c6f815a36285ea4e0026676fa4e942f5c5821d0c605f101f5688"
+      },
+      "production": {
+        "source_commit": "d22be148271f4a6897ee05b6f5ec45ad9d4f88bd",
+        "accepted": true,
+        "test_runs": 463,
+        "test_skips": [
+          [
+            "github.com/igor-lemon/tls-client",
+            "TestSocks5E2E_HTTP3ThroughProxy"
+          ],
+          [
+            "github.com/igor-lemon/tls-client",
+            "TestSocks5PacketConn_ReadFromDropsForeignSource"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_HappyPath"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_ProtocolRacingUsesProxy"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+          ],
+          [
+            "github.com/igor-lemon/tls-client/tests",
+            "TestSocks5Proxy_SetProxyAtRuntime"
+          ]
+        ],
+        "returncodes": [
+          0
+        ],
+        "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict.",
+        "source_archive_sha256": "528674063ef7c6f815a36285ea4e0026676fa4e942f5c5821d0c605f101f5688"
+      }
+    }
+  },
+  "fork_graph_scope": "Source-pinned regression gates; unchanged capability skips, no known-failure allowances or invocation exclusions. Production other modules still previously published; final coupled published graph pending.",
+  "native_quic_counterexample": {
+    "status": "reproduced-open",
+    "alias": "firefox_148",
+    "scenarios": [
+      {
+        "json_choice": 1250,
+        "observed_first_datagram_bytes": 1280,
+        "profile_sha256": "0afd1d2cb5ed8b98a4a86e15559d89d7abf1e98356f0d6c60eac0ba42c9bd000",
+        "first_datagram_sha256": "94a4531498691edce698d4a9dc06ec964686677858d0a30cb82eb4cf7cbd1c47"
+      },
+      {
+        "json_choice": 1300,
+        "observed_first_datagram_bytes": 1280,
+        "profile_sha256": "4c0db9797080f886d8a088934e0586a2c1f6176248116ff1ccc75d50ea6cac55",
+        "first_datagram_sha256": "98cb787309e5ff8ffea1e792aba0d70382592305c2dae96e484c13f5a368b296"
+      }
+    ],
+    "denominator": "50 entries select same native branch by source inventory; only one alias/two JSON choices measured on wire",
+    "earlier_fixture_failures": "native-quic-gap.jsonl andnative-quic-gap-racing.jsonl are invalid DNS fixtures, not product proofs"
+  },
+  "h3_timeout_diagnostic": {
+    "status": "not replacement acceptance",
+    "predeclared_repetitions": 10,
+    "aliases_per_repetition": 83,
+    "cases": 830,
+    "failures": 0,
+    "lifetime_snapshots": 830,
+    "active_before_fixture_close": 830,
+    "max_goroutines": 1011,
+    "difference": "server qlog plus explicit owned connection close after each scenario; assertions/deadlines unchanged",
+    "cause_of_original_timeout_proven": false
+  },
+  "restoration": {
+    "root_base": "ee94b42a7806c2ddbf02a572ca4f51a525b64945",
+    "kind": "restorable unpublished catalogue candidate; not accepted full A13",
+    "runtime_allowlist": [
+      "a13_catalogue_error_policy_test.go",
+      "a13_catalogue_h3_test.go",
+      "a13_catalogue_http_test.go",
+      "a13_catalogue_policy_test.go",
+      "a13_empty_h3_settings_test.go",
+      "a6_entry_test.go",
+      "client.go",
+      "client_test.go",
+      "cmd/tls-forge/local.go",
+      "go.mod",
+      "log.go",
+      "log_test.go",
+      "profile/behavior.go",
+      "profile/catalogue.go",
+      "profile/catalogue.json",
+      "profile/catalogue_data_test.go",
+      "profile/descriptor_json.go",
+      "profile/engine_test.go",
+      "profile/profile.go",
+      "profile/profile_test.go",
+      "profile/registry.go",
+      "profile/registry_test.go",
+      "profile/semantic.go",
+      "profile/semantic_json.go",
+      "profile/semantic_test.go",
+      "profile/settings_json.go",
+      "profile/shuffle_test.go",
+      "profile/testdata/catalogue-h3-before-unavailable.json",
+      "profile/testdata/catalogue-http3-export.json",
+      "profile/tlsspec.go",
+      "verification/fork-failures.json"
+    ],
+    "tested_source_frozen_manifest_sha256": "47a70491fad525c68bdbabc12be1c91fc7b2eea17c8448f3416d85e449c844e3",
+    "files": {
+      "a13_catalogue_error_policy_test.go": "292bfebf7ba7e79a7dc9c283222f7c7eecd34c361ce7468c00d06450f062a902",
+      "a13_catalogue_h3_test.go": "93aae0a757831889827cddc3487d8abd4502eba60975bcff948bb51aa1950177",
+      "a13_catalogue_http_test.go": "0888695ae0311b5c9d7e581cafcdbe358855cfc2a0cf40af49011e7ccd8ad7e7",
+      "a13_catalogue_policy_test.go": "60bd7129d61955812bcc210d018fb7402f451074ead796d9605eb1fcb7cb1398",
+      "a13_empty_h3_settings_test.go": "b16b25ea05a927710774f58644cb5f492a182f20ae541b6ff9b2f114d96e97c7",
+      "a6_entry_test.go": "18d1afd20407a434b90e1c44c6cf6d440718c34539a7e670a9db34b52057b307",
+      "client.go": "c39bff3fdba2fb4100cb042440eca4218b19f71c033d2b4c1b3fa0cc20decda5",
+      "client_test.go": "30c07cf0dee7c9d6f5feff7f37ded19b9e5caa73a6986e98c5537251ac6f41dd",
+      "cmd/tls-forge/local.go": "aeeb7598d56c6bb893b196b9780285e683ea109468ce1d327a36b766d24f9363",
+      "go.mod": "4914a6461d7ccef5f9cbdb532b24fada8fe2ecab2888e3068162d971cad5cfdf",
+      "log.go": "9a9ace02cd2b58a487edbc6caa6496c64a608af947ac8b194658e91005b70f1d",
+      "log_test.go": "ce4ca502249df4bd7e25a8c71fd171f3971883a600ad8311111c48a863432a3f",
+      "profile/behavior.go": "0e43799397500bea053643cba4bf5105eeaa5e03d693fdfcd664b3ad21ed9fbc",
+      "profile/catalogue.go": "f179cb6caca7c08bda39439ed851fe7f7e11ab095c57ec35d3718eceb30efd86",
+      "profile/catalogue.json": "7e516e7451e604c2dbcc260cff3e695121ad40801b4d13dd12fb66a00ab68b8b",
+      "profile/catalogue_data_test.go": "e7d2d2d702627db05857f8c905e94f4ea67fed01a3a48d59d3cea7a104da3105",
+      "profile/descriptor_json.go": "a983c90b22b9cca69b439f7e8bc200fd0a152b33a42a41439eae413afbb15ee2",
+      "profile/engine_test.go": "bab3f01cff88769d5c69d58a098193b2dcd19ccd24d2d93040721adf05fe6c83",
+      "profile/profile.go": "5b912a03fd62a6a4b1029a565d9a3651993113b0629b55baa43b41f34017c2b6",
+      "profile/profile_test.go": "a0f38d87f34ee590cc3079ce5aae7ae5c1b5e1c318467b094360cf3b6b10af73",
+      "profile/registry.go": "923eeef2cf18ca52aac8a22a09e5d49b1001bbfeb20259c58a69fddc526ef2a4",
+      "profile/registry_test.go": "cace5e7fec9ca4c2345f035ade73742e07468a6b534c7eea73140a0f4599ace0",
+      "profile/semantic.go": "4e70f7617578555ed23bfa5c79be0e7b315812419d256d96e0533f372c76d2cb",
+      "profile/semantic_json.go": "ba0eedf3f8804e96d38ed515b9c4fa02669b5dec25e184871d3bf24bc8406497",
+      "profile/semantic_test.go": "02dca70082761d0d6ee2dde36b29635771c8457fd5c427c7951e01158de1bd48",
+      "profile/settings_json.go": "d566737b42975b5e023a98f8e3ec474d6968f9e89fa674d3febdaf7839a39506",
+      "profile/shuffle_test.go": "3930b67ff103f75920b62a8acf15a92693d97a0b0d91f3af6e6cf59173542e40",
+      "profile/testdata/catalogue-h3-before-unavailable.json": "54f76a4f5e5b09aaa1a8104c78648ab63c9984a84e02982f350041ffae1ed756",
+      "profile/testdata/catalogue-http3-export.json": "7ae92406f1db38242bcd29d0c15343ed762c78084f21eb5c605ff1233cb33d60",
+      "profile/tlsspec.go": "188d27d37b03adcb6c799ee1c74b0e9d5555e0dd549ef8d25716e28bbc1dd65a",
+      "verification/fork-failures.json": "d20285fd4ff3b8bdd5842808bb7006d9d5c0e5bdba86b09935eed841e73cf466"
+    },
+    "artifacts": {
+      "catalogue-r09-runtime.patch": "402c6002d4bfbe685405f79301f32166a941a6e3913cc2b2da00e201fbd0ce30",
+      "catalogue-r09-tested-source.tar": "b09408215e0d71f2f8d9ee373b907bd11f873edaa47820c61396cbac251de5a9",
+      "catalogue-r09-restorable-source.tar": "775d25876e666e2ee8f02f64cd19898486de1cf006fd654d7d1b3e9be71fb082",
+      "catalogue-before-actual-source.tar": "7b2c652f8048b17d94765f0b36f63e325a8038b2436906f13cf87e0bcf18f30c",
+      "catalogue-native-diagnostic-source.tar": "67a2aadcf43dc4aa8f353b4f907d9e75f740b32ec94e699dbb49e3c1a2bccf6e"
+    },
+    "local_replaces": [
+      "utls",
+      "quic-go-utls",
+      "tls-client"
+    ],
+    "requires_before_runtime_commit": [
+      "explicit fork publication",
+      "pin actual published module versions; remove local replaces",
+      "tidy/verify/notices and fork inventory",
+      "document catalogue full-data API and new JSON fields in README/CHANGELOG/profile docs/AGENTS",
+      "fix or retain open native50 data-ownership counterexample and failed H3 race receipt",
+      "repeat relevant final gates and authorized native CI"
+    ]
+  },
+  "private_capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/CATALOGUE-CANDIDATE-R09",
+    "files": 5108,
+    "bytes": 265797862,
+    "manifest_sha256": "64616e23b28a92868dea6f38c0536f3c62c80bafa80230a6927a0c78574e4d78",
+    "verified_all_hashes": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  },
+  "execution_receipts": [
+    {
+      "label": "all",
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-timeout",
+        "20m",
+        "-covermode=set",
+        "-coverprofile=/private/tmp/tls-forge-a13-20261031/catalogue-r09-final.cover",
+        "./..."
+      ],
+      "seconds": 185.85508394241333,
+      "returncode": 0,
+      "source_drift": []
+    },
+    {
+      "label": "race",
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-timeout",
+        "20m",
+        "./..."
+      ],
+      "seconds": 694.0940821170807,
+      "returncode": 1,
+      "source_drift": []
+    }
+  ],
+  "raw_log_sha256": {
+    "catalogue-r06-all.jsonl": "0350dcc60bce169d45bef23641ddf1fd688f01dedc308b7a1d48d8c2cf97ace2",
+    "catalogue-r08-all.jsonl": "755b225da492a7e09c3fccaee78e9a89024d02060bb2a57e13186d2d622ff988",
+    "catalogue-r09-all.jsonl": "b25fe5fd4d3cd931f4038bd579bcc33f7991013cb37e21ba9d0c251c6cc10c36",
+    "catalogue-r09-race.jsonl": "83ad0a7afabc3da1a050091f93102a50c2476964135a5cd0453a7426c14ec313",
+    "catalogue-r09-wire.jsonl": "75bdefbd6fa3fec686de0fab240d04fd2e8a2b6453d5ef8c00e4b604578e074d",
+    "native-quic-gap-ip.jsonl": "0bfea7a38a9a05c488a1725423bcba7c48a2fdb00f6afb2d35955ff2543f5f22",
+    "h3-timeout-diagnostic.jsonl": "c00ea445b41042001da926f10b6e25e7921299f021f5b6c4701b30ce6d1e3a25"
+  },
+  "remaining": [
+    "native QUIC data ownership for50aliases; retained actual JSON-only RED",
+    "H3 full-race timeout; fixture lifetime/cause diagnosis and unchanged full gate",
+    "authorize/publish exact fork ranges8bfa7fe/0c35ebb0/d22be148, pin real module versions and remove local replaces",
+    "runtime field-reference/SDK/API docs, tidy/verify/notices and coupled production fork graphs before root runtime commit",
+    "F03 controlled transitions/reset inputs and real production estimator C-E; numeric P3 timebox unanswered",
+    "root publication/native A13 CI; historical/browser/platform denominator; A14 overall acceptance"
+  ]
+}

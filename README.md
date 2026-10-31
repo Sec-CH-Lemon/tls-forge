@@ -3158,3 +3158,11 @@ The [A13 QUIC idle-close test correction](docs/remediation/2026-10-31/A13-idle-o
 checks QUICHE's canonical elapsed-time units and bounded durations. It retains
 the original wire refusal, packet/timing assertions and two negative controls;
 runtime and profile timers are unchanged.
+
+The [A13 catalogue candidate](docs/remediation/2026-10-31/A13-catalogue-candidate.ru.md)
+retains83 exported data entries and before/after wire evidence outside the
+working tree. Its normal regression gate passes; full race and native-QUIC
+data ownership remain open. The report keeps these limits separate from fork
+gates, dependency publication and the unimplemented network estimator.
+Separate ignored capsules retain the raw catalogue evidence and pinned NQE
+observer sources; public reports carry hashes and bounded acceptance receipts.
