@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Record the A13 checkpoint, separately validated83-alias TLS candidate and
+  required dependency-publication step. Keep F02/C,F03C-E and native A13 open;
+  committed source builds without local dependency replacements.
+
 - Extend A13 NQE evidence with six public-input Chrome processes,108 checked
   delay responses and24 checked1-MiB downloads; retain separate NetLog/publisher
   thresholds and the open production-estimator criteria.

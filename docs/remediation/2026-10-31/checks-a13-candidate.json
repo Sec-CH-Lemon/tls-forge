@@ -1,0 +1,164 @@
+{
+  "kind": "validated local TLS descriptor candidate;not committed or published-pin accepted",
+  "root_base": "65f66e9",
+  "required_utls": "785f3ba73f67b8cf704e77bbd973282fc3c3fccf",
+  "fork_graphs": {
+    "standalone": {
+      "accepted": true,
+      "test_runs": 646,
+      "known_failures": [],
+      "unexpected": [],
+      "source_commit": "785f3ba73f67b8cf704e77bbd973282fc3c3fccf",
+      "returncodes": [
+        0
+      ]
+    },
+    "production": {
+      "accepted": true,
+      "test_runs": 646,
+      "known_failures": [],
+      "unexpected": [],
+      "source_commit": "785f3ba73f67b8cf704e77bbd973282fc3c3fccf",
+      "returncodes": [
+        0
+      ]
+    }
+  },
+  "full_packages": [
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile",
+      "seconds": 0.325,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/accept",
+      "seconds": 0.452,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/capture",
+      "seconds": 0.459,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/conntap",
+      "seconds": 0.453,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/chromehash",
+      "seconds": 0.455,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/engine",
+      "seconds": 0.459,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/cookie",
+      "seconds": 0.468,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/redact",
+      "seconds": 0.175,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/localhost",
+      "seconds": 0.189,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/proctree",
+      "seconds": 0.191,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pcapng",
+      "seconds": 0.224,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn",
+      "seconds": 0.804,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/fingerprint",
+      "seconds": 0.82,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/browser",
+      "seconds": 0.951,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/daemon",
+      "seconds": 1.7770000000000001,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pinned",
+      "seconds": 3.077,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/proxy",
+      "seconds": 7.704,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/echo",
+      "seconds": 9.138,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/profile",
+      "seconds": 10.227,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness",
+      "seconds": 32.151,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge",
+      "seconds": 58.153,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness/measure",
+      "seconds": 61.303,
+      "status": "pass"
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge",
+      "seconds": 173.137,
+      "status": "pass"
+    }
+  ],
+  "coverage_percent": 100,
+  "uncovered_statements": 0,
+  "lint": "0 issues",
+  "race": "PASS;profile androot83TLSadapters/7JSONvariants/240entryroutes/7specialnames",
+  "fuzz": "PASS35,387execs/31.557s;no failure",
+  "source_archive_sha256": "4c32b5fbee81b4162239f1583ee36693391b732e766d9fccb2571f3a81dc1e86",
+  "pending_patch_sha256": "a7a50106fbc7610dbb4515105ff21e32580eb39e3b5fa32f1ede9055ce437250",
+  "remaining": [
+    "required fork publication and pinned GOWORK=off build",
+    "runtime catalogue MappedTLSClients still present;83TLS-only adapters are not fullcatalogue closure",
+    "production network estimator andfullF03C-E",
+    "A13nativeCI andA14whole readiness"
+  ],
+  "private_capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/TLS-CANDIDATE",
+    "files": 1024,
+    "bytes": 46464465,
+    "manifest_sha256": "c37bd4e0cb69d093579636002310e89668cb516e1e80237b6a3c7864c557d386"
+  },
+  "workspace_state": "Candidate saved outside workingtree pending fork publication approval; committed root builds GOWORK=off with published dependency pins"
+}

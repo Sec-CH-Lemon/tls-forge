@@ -3130,3 +3130,7 @@ network estimator and historical/platform acceptance remain open.
 The [A13 public-input follow-up](docs/remediation/2026-10-31/A13-network-public.ru.md)
 retains six additional Chrome processes and explains the different NetLog and
 latency-publication thresholds; production estimator acceptance remains open.
+
+[A13 status and continuation](docs/remediation/2026-10-31/A13.ru.md) records
+committed fixes, the separately archived TLS candidate and open catalogue/
+network-estimator criteria. Committed source retains published dependency pins.
