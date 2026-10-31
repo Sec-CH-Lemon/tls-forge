@@ -3122,3 +3122,7 @@ Profile names and User-Agent cannot select a uTLS implementation. A13 uses a
 neutral internal adapter ID, preventing `Golang`, `CustomInternal` and
 `Randomized*` metadata from bypassing profile data. See the
 [before/after checks](docs/remediation/2026-10-31/A13-identity.ru.md).
+
+A13 network-hint research has [six headed156/macOS observations](docs/remediation/2026-10-31/A13-network-observations.ru.md)
+with raw headers/NetLog and pinned Chromium/libc++ rules. The production
+network estimator and historical/platform acceptance remain open.

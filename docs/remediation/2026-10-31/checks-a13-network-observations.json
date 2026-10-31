@@ -1,0 +1,345 @@
+{
+  "scope": "A13/F03 A-B finite observations; no implemented estimator or whole F03 acceptance",
+  "browser": "Google Chrome156.0.8078.76 headed",
+  "platform": "macOS27.0.1 build26A434 arm64",
+  "chrome_binary_sha256": "a0cd10cb5c31255959ffce60457762f0cf44709ae5f583a765f4b0b0535071cc",
+  "cohorts": 2,
+  "processes_per_cohort": 3,
+  "origins_per_process": 4,
+  "target_requests": 192,
+  "explicit_launch_hint_observations": 72,
+  "initial_network_quality": {
+    "downstream_throughput_kbps": 1600,
+    "effective_connection_type": "4G",
+    "http_rtt_ms": 116,
+    "transport_rtt_ms": 125
+  },
+  "network_quality_changes_by_process": {
+    "a0": [
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 116,
+        "transport_rtt_ms": 125
+      },
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 28,
+        "transport_rtt_ms": 8
+      }
+    ],
+    "a1": [
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 116,
+        "transport_rtt_ms": 125
+      },
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 26,
+        "transport_rtt_ms": 9
+      }
+    ],
+    "a2": [
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 116,
+        "transport_rtt_ms": 125
+      },
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 29,
+        "transport_rtt_ms": 10
+      }
+    ],
+    "b0": [
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 116,
+        "transport_rtt_ms": 125
+      },
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 116,
+        "transport_rtt_ms": 11
+      }
+    ],
+    "b1": [
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 116,
+        "transport_rtt_ms": 125
+      },
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 26,
+        "transport_rtt_ms": 9
+      }
+    ],
+    "b2": [
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 116,
+        "transport_rtt_ms": 125
+      },
+      {
+        "downstream_throughput_kbps": 1600,
+        "effective_connection_type": "4G",
+        "http_rtt_ms": 27,
+        "transport_rtt_ms": 8
+      }
+    ]
+  },
+  "noise_validation": {
+    "a0": [
+      {
+        "mode": "pinned32",
+        "compatible_salts": [
+          4,
+          5
+        ],
+        "accepted": true
+      },
+      {
+        "mode": "wrong64",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "fixed1450",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "ignorehost",
+        "compatible_salts": [],
+        "accepted": false
+      }
+    ],
+    "a1": [
+      {
+        "mode": "pinned32",
+        "compatible_salts": [
+          7,
+          8
+        ],
+        "accepted": true
+      },
+      {
+        "mode": "wrong64",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "fixed1450",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "ignorehost",
+        "compatible_salts": [],
+        "accepted": false
+      }
+    ],
+    "a2": [
+      {
+        "mode": "pinned32",
+        "compatible_salts": [
+          7,
+          8
+        ],
+        "accepted": true
+      },
+      {
+        "mode": "wrong64",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "fixed1450",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "ignorehost",
+        "compatible_salts": [],
+        "accepted": false
+      }
+    ],
+    "b0": [
+      {
+        "mode": "pinned32",
+        "compatible_salts": [
+          7,
+          8
+        ],
+        "accepted": true
+      },
+      {
+        "mode": "wrong64",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "fixed1450",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "ignorehost",
+        "compatible_salts": [],
+        "accepted": false
+      }
+    ],
+    "b1": [
+      {
+        "mode": "pinned32",
+        "compatible_salts": [
+          13,
+          14
+        ],
+        "accepted": true
+      },
+      {
+        "mode": "wrong64",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "fixed1450",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "ignorehost",
+        "compatible_salts": [],
+        "accepted": false
+      }
+    ],
+    "b2": [
+      {
+        "mode": "pinned32",
+        "compatible_salts": [
+          13,
+          14
+        ],
+        "accepted": true
+      },
+      {
+        "mode": "wrong64",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "fixed1450",
+        "compatible_salts": [],
+        "accepted": false
+      },
+      {
+        "mode": "ignorehost",
+        "compatible_salts": [],
+        "accepted": false
+      }
+    ]
+  },
+  "pins": [
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/content/browser/client_hints/client_hints.cc?format=TEXT",
+      "bytes": 48600,
+      "sha256": "39d1519faee2f46e5d21733ee6a2b038efdf4a6845ffd85e2df53ff0be5c79e4"
+    },
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/net/nqe/network_quality_estimator_params.cc?format=TEXT",
+      "bytes": 25402,
+      "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+    },
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/net/nqe/network_quality_estimator.cc?format=TEXT",
+      "bytes": 66204,
+      "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+    }
+  ],
+  "additional_pins": [
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/DEPS?format=TEXT",
+      "sha256": "8778ffaa9a30b9e825b291978804c6c2e55a3ae829ff387b025592ffb9090e8e",
+      "bytes": 192396
+    },
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/net/nqe/network_quality_estimator_params.h?format=TEXT",
+      "sha256": "ace10611735edc871e2c022372deaf6ef33aaf6bf58496013ab8b4f736de4c8f",
+      "bytes": 14688
+    },
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/net/nqe/observation_buffer.cc?format=TEXT",
+      "sha256": "65fc42b2cafa0ffb7f1ad2f1cdd81abb2f09e7bd920961c59bd11eb2993fc8a3",
+      "bytes": 7225
+    },
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/net/nqe/throughput_analyzer.cc?format=TEXT",
+      "sha256": "a11e2cd9088382fad5599c05e5a743394c72a4d6b0903fa8189befd961c0312b",
+      "bytes": 15268
+    },
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/net/nqe/network_quality_estimator_util.cc?format=TEXT",
+      "sha256": "19e97721eac32b6fe1703880a6cbf27e175ff76f45c9a625e871a6363c22fd7a",
+      "bytes": 2833
+    },
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/services/network/public/cpp/network_quality_tracker.cc?format=TEXT",
+      "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9",
+      "bytes": 6488
+    },
+    {
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.76/net/nqe/network_quality_estimator_util.h?format=TEXT",
+      "sha256": "32befffb5b9e7dbb2d1cbefdcea8cd46003e3745dd6a3281ffbd4f81ba4fed4f",
+      "bytes": 1755
+    }
+  ],
+  "libcxx_pins": [
+    {
+      "url": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx/+/97b436da4c33663581d394f4ee0a5977fc38c2f4/include/__functional/hash.h?format=TEXT",
+      "sha256": "1073a79dcf49020336c7e20ce7153fa11a160843109456416cbed249a9e3635e",
+      "bytes": 15815
+    },
+    {
+      "url": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx/+/97b436da4c33663581d394f4ee0a5977fc38c2f4/include/__functional/hash_fwd.h?format=TEXT",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "url": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx/+/97b436da4c33663581d394f4ee0a5977fc38c2f4/include/__string/char_traits.h?format=TEXT",
+      "sha256": "92b420f36419c1e891899ddcea938441fd80c4bba93daac4d48e41829bbf5ce7",
+      "bytes": 19895
+    },
+    {
+      "url": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx/+/97b436da4c33663581d394f4ee0a5977fc38c2f4/include/string?format=TEXT",
+      "sha256": "8600f250ef1f8e089c1b28ef1694785275a97cc6fa741e4702d62ba00360f0d9",
+      "bytes": 184767
+    }
+  ],
+  "raw_evidence": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/NQE-OBSERVATIONS",
+    "files": 79,
+    "bytes": 146024791,
+    "manifest_sha256": "d9c36f6e99e8c24294372036c740dd4fcdd4a78ea7d2cd20096f0b5fc3a21c9c"
+  },
+  "limitations": [
+    "Owned loopback transfer is not an accepted controlled public-host NQE update experiment",
+    "Ambient background Google network observations are retained; warm causality is not inferred",
+    "No controlled network-change/reset or resumed-connection campaign",
+    "No Linux/Windows or historical151-155 network-hint acceptance",
+    "No probability/RNG-quality or whole-distribution claim; two salt candidates remain per process",
+    "Local State input copy and binary hash/version were saved after the campaign; launch arguments/outputs are retained; separate pre-launch manifests were not captured"
+  ],
+  "status": "F03 estimator remains open; current155/156 literal hints unchanged"
+}

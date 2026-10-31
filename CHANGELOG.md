@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Record A13 network-hint experiments: two cohorts, six headed Chrome156
+  processes, four origins each, raw192 requests and explicit noise negative
+  controls. Keep production estimator and historical/platform acceptance open.
+
 - Prevent profile names such as `Golang` and `Randomized*` from selecting a
   special uTLS implementation. Use a neutral adapter ID and preserve strict
   profile-data selection; retain the five before-failures and seven after
