@@ -1,0 +1,157 @@
+{
+  "scope": "A13 metadata-ID fix only; full catalogue/network estimator remain open",
+  "source_before": "024e5c91e9e3bce8794ba2291018686ec149e53d",
+  "source_after_sha256": "20f38520c885861c1430f1844b530ef85cc4da0b1f13544212ca8186c8bfcb1a",
+  "runtime_delta": "generic ClientHelloID instead of mutable profile.Name; no browser values changed",
+  "before_failed_special_names": [
+    "Golang",
+    "CustomInternal",
+    "Randomized",
+    "Randomized-ALPN",
+    "Randomized-NoALPN"
+  ],
+  "after_passed_names": [
+    "Golang",
+    "CustomInternal",
+    "Randomized",
+    "Randomized-ALPN",
+    "Randomized-NoALPN",
+    "Chrome",
+    "neutral"
+  ],
+  "full_packages": [
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/cookie",
+      "status": "pass",
+      "seconds": 0.185
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/chromehash",
+      "status": "pass",
+      "seconds": 0.405
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/conntap",
+      "status": "pass",
+      "seconds": 0.405
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/accept",
+      "status": "pass",
+      "seconds": 0.405
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/capture",
+      "status": "pass",
+      "seconds": 0.411
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/engine",
+      "status": "pass",
+      "seconds": 0.425
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/atomicfile",
+      "status": "pass",
+      "seconds": 0.482
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/localhost",
+      "status": "pass",
+      "seconds": 0.187
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/proctree",
+      "status": "pass",
+      "seconds": 0.202
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pcapng",
+      "status": "pass",
+      "seconds": 0.22
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/redact",
+      "status": "pass",
+      "seconds": 0.169
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/fingerprint",
+      "status": "pass",
+      "seconds": 0.708
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/deadlineconn",
+      "status": "pass",
+      "seconds": 0.754
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/browser",
+      "status": "pass",
+      "seconds": 1.137
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/daemon",
+      "status": "pass",
+      "seconds": 1.712
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/pinned",
+      "status": "pass",
+      "seconds": 2.73
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/proxy",
+      "status": "pass",
+      "seconds": 7.616
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/echo",
+      "status": "pass",
+      "seconds": 9.308
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/profile",
+      "status": "pass",
+      "seconds": 9.564
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness",
+      "status": "pass",
+      "seconds": 32.115
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge",
+      "status": "pass",
+      "seconds": 57.048
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge/internal/harness/measure",
+      "status": "pass",
+      "seconds": 61.335
+    },
+    {
+      "package": "github.com/Sec-CH-Lemon/tls-forge",
+      "status": "pass",
+      "seconds": 170.934
+    }
+  ],
+  "coverage": {
+    "statements": 16804,
+    "uncovered": 0,
+    "percent": 100
+  },
+  "lint": "0 issues",
+  "new_browser_observations": 0,
+  "evidence": {
+    "private_path": "../net-fp-server/captures/tls-forge-a13-20261031/IDENTITY",
+    "kind": "raw pre-handshake serializations, exact before/after source, fresh module tests",
+    "capsule": {
+      "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/IDENTITY",
+      "files": 23,
+      "bytes": 36639045,
+      "manifest_sha256": "78a1557dc8f6749cdcbc20e0916e212140ffbaaae587648c15a6b090f3088282"
+    }
+  },
+  "engine": "unreleased1.0.0/schema4 unchanged"
+}

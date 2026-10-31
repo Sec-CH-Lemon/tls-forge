@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Prevent profile names such as `Golang` and `Randomized*` from selecting a
+  special uTLS implementation. Use a neutral adapter ID and preserve strict
+  profile-data selection; retain the five before-failures and seven after
+  controls with full23-package/100% acceptance.
+
 - Complete A12 native acceptance on3faef706:28/28 main jobs and8/8 full fork
   gates; actual Linux23-package race coverage, unchanged20m/40m limits and
   zero allowances/exclusions. Preserve original failures and all before/after

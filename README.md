@@ -3117,3 +3117,8 @@ The fork graphs reported11118 test runs; every suite invocation exited zero,
 with capability skips recorded and no failure allowances or invocation exclusions. The [A12 report](docs/remediation/2026-10-30/A12.ru.md) and
 [final receipt](docs/remediation/2026-10-30/checks-a12-native.json) retain the
 original failures, fixes, raw-evidence hashes and remaining A13/A14 boundaries.
+
+Profile names and User-Agent cannot select a uTLS implementation. A13 uses a
+neutral internal adapter ID, preventing `Golang`, `CustomInternal` and
+`Randomized*` metadata from bypassing profile data. See the
+[before/after checks](docs/remediation/2026-10-31/A13-identity.ru.md).

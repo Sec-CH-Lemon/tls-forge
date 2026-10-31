@@ -450,7 +450,8 @@ func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, e
 		factory = p.shuffledSpec
 	}
 	id := tls.ClientHelloID{
-		Client:      p.Name,
+		// Metadata must never collide with uTLS special Golang/Randomized IDs.
+		Client:      "tls-forge-profile",
 		Version:     "0",
 		SpecFactory: factory,
 	}
