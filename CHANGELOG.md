@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Run Linux race root/other packages on independent runners with complete
+  package discovery, unchanged race flags and20m/40m limits.
+
 - Correct the tls-client test peer to send requested421 replies over H3 and
   verify actual status/protocol/body before Alt-Svc state assertions. Publish
   and pin the test-only fork repair; runtime files and browser profiles retain

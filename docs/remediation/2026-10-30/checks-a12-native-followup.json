@@ -1,0 +1,105 @@
+{
+  "stage": "A12 native followup locally accepted; freshnative pending rootpublication",
+  "initial_source": "e713142dfb69385bd3d4f01954a5b102c5c738f6",
+  "initial_main": {
+    "id": 41146570390,
+    "success": 26,
+    "failure": 1,
+    "failed": "go (ubuntu-latest)",
+    "macOS_root_seconds": 332.259,
+    "windows_root_seconds": 259.547,
+    "Linux_failure": "TestMeasureBrowserErrors prematureHTTP1deadline;wholepackage20m expired duringlastWindowUpdates subtests active1-15s"
+  },
+  "initial_forks": {
+    "id": 41146570134,
+    "success": 7,
+    "failure": 1,
+    "failed": "tls-client standalone/TestAnAnswerOf421OrAValueQuicheCannotReadChangesNothing"
+  },
+  "fork_fix": {
+    "commit": "7b5e8ee614f865a78700c00c9efaaab6dbe071b9",
+    "pushed": true,
+    "production_files_identical": true,
+    "full_graphs_runs_each": 462,
+    "returncodes": [
+      0,
+      0
+    ],
+    "negative_mutants": 3
+  },
+  "measurement_fix": {
+    "commit": "7a89de3",
+    "race_repeats": 20,
+    "seconds": 84.14,
+    "controlled_startup_delay_seconds": 2.1,
+    "before": "FAIL5.564s/prematureHTTP1 deadline",
+    "after": "PASS12.239s/actualsecondnavigationconfirmed",
+    "negative_mutants": 2
+  },
+  "CI_partition": {
+    "workflow_sha256": "0a6af229c4a557774ed279d242ab597e9b4174705282e4bc971f8125f18b725f",
+    "packages": 23,
+    "root_race_packages": 1,
+    "other_race_packages": 22,
+    "each_exactly_once": true,
+    "flags": [
+      "-race",
+      "-timeout",
+      "20m"
+    ],
+    "job_timeout_minutes": 40,
+    "controls": [
+      {
+        "case": "all-packages",
+        "exit": 0,
+        "test_called": true
+      },
+      {
+        "case": "test-failure-propagates",
+        "exit": 23,
+        "test_called": true
+      },
+      {
+        "case": "list-failure-propagates",
+        "exit": 17,
+        "test_called": false
+      },
+      {
+        "case": "missing-root",
+        "exit": 1,
+        "test_called": false
+      },
+      {
+        "case": "missing-other-packages",
+        "exit": 1,
+        "test_called": false
+      }
+    ],
+    "limits": "This checks actualworkflow package selection/failurepropagation with aprivateGoargvstub. Actual tests are separate native/localgates;no testexecution verdict inferredfromstub."
+  },
+  "local_final": {
+    "GOWORK": "off",
+    "published_pin": "v1.15.2-0.20261030235856-7b5e8ee614f8",
+    "coverage_packages": 23,
+    "coverage_percent": 100,
+    "root_seconds": 172.182,
+    "cli_seconds": 62.081,
+    "build_lint_vet": "PASS/0issues",
+    "Go_example": "PASS",
+    "actionlint": "PASS"
+  },
+  "limits": [
+    "No newbrowserparity claim orprofiledata change",
+    "InitialCIprivateforkJSONLnotexported;summaryretained andfixturedefect independentlyreconstructed",
+    "Root/CLI/resourcecompetitionisdiagnosishypothesis;nativeisolatedjobs mustproveacceptance",
+    "No failedjobrerun treatedasfix;allnewsource checksrequirefreshCI"
+  ],
+  "hashes": {
+    "root-followup-full-cover.log": "ad1654f795aec25a824dcc6377778e056d597b8b824ea52bd92450ed865ba934",
+    "root-followup-build-lint-vet.log": "013e34f267d14139e8761ca81e3a55b3ca27842aa4e63f09b8b30b61b6a07ae9",
+    "root-followup-actionlint-final-guard.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "root-followup-go-example.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "linux-go-initial-raw.log": "fac122d625b8673063ce025c90603b09f81dbb2e48227c1c9e8a48cf22ddde9c",
+    "linux-package-partition-receipt.json": "3319f6877351414ada30b97612880ec03d7c31e596dd2c4d62e4d33890184389"
+  }
+}

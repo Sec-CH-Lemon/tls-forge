@@ -20,7 +20,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            race-scope: root
+          - os: ubuntu-latest
+            race-scope: packages
+          - os: macos-latest
+            race-scope: all
+          - os: windows-latest
+            race-scope: all
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,16 +42,32 @@ jobs:
       - run: go build ./...
       - run: go vet ./...
 
-      # -race on one platform is enough to find a data race and costs a lot of
-      # wall clock on the others.
-      # -timeout so a test that hangs is killed by Go, which prints a goroutine
-      # dump naming it, rather than by the job's ceiling, which prints nothing.
-      # Under -race the root package and the CLI's take about five minutes
-      # each, waiting more than working (292 s and 279 s on a 14-core Mac,
-      # 2026-10-26); 5m cut both short on a runner (run 40222769334).
-      - name: test
-        if: matrix.os == 'ubuntu-latest'
-        run: go test -race -timeout 20m ./...
+      # The root and CLI suites are both heavy under race. Separate Linux
+      # runners keep them from competing for the same CPU and sockets. The
+      # root plus every other discovered package still runs exactly once
+      # under race; every test binary retains the20m timeout and Go's dump.
+      - name: test root under race
+        if: matrix.os == 'ubuntu-latest' && matrix.race-scope == 'root'
+        run: go test -race -timeout 20m .
+      - name: test all other packages under race
+        if: matrix.os == 'ubuntu-latest' && matrix.race-scope == 'packages'
+        shell: bash
+        run: |
+          root="$(go list -m)"
+          discovered="$(go list ./...)"
+          others=()
+          found_root=false
+          while IFS= read -r package; do
+            if [[ "$package" == "$root" ]]; then
+              found_root=true
+            else
+              others+=("$package")
+            fi
+          done <<< "$discovered"
+          if [[ "$found_root" != true || "${#others[@]}" -eq 0 ]]; then
+            exit 1
+          fi
+          go test -race -timeout 20m "${others[@]}"
       - name: test
         if: matrix.os != 'ubuntu-latest'
         run: go test -timeout 10m ./...

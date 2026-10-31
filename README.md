@@ -3100,3 +3100,11 @@ The A12 tls-client test peer sends the requested421 over H3; its regression
 checks actual status, protocol and body before Alt-Svc cache state. The
 [published test-only repair](docs/remediation/2026-10-30/checks-a12-altsvc.json)
 changes no runtime files or shipped profile bytes.
+
+
+Linux native race CI runs the root package and all other discovered packages
+on separate runners. All23 packages still run once under race, each test binary
+keeps20m and each job40m; discovery/test failures reject the run. Windows and
+macOS retain the full normal suite. Initial A12 reached its20m root limit while
+flow cases had been active only1–15s; isolation is accepted only after fresh
+native results, with the original timeout dump preserved.
