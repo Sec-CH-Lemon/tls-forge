@@ -3166,3 +3166,9 @@ data ownership remain open. The report keeps these limits separate from fork
 gates, dependency publication and the unimplemented network estimator.
 Separate ignored capsules retain the raw catalogue evidence and pinned NQE
 observer sources; public reports carry hashes and bounded acceptance receipts.
+
+The [published A13 H3 fork pins](docs/remediation/2026-10-31/A13-published-forks.ru.md)
+build without local replacements and pass the complete root normal/race suites
+and coupled production fork gates. The owner has removed A13's research
+timebox; catalogue, native-QUIC policy and network-estimator work continue
+through implementation and acceptance. This dependency step does not close A13.

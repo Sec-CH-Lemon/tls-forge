@@ -11,6 +11,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Publish and pin the approved uTLS8bfa7fe,QUIC0c35ebb0 and tls-clientd22be148
+  ranges. Revalidate the coupled production graph and all23 root packages
+  under normal coverage and race, without local replacements or new exceptions.
+  Document explicit legacy H3 settings/error templates and preserve empty
+  SETTINGS. A13 continues without a timebox by owner decision; full catalogue,
+  native QUIC data ownership and production network estimation remain open.
+
 - Preserve the83-entry catalogue candidate, original/after wire evidence,
   strict JSON controls and full fork receipts. Keep the native-QUIC JSON-first
   counterexample and full-race H3 timeout open; runtime materialization is not

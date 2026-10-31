@@ -1910,6 +1910,28 @@ above that ceiling remain advertised as selected but cannot raise the internal
 resource limit. Raw legacy transport options apply only without an explicit
 HTTP/3 settings map. No browser profile values or engine major are changed.
 
+### Explicit legacy HTTP/3 capabilities (A13, pending engine 1)
+
+The ordered `h3.settings` vector supports IDs1,6,7,8,51,16765559,
+727725890 and the declared GREASE family. IDs8 (extended CONNECT),51
+(RFC datagrams) and16765559 (draft-08 datagrams) accept only0 or1.
+Historical WebTransport ID727725890 accepts only0: its enabling state
+machine is unavailable. Unknown capabilities and duplicate IDs are rejected.
+
+Declaring draft datagrams with value1 also requires the explicit string
+`h3.datagram_setting_error_reason`, at most1024 bytes, with optional `{id}`
+and `{value}` substitutions. An empty string is a valid deliberate template.
+An invalid selected draft boolean closes with H3_SETTINGS_ERROR and this
+rendered reason; an unselected draft setting remains an opaque unknown setting.
+The engine negotiates the intersection of explicitly advertised datagram
+versions, preferring RFC when both peers support it; it does not select by
+browser identity. This does not enable WebTransport.
+
+An explicit empty SETTINGS map stays empty in both normal Alt-Svc and racing
+paths. It cannot inherit an H1 header limit. These capabilities are pinned in
+the [A13 dependency acceptance](remediation/2026-10-31/A13-published-forks.ru.md);
+full catalogue and browser acceptance remain separate.
+
 
 ### Capture policy bases (A8 candidate pipeline)
 
