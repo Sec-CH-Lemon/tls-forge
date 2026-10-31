@@ -60,6 +60,14 @@ func TestBrowserHelper(t *testing.T) {
 		os.Exit(0)
 	}
 	if mode == "http1-only" {
+		if step := os.Getenv("TLSFORGE_BROWSER_STEP_FILE"); step != "" {
+			if err := os.WriteFile(step+".tmp", []byte(url), 0o600); err != nil {
+				os.Exit(1)
+			}
+			if err := os.Rename(step+".tmp", step); err != nil {
+				os.Exit(1)
+			}
+		}
 		os.Exit(0)
 	}
 	const marker = "fetch('"
@@ -98,6 +106,11 @@ func browserStandIn(t *testing.T) string {
 
 func browserStandInMode(t *testing.T, mode string) string {
 	t.Helper()
+	return browserStandInSignals(t, mode, "")
+}
+
+func browserStandInSignals(t *testing.T, mode, step string) string {
+	t.Helper()
 	if runtime.GOOS == "windows" {
 		t.Skip("the stand-in is a shell script")
 	}
@@ -111,8 +124,8 @@ func browserStandInMode(t *testing.T, mode string) string {
 	// flags it is handed.
 	script := fmt.Sprintf(`#!/bin/sh
 for last; do :; done
-TLSFORGE_BROWSER_MODE=%q TLSFORGE_BROWSER_HELPER="$last" exec %q -test.run='^TestBrowserHelper$'
-`, mode, self)
+TLSFORGE_BROWSER_MODE=%q TLSFORGE_BROWSER_STEP_FILE=%q TLSFORGE_BROWSER_HELPER="$last" exec %q -test.run='^TestBrowserHelper$'
+`, mode, step, self)
 
 	path := filepath.Join(t.TempDir(), "stand-in-browser")
 	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
@@ -188,22 +201,54 @@ func TestMeasureBrowserErrors(t *testing.T) {
 	if err == nil {
 		t.Error("expected a timeout")
 	}
-	if !strings.Contains(err.Error(), "no capture") {
+	if !strings.Contains(err.Error(), "no capture") || !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("error = %v, want it to say no capture arrived", err)
 	}
 
 	_, err = MeasureBrowser(context.Background(), MeasureOptions{
-		Browser: browserStandInMode(t, "redirect-context"), Timeout: 2 * time.Second,
+		Browser: browserStandInMode(t, "redirect-context"), Timeout: 30 * time.Second,
 	})
 	if err == nil || !strings.Contains(err.Error(), "not a cold top-level navigation") {
 		t.Errorf("redirect-context error = %v", err)
 	}
 
-	_, err = MeasureBrowser(context.Background(), MeasureOptions{
-		Browser: browserStandInMode(t, "http1-only"), Timeout: 2 * time.Second,
+	// Cancel only after the subprocess completed the second navigation and
+	// deliberately omitted its report. Process startup is not the event
+	// being tested. The outer startup budget still catches a silent helper.
+	step := filepath.Join(t.TempDir(), "second-navigation")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	observed := make(chan string, 1)
+	go func() {
+		ticker := time.NewTicker(10 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if data, err := os.ReadFile(step); err == nil {
+					observed <- string(data)
+					cancel()
+					return
+				}
+			}
+		}
+	}()
+	_, err = MeasureBrowser(ctx, MeasureOptions{
+		Browser: browserStandInSignals(t, "http1-only", step), Timeout: 30 * time.Second,
 	})
+	cancel()
+	select {
+	case url := <-observed:
+		if !strings.HasSuffix(url, "/?http1=done") {
+			t.Errorf("cancellation preceded the second navigation: %q", url)
+		}
+	default:
+		t.Error("the stand-in never completed its second navigation")
+	}
 	if err == nil || !strings.Contains(err.Error(), "HTTP/2 browser measurement") ||
-		!strings.Contains(err.Error(), "no capture") {
+		!strings.Contains(err.Error(), "no capture") || !errors.Is(err, context.Canceled) {
 		t.Errorf("second-navigation error = %v", err)
 	}
 }

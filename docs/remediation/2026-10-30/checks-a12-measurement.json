@@ -1,0 +1,37 @@
+{
+  "stage": "A12 native followup local measurement-fixture acceptance",
+  "initial_CI": 41146570390,
+  "initial_linux_job": 124372950823,
+  "observed_failure": "redirect-context andhttp1-only expected errors were replacedbyHTTP1 startupdeadline beforethe relevantnavigation",
+  "test_only": true,
+  "runtime_changes": false,
+  "normal_silent_deadline_ms": 300,
+  "startup_budget_seconds": 30,
+  "second_navigation_cancellation": "Atomic helper-file signal ofactual completed/?http1=done navigation;requireHTTP2/no-capture error andcontext.Canceled;no earlierstage accepted",
+  "controlled_startup_delay_seconds": 2.1,
+  "before": "Original2s fixture FAIL5.564s withsameHTTP1deadlineprefix asnativeCI",
+  "after": "PASS12.239s;phase/errorassertions unchangedorstronger",
+  "race_repeats": 20,
+  "race_seconds": 84.14,
+  "negative_controls": [
+    {
+      "name": "false-navigation-signal",
+      "exit": 1,
+      "assertion_rejected": true,
+      "source_restored_sha256": "7605917cdc19086ee6a2ddb9fe72bd758426d3f7d2d7bdf2ec14d847ede748b3"
+    },
+    {
+      "name": "ignore-cold-h1-validation",
+      "exit": 1,
+      "assertion_rejected": true,
+      "source_restored_sha256": "df254b2b9c86941bbfeb76c800d78714c82fda85ff3e4970ebf7447f97dfd77f"
+    }
+  ],
+  "hashes": {
+    "linux-go-initial-raw.log": "fac122d625b8673063ce025c90603b09f81dbb2e48227c1c9e8a48cf22ddde9c",
+    "measure-startup-before.log": "4b93b897ede6b665b6d24fec7985e1a05bba40f77c2e07eebadd4913f76e433d",
+    "measure-startup-after.log": "8cc44cb7f7f756b3dbcd11bc45112684cabe569abe608cd9f3f7f328402efd63",
+    "measure-errors-atomic-phase-race20.log": "4c6114e2a0f2adefbd7fe755d657aefc57b69351d2bd8d72a5679d11084405ed",
+    "measure-mutants.json": "56ba5ef1d1e59b21019e4a75d3c481c01b72aefe4f42ef39a77ccfc81503e82a"
+  }
+}

@@ -3086,3 +3086,11 @@ Neither repair changes shipped browser profile bytes.
 Dual-loopback listener verification covers both address orders and abandoned
 listener cleanup with deterministic inputs as well as real sockets. Port
 allocation on a CI host cannot decide whether an ordering branch is checked.
+
+
+A12 measurement error tests distinguish startup from the event being tested:
+redirect-context validation gets the existing30s fixture startup allowance;
+the no-report case cancels only after the stand-in completed its second
+navigation. The300ms silent-launch deadline remains a separate assertion.
+[Before/after controls](docs/remediation/2026-10-30/checks-a12-measurement.json)
+retain the original Linux refusal and controlled delayed-launch reproduction.

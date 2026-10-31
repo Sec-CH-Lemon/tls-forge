@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Make browser measurement error tests observe the completed second navigation
+  before cancellation; retain cold-H1 validation and the silent-launch deadline.
+  Preserve the native failure, delayed-start before/after and negative controls.
+
 - Record the owner-selected Chrome TLS shutdown and macOS ACK exceptions,
   with joint receive/send/ACK Delay/transport-parameter evidence and a standards
   matrix covering early QUIC close and possible non-idempotent replay.
