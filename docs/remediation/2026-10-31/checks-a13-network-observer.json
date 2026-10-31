@@ -1,0 +1,38 @@
+{
+  "status": "source-bound observer contract; production estimator remains open",
+  "browser_build": "156.0.8078.76",
+  "source_revision": "refs/tags/156.0.8078.76",
+  "sources": [
+    {
+      "local_file": "chromium156-net-nqe-network_quality_estimator.cc",
+      "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+    },
+    {
+      "local_file": "chromium156-net-nqe-network_quality_estimator_params.cc",
+      "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+    },
+    {
+      "local_file": "chromium156-net-nqe-network_quality_estimator_params.h",
+      "sha256": "ace10611735edc871e2c022372deaf6ef33aaf6bf58496013ab8b4f736de4c8f"
+    },
+    {
+      "local_file": "chromium156-net-nqe-observation_buffer.cc",
+      "sha256": "65fc42b2cafa0ffb7f1ad2f1cdd81abb2f09e7bd920961c59bd11eb2993fc8a3"
+    },
+    {
+      "local_file": "chromium156-net-nqe-throughput_analyzer.cc",
+      "sha256": "a11e2cd9088382fad5599c05e5a743394c72a4d6b0903fa8189befd961c0312b"
+    },
+    {
+      "local_file": "chromium156-net-base-features.cc",
+      "sha256": "1c2923bbfbb057e4eecfa9abbcdb2b900ddd0279755fafef71aff562ff6c6831"
+    },
+    {
+      "local_file": "chromium156-services-network-network_quality_estimator_manager.cc",
+      "sha256": "7c0614eb81d53702740b6417b1b31495ab0ad4a64835b51b80ae2ebd3ba70a27"
+    }
+  ],
+  "new_browser_processes": 0,
+  "active_trials_receipt_sha256": "d636ff3a59fb194261660c9e87d769492bad5c66e19b9d45628ae8a637f1fa4c",
+  "measured_combinations": "existing 12 macOS processes only; no new reset/ECT/historical/platform acceptance"
+}

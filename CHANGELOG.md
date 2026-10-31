@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Record the pinned A13 network-observer contract, input filters and reset
+  requirements. Preserve the open production-estimator and historical/platform
+  acceptance criteria; no captured network literal is promoted to a generator.
+
 - Accept H2's all-ones header-list backend sentinel while retaining the actual
   16 MiB decoder bound. Check the advertised value, a valid smaller response,
   an oversized compressed response and a bound-removal negative control.

@@ -3148,3 +3148,8 @@ The H2 `SETTINGS_MAX_HEADER_LIST_SIZE` all-ones backend sentinel is accepted
 without raising the decoder's independent 16 MiB ceiling. Other finite values
 above that ceiling remain rejected before I/O. This preserves catalogue data;
 it does not establish historical browser equivalence.
+
+A13's [network observer contract](docs/remediation/2026-10-31/A13-network-observer.ru.md)
+separates HTTP RTT, transport RTT, aggregate throughput, publication and network
+reset. It records pinned Chromium sources and the production inputs still
+missing from tls-forge; it does not claim that the estimator is implemented.
