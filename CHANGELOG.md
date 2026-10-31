@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Correct the tls-client test peer to send requested421 replies over H3 and
+  verify actual status/protocol/body before Alt-Svc state assertions. Publish
+  and pin the test-only fork repair; runtime files and browser profiles retain
+  their bytes.
+
 - Make browser measurement error tests observe the completed second navigation
   before cancellation; retain cold-H1 validation and the silent-launch deadline.
   Preserve the native failure, delayed-start before/after and negative controls.

@@ -3094,3 +3094,9 @@ the no-report case cancels only after the stand-in completed its second
 navigation. The300ms silent-launch deadline remains a separate assertion.
 [Before/after controls](docs/remediation/2026-10-30/checks-a12-measurement.json)
 retain the original Linux refusal and controlled delayed-launch reproduction.
+
+
+The A12 tls-client test peer sends the requested421 over H3; its regression
+checks actual status, protocol and body before Alt-Svc cache state. The
+[published test-only repair](docs/remediation/2026-10-30/checks-a12-altsvc.json)
+changes no runtime files or shipped profile bytes.

@@ -1,0 +1,138 @@
+{
+  "stage": "A12 followup locally accepted; forkpublished; rootfollowup/nativepending",
+  "fork": "tls-client",
+  "before": "d0aaa5a46fb823bbf7d572c97ac165d356f035e8",
+  "after": "7b5e8ee614f865a78700c00c9efaaab6dbe071b9",
+  "changed_files": [
+    "altsvc_test.go",
+    "dnsh3_test.go"
+  ],
+  "production_files_identical": true,
+  "before_native_run": 41146570134,
+  "before_failed_job": 124372949482,
+  "before_native_counts": "7success/1failure",
+  "original_raw_scope": "OriginalCIpublicsummary retained;privateJSONL unavailable without priorrecipient. Controlledcounterexample reconstructs samecache-emptyfailure; originalCIactualprotocol/status isnotclaimedobserved.",
+  "cause": "OwnedH3peerignoredstatusquery andsent200+clear;TCPpeerhonored421. Originaltestswallowedanswers anddependedoncoldTCP/QUICwinner.",
+  "controlled_before": {
+    "race_repeats": 5,
+    "fails": 5,
+    "actual_transport": "HTTP/3.0",
+    "original_cache_assertion": "whatwaskept=[]"
+  },
+  "stronger_oracle_before": "Actual200/H3/bodyHTTP3 rejected against421/H3 beforepeerfix.",
+  "after_race100_seconds": 4.45,
+  "negative_controls": {
+    "mutants": [
+      {
+        "name": "ignore-421",
+        "exit": 1,
+        "assertion_rejected": true
+      },
+      {
+        "name": "clear-on-unread-value",
+        "exit": 1,
+        "assertion_rejected": true
+      },
+      {
+        "name": "ignore-alt-svc-feature",
+        "exit": 1,
+        "assertion_rejected": true
+      }
+    ],
+    "restored_dnsh3_sha256": "19111a97a079f2be3dbab42e751a3d2072f264b15986e877ebdf948ca2bb34b3"
+  },
+  "full_gates": {
+    "standalone": {
+      "source_commit": "7b5e8ee614f865a78700c00c9efaaab6dbe071b9",
+      "source_sha256": "1682373647ec96dbc180b7bc70773071c4e5cfda9dea54f27e6452c865c5ab45",
+      "test_runs": 462,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5E2E_HTTP3ThroughProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5PacketConn_ReadFromDropsForeignSource"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_HappyPath"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_ProtocolRacingUsesProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_SetProxyAtRuntime"
+        ]
+      ],
+      "returncodes": [
+        0
+      ],
+      "unexpected": [],
+      "network": "loopback only; external TestWeb cannot issue its POST"
+    },
+    "production": {
+      "source_commit": "7b5e8ee614f865a78700c00c9efaaab6dbe071b9",
+      "source_sha256": "1682373647ec96dbc180b7bc70773071c4e5cfda9dea54f27e6452c865c5ab45",
+      "test_runs": 462,
+      "test_skips": [
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5E2E_HTTP3ThroughProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5PacketConn_ReadFromDropsForeignSource"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_HappyPath"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_ProtocolRacingUsesProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_SetProxyAtRuntime"
+        ]
+      ],
+      "returncodes": [
+        0
+      ],
+      "unexpected": [],
+      "network": "loopback only; external TestWeb cannot issue its POST"
+    }
+  },
+  "initial_probe_race100_pass": "Originalnaturalrace100pass3.999s doesnotreproduceorfalsifyCIrefusal;retained separately",
+  "engine_major": "unchanged UNRELEASED1;test-onlyfix",
+  "hashes": {
+    "tls-client-standalone-initial-raw.log": "fcbb8650688e46dd35f71cf1cb2bcba4380347bc7b8956d264988ca98ca67707",
+    "altsvc-before-race100.log": "499b52f2a764025ee306e79e7ab5d43cfec2a30d0e7ebf8d17d6386f89a88a79",
+    "altsvc-controlled-before-race5.log": "d0a1c6cf56ef94d10c16e0d8f4a1f27956cf1a74077ecd378bd56eecdfce42c0",
+    "altsvc-strengthened-oracle-old-peer.log": "f6c28663c359ff69db19ad791196400692a9c8d4915d4b6184d8be0dae2da0d2",
+    "altsvc-fixed-race100.log": "8df1f2fbf3fa400f4ce88adb6736694c9a3fe43253457e67a72a0219213a4d1a",
+    "altsvc-mutants.json": "abfc6b024b587dd2f27d33a9297bfcfcf25b5b0bde4240e4f0a0e79a699c6443",
+    "altsvc-peer.diff": "354729836378b8da51c1ec7a5bcd99b8e7d98415c897f7e702d00e2ef368397a",
+    "altsvc-test.diff": "9655c4d850affb848086b8c7d365517b349fef2feae194b36685bd0f5b0a07ad"
+  },
+  "evidence": {
+    "directory": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a12-20261030/NATIVE-20261031/LOCAL-ALT-SVC",
+    "files": 38,
+    "bytes": 7869489,
+    "manifest_sha256": "470e3c93b7a385971aee6fd3b0edfc02697464205ac9ca48232568b450d3279b"
+  },
+  "published_fork": true,
+  "owner_authorization": "Explicitfork+rootfollowup push/nativeA12 approvalreceived2026-10-31"
+}
