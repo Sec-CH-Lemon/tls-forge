@@ -1,0 +1,50 @@
+{
+  "status": "accepted bounded foundation; A13 open",
+  "root_base": "9f3870b8c865dc38621ea5380edd56a52721f708",
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/HYBRID-JSON-FIXTURES-R10",
+    "files": 111,
+    "bytes": 93138287,
+    "manifest_sha256": "0c8c9051c86f7a342030ccdbf411b8277268b00f8f72ed64c4133ff2ea9640e1",
+    "verified": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  },
+  "fixture": {
+    "before": "accepted QUIC connection remains alive after listener cleanup",
+    "after": "close owned connections outside lock and join owned workers",
+    "normal_packages": 23,
+    "race_packages": 23,
+    "coverage_statements": 17082,
+    "uncovered_statements": 0,
+    "source_drift": [],
+    "repeated_h3_cases": 830,
+    "deadlines_changed": false,
+    "original_R09_timeout_cause_proven": false,
+    "root_current_graph_targeted_race_repetitions": 10
+  },
+  "utls": {
+    "key_reuse_commit": "74878a2b2e5924d401ce5e47264a60c3ef7ed5b0",
+    "key_reuse_graph_runs_each": 667,
+    "strict_json_commit": "b11bb5a0fdb1f40f4e69d79f878585c8a2a1d26b",
+    "strict_json_graph_runs_each": 680,
+    "invalid_json_acceptances_rejected": 9,
+    "published_new_head": "bfb5cb3ef7ea4c0e1836cdf2dfd2fda60ff522a0",
+    "new_head_graph_runs_each": 695,
+    "new_allowances": 0,
+    "new_exclusions": 0
+  },
+  "no_new_browser_measurements": true,
+  "remaining": [
+    "complete native QUIC/profile ownership and final83-entry materialization acceptance",
+    "new QUIC/tls-client source gates; current QUIC address helper1s timeout remains under diagnosis",
+    "published root pins and native A13 CI require final explicit authorization",
+    "F03 real estimator and controlled transitions/reset/historical/platform acceptance"
+  ],
+  "diagnostics": [
+    "intermediate compile/fixture/wrong-cwd receipts retained, never counted as acceptance",
+    "Initial AEAD uses public keys, not server identity authentication",
+    "additional wire allocation assertion under -race also fails unchanged0c35ebb0 because sync.Pool deliberately drops1/4 entries; normal zero-allocation assertion kept unchanged"
+  ]
+}

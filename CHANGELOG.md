@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Retain A13 before/after evidence for fresh hybrid/X25519 reuse, strict shared
+  JSON validation and H3 test-peer ownership. Close accepted fixture connections
+  and join readers; keep wire assertions and deadlines unchanged. Record complete
+  normal/race and source-pinned component results without declaring A13 complete.
+
+
 - Publish and pin the approved uTLS8bfa7fe,QUIC0c35ebb0 and tls-clientd22be148
   ranges. Revalidate the coupled production graph and all23 root packages
   under normal coverage and race, without local replacements or new exceptions.

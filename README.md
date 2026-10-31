@@ -3172,3 +3172,8 @@ build without local replacements and pass the complete root normal/race suites
 and coupled production fork gates. The owner has removed A13's research
 timebox; catalogue, native-QUIC policy and network-estimator work continue
 through implementation and acceptance. This dependency step does not close A13.
+
+The [A13 QUIC/JSON foundation](docs/remediation/2026-10-31/A13-foundation.ru.md)
+records accepted key generation, strict JSON and H3 fixture lifetime controls.
+Its full23normal/23race catalogue snapshot passes without changing wire checks
+or deadlines; complete native-QUIC/catalogue and network-estimator acceptance remains open.
