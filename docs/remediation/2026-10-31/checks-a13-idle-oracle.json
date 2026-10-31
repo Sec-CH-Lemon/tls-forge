@@ -1,0 +1,52 @@
+{
+  "status": "accepted-local-test-only",
+  "root_base": "bd2a3aeb",
+  "engine": "unreleased1.0.0",
+  "runtime_changed": false,
+  "profile_data_changed": false,
+  "browser_measurements_added": 0,
+  "before": {
+    "log": "catalogue-r08-all.jsonl",
+    "test": "TestAQUICClientProbesSilenceAndClosesAsChromeDoes",
+    "reason": "1005ms rejected by us-only regexp",
+    "sha256": "755b225da492a7e09c3fccaee78e9a89024d02060bb2a57e13186d2d622ff988"
+  },
+  "source": [
+    {
+      "url": "https://quiche.googlesource.com/quiche/+/a1628192cf32ba40d21e0dd80f485d68c24ff87a/quiche/quic/core/quic_time.h?format=TEXT",
+      "sha256": "a610f70e9f71b83a561dcb6155c493def73a652348a0d1e6ba591c0fc572e6a9",
+      "bytes": 10108
+    },
+    {
+      "url": "https://quiche.googlesource.com/quiche/+/a1628192cf32ba40d21e0dd80f485d68c24ff87a/quiche/quic/core/quic_time.cc?format=TEXT",
+      "sha256": "c913df3d9f901002838e5d6914dc5be989ff0d7514327cf8316ec8b6c7153536",
+      "bytes": 2491
+    }
+  ],
+  "after": {
+    "graph": "published dependency pins; GOWORK=off; isolated export",
+    "repetitions_predeclared": 10,
+    "test_passes": 20,
+    "test_failures": 0,
+    "race": true,
+    "source_sha256": "611173f9fdda9f7da4d502908b95cedfa10dabceac2c86e9a94dbc411313ec0c",
+    "log_sha256": "1113af17569f45b1aa91ffd89622e2d6159d55c0fe072a32a87a6bfcfa653717"
+  },
+  "negative_controls": {
+    "noncanonical-units": {
+      "returncode": 1,
+      "killed": true
+    },
+    "elapsed-bounds": {
+      "returncode": 1,
+      "killed": true
+    }
+  },
+  "private_capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/IDLE-ORACLE",
+    "files": 12,
+    "bytes": 7838355,
+    "manifest_sha256": "485f15a900a42cd9598fd9045461bbca0631d00d0ba041a8bfa85f4396e95a6e"
+  },
+  "scope_limit": "Test formatting oracle only; no new browser fidelity claim or full catalogue/F03/native acceptance."
+}

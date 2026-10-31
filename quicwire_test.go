@@ -383,7 +383,56 @@ func TestAQUICClientsFirstFlightIsTheProfilesToSay(t *testing.T) {
 	}
 }
 
-var idleReason = regexp.MustCompile(`^25:No recent network activity after (\d+)us\. Timeout:1s num_undecryptable_packets: 0 \{\}$`)
+var idleReason = regexp.MustCompile(`^25:No recent network activity after ([1-9][0-9]*)(us|ms|s)\. Timeout:1s num_undecryptable_packets: 0 \{\}$`)
+
+// QUICHE a1628192 (Chrome156 DEPS) writes the largest exactly dividing unit:
+// seconds, milliseconds, then microseconds. Do not require a scheduling draw
+// that happens not to be divisible by 1000, or accept noncanonical encodings.
+func matchesIdleReason(reason string) bool {
+	parts := idleReason.FindStringSubmatch(reason)
+	if parts == nil {
+		return false
+	}
+	d, err := time.ParseDuration(parts[1] + parts[2])
+	if err != nil || d < time.Second || d > 1300*time.Millisecond {
+		return false
+	}
+	if d%time.Second == 0 {
+		return parts[2] == "s"
+	}
+	if d%time.Millisecond == 0 {
+		return parts[2] == "ms"
+	}
+	return parts[2] == "us"
+}
+
+func TestQUICIdleReasonUsesCanonicalElapsedUnits(t *testing.T) {
+	for _, tc := range []struct {
+		elapsed string
+		valid   bool
+	}{
+		{"1s", true}, {"1005ms", true}, {"1000001us", true}, {"1300ms", true},
+		{"1000ms", false}, {"1000000us", false}, {"1005000us", false},
+		{"01005ms", false}, {"1005.0ms", false}, {"1005µs", false},
+		{"0us", false}, {"-1s", false}, {"999999us", false}, {"1300001us", false},
+		{"999999999999999999999999999s", false}, {"1005ms extra", false},
+	} {
+		reason := "25:No recent network activity after " + tc.elapsed + ". Timeout:1s num_undecryptable_packets: 0 {}"
+		if matchesIdleReason(reason) != tc.valid {
+			t.Errorf("%q: want accepted=%v", reason, tc.valid)
+		}
+	}
+	for _, reason := range []string{
+		"26:No recent network activity after 1005ms. Timeout:1s num_undecryptable_packets: 0 {}",
+		"25:No recent network activity after 1005ms. Timeout:2s num_undecryptable_packets: 0 {}",
+		"25:No recent network activity after 1005ms. Timeout:1s num_undecryptable_packets: 1 {}",
+		"25:No recent network activity after 1005ms. Timeout:1s num_undecryptable_packets: 0 {Initial:1200}",
+	} {
+		if matchesIdleReason(reason) {
+			t.Errorf("accepted changed close reason %q", reason)
+		}
+	}
+}
 
 func TestAQUICClientProbesSilenceAndClosesAsChromeDoes(t *testing.T) {
 	// Chrome's probes and close, its handshake's idle time shortened to a
@@ -425,7 +474,7 @@ func TestAQUICClientProbesSilenceAndClosesAsChromeDoes(t *testing.T) {
 	if close == nil {
 		t.Fatal("no CONNECTION_CLOSE")
 	}
-	if close.code != 0 || !idleReason.MatchString(close.reason) {
+	if close.code != 0 || !matchesIdleReason(close.reason) {
 		t.Errorf("closed with %d %q", close.code, close.reason)
 	}
 }

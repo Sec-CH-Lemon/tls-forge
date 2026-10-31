@@ -3153,3 +3153,8 @@ A13's [network observer contract](docs/remediation/2026-10-31/A13-network-observ
 separates HTTP RTT, transport RTT, aggregate throughput, publication and network
 reset. It records pinned Chromium sources and the production inputs still
 missing from tls-forge; it does not claim that the estimator is implemented.
+
+The [A13 QUIC idle-close test correction](docs/remediation/2026-10-31/A13-idle-oracle.ru.md)
+checks QUICHE's canonical elapsed-time units and bounded durations. It retains
+the original wire refusal, packet/timing assertions and two negative controls;
+runtime and profile timers are unchanged.

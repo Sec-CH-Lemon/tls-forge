@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Correct the QUIC idle-close test oracle to check canonical elapsed units
+  against pinned QUICHE source, including duration bounds and negative controls.
+  Preserve the original `1005ms` refusal and all packet/timing assertions;
+  runtime and profile data are unchanged.
+
 - Record the pinned A13 network-observer contract, input filters and reset
   requirements. Preserve the open production-estimator and historical/platform
   acceptance criteria; no captured network literal is promoted to a generator.
