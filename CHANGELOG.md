@@ -28,6 +28,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   profile-data selection; retain the five before-failures and seven after
   controls with full23-package/100% acceptance.
 
+- Add strict declarative `tls_spec` profiles with fresh/session-derived TLS
+  inputs, parameterized padding and explicit GREASE bodies. Preserve descriptor
+  data through Save/Load/Clone; retain profile names in decoder errors and name
+  all three handshake representations in the missing-handshake error. Pending
+  engine1 is unchanged; adapter export tests do not close full catalogue or
+  network-estimator acceptance.
+
 - Complete A12 native acceptance on3faef706:28/28 main jobs and8/8 full fork
   gates; actual Linux23-package race coverage, unchanged20m/40m limits and
   zero allowances/exclusions. Preserve original failures and all before/after

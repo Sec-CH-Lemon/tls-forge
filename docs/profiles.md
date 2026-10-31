@@ -102,6 +102,55 @@ stored as JSON so it can be committed and reviewed.
 }
 ```
 
+### Declarative TLS specifications (pending engine 1 / A13)
+
+An explicit `tls_spec` can replace `client_hello` for an imported or authored
+handshake. It is mutually exclusive with `client_hello`, `base` and
+`per_connection`; the descriptor owns its generation and ordering rules.
+It does not turn a preset export into a browser capture. All usual engine-major,
+behavior and HTTP validation still applies before transport creation or I/O.
+
+Every descriptor field is required and non-null: `min_version`, `max_version`,
+`cipher_suites`, `compression_methods`, `session_id`, `grease`,
+`extension_order` and `extensions`. Version bounds are TLS1.0..1.3 wire codes,
+or explicit0 for bounds derived from the supported-versions extension.
+`session_id: "random"` and `grease: "boringssl"` select the implemented fresh
+session-ID and correlated per-connection GREASE mechanisms. QUIC omits the
+session ID as its protocol requires. Cipher suites are ordered uint16 values;
+compression methods are bytes (saved as base64). Extensions are ordered
+`{"type": "…", "parameters": {…}}` objects. Unknown, repeated, case-variant,
+missing, null and incorrectly typed parameter fields are rejected.
+
+`extension_order` selects `fixed`, the historical backend's `utls` shuffle,
+or `moving` (shuffle movable slots, retaining GREASE/padding/PSK positions).
+The existing explicit fixed/random-order API can override the selected rule.
+`Save`, `Load` and `Clone` preserve the descriptor and isolate its mutable data.
+An older schema4 engine without this capability rejects the unknown field;
+the pending release retains engine major1.
+
+| Extension type | Required parameters / implemented source |
+| --- | --- |
+| `sni` | `source: "request-host"` |
+| `session_ticket` | `source: "session-cache"`; tickets are never serialized |
+| `pre_shared_key` | `source: "session-cache"`, `omit_empty: true` (the implemented transport omits unavailable PSK state); identities/binders/secrets are never serialized |
+| `status_request`, `extended_master_secret`, `sct`, `encrypt_then_mac` | Empty parameter object |
+| `supported_groups`, `signature_algorithms`, `delegated_credentials`, `supported_versions`, `compress_certificate` | Ordered `values` uint16 vector,1..127 entries; compression algorithms1..3 |
+| `point_formats`, `psk_modes` | Ordered byte `values`,1..255 entries (saved as base64) |
+| `alpn`, `alps`, `alps_new` | Ordered `protocols`; each name1..255 bytes; ALPN cannot be empty |
+| `renegotiation_info` | `mode`, integer0..2 |
+| `record_size_limit` | `limit`,64..16385 |
+| `grease` | Explicit `body` bytes, including the second slot; IDs remain fresh |
+| `padding` | `algorithm: "range"`, `lower_exclusive`, `upper_exclusive`, `target`, `minimum`; `0 <= lower < upper <= target <= 32767`, `1 <= minimum <= target`. Inside the interval, payload length is `max(target - unpadded_handshake_length - 4, minimum)`; outside it no padding extension is emitted. Four bytes are the TLS extension header. |
+| `key_share` | `shares`: ordered1..32 records of `group`, `source`, `data`. Supported non-GREASE groups require `source: "fresh"` and empty data; GREASE uses `source: "grease"` with at most255 data bytes. Captured public/private key material is rejected. |
+| `grease_ech` | Nonempty `cipher_suites` of `{kdf,aead}` (implemented1/1..3), `config_id: "random-byte"`, `encapsulated_key: "hpke-x25519-sha256-aes128gcm"`, nonempty `payload_lengths` before the AEAD tag. Actual keys, config IDs and payloads are generated per connection and retained where HRR requires. |
+| `trust_anchors` | `data` contains the encoded ID set; `order` selects `captured`, `sorted` or `process-shuffle`. Lengths and every ID are validated; the process-shuffle cache is keyed by the ID set. |
+
+The TLS exporter fixture covers83 aliases from pinned backend sources. Its
+technical adapter checks use one explicit common HTTP/session policy, cold,
+reused and new connections. They do not establish full catalogue transport
+materialization or fresh acceptance of historical browsers. Those remain
+separate A13 obligations.
+
 `client_hello` is a real ClientHello, base64'd, recorded off the wire. It is the
 authoritative TLS field; the HTTP fields are measurements from the same browser
 navigation. `http1.header_order` deliberately retains the exact spelling seen

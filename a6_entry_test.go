@@ -88,12 +88,17 @@ func TestA6SemanticGateEveryClientEntryBeforeIO(t *testing.T) {
 		t.Fatal(err)
 	}
 	original = workflowProfile(original)
-	for _, variant := range []string{"frame", "window", "duplicate", "stream", "dependency", "connection", "h3"} {
+	for _, variant := range []string{"frame", "window", "duplicate", "stream", "dependency", "connection", "h3", "tls-source", "tls-unknown", "tls-key"} {
 		for _, entry := range []string{"value", "file", "Fresh", "Do"} {
 			for _, scheme := range []string{"direct", "http", "https", "socks5", "raw-dial", "quic"} {
 				t.Run(variant+"/"+entry+"/"+scheme, func(t *testing.T) {
 					p := original.Clone()
 					p.Name = "neutral-entry-matrix"
+					if strings.HasPrefix(variant, "tls-") {
+						p.ClientHello = nil
+						p.PerConnection = nil
+						p.TLSSpec = &profile.TLSSpec{SessionID: "random", GREASE: "boringssl", ExtensionOrder: "fixed", CipherSuites: []uint16{0x1301}, CompressionMethods: []uint8{0}, Extensions: []profile.TLSExtension{}}
+					}
 					switch variant {
 					case "frame":
 						p.HTTP2.Settings = []profile.Setting{{ID: 5, Value: 1}}
@@ -109,6 +114,12 @@ func TestA6SemanticGateEveryClientEntryBeforeIO(t *testing.T) {
 						p.HTTP2.ConnectionFlow = 1<<31 - 1
 					case "h3":
 						p.Behavior["h3.grease_payload_lengths"] = json.RawMessage(`[4097]`)
+					case "tls-source":
+						p.TLSSpec.SessionID = "captured"
+					case "tls-unknown":
+						p.TLSSpec.Extensions = []profile.TLSExtension{{Type: "unknown", Parameters: json.RawMessage(`{}`)}}
+					case "tls-key":
+						p.TLSSpec.Extensions = []profile.TLSExtension{{Type: "key_share", Parameters: json.RawMessage(`{"shares":[{"group":29,"source":"fresh","data":"AQ=="}]}`)}}
 					}
 					opts := []Option{WithProfileValue(p), WithDNSServer(dns.addr), WithInsecureSkipVerify(), WithTimeout(300 * time.Millisecond)}
 					if scheme == "http" || scheme == "https" || scheme == "socks5" {
@@ -197,7 +208,7 @@ func TestA6SemanticGateEveryClientEntryBeforeIO(t *testing.T) {
 	if datagrams.Load() != 1 {
 		t.Fatal("UDP observer positive control failed", datagrams.Load())
 	}
-	t.Log("RESULT: rejection DNS=0 TCP=0 UDP-datagrams=0 proxy=0 TLS-ClientHello=0 origin=0 constructors=0;168 entry/route variants; actual DNS/TCP/TLS/HTTP and UDP observer positive controls")
+	t.Log("RESULT: rejection DNS=0 TCP=0 UDP-datagrams=0 proxy=0 TLS-ClientHello=0 origin=0 constructors=0;240 entry/route variants; actual DNS/TCP/TLS/HTTP and UDP observer positive controls")
 }
 
 func TestA6AcceptedProfileSnapshotCannotBeMutated(t *testing.T) {

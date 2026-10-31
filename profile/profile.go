@@ -77,6 +77,10 @@ type Profile struct {
 	// When empty, Base names a stock profile to borrow instead.
 	ClientHello []byte `json:"client_hello,omitempty"`
 
+	// TLSSpec describes a handshake without captured bytes. It is exclusive
+	// with ClientHello and Base, and always rebuilds live connection state.
+	TLSSpec *TLSSpec `json:"tls_spec,omitempty"`
+
 	// Base names a profile from the tls-client catalogue, used when no captured
 	// ClientHello is present. It is also what a hand-written profile builds on.
 	Base string `json:"base,omitempty"`
@@ -123,6 +127,7 @@ func (p *Profile) Clone() *Profile {
 	}
 	out.Behavior = p.Behavior.Clone()
 	out.ClientHello = append([]byte(nil), p.ClientHello...)
+	out.TLSSpec = p.TLSSpec.clone()
 	if p.PerConnection != nil {
 		perConnection := *p.PerConnection
 		perConnection.ECHPayloadLengths = slices.Clone(p.PerConnection.ECHPayloadLengths)
@@ -178,6 +183,9 @@ const maxECHPayloadLength = 1<<16 - 1 - 16
 // there connects through Apple's own stack, so Chrome on iOS sends Safari's
 // handshake, in Safari's order.
 func (p *Profile) ShufflesExtensions() bool {
+	if p.TLSSpec != nil {
+		return p.TLSSpec.ExtensionOrder != "fixed"
+	}
 	if p.PerConnection != nil {
 		return p.PerConnection.ShufflesExtensions
 	}
@@ -283,7 +291,7 @@ var chromeECHPayloadLengths = func() []uint16 {
 
 // ErrNoHandshake reports a profile that names neither a captured ClientHello nor
 // a base profile, and so cannot produce a handshake.
-var ErrNoHandshake = fmt.Errorf("profile: neither client_hello nor base is set")
+var ErrNoHandshake = fmt.Errorf("profile: neither client_hello, tls_spec nor base is set")
 
 // Spec builds a fresh ClientHelloSpec.
 //
@@ -293,6 +301,9 @@ var ErrNoHandshake = fmt.Errorf("profile: neither client_hello nor base is set")
 func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 	if err := p.Validate(); err != nil {
 		return tls.ClientHelloSpec{}, err
+	}
+	if p.TLSSpec != nil {
+		return p.TLSSpec.spec()
 	}
 	if len(p.ClientHello) > 0 {
 		// Let the fingerprinter expose unknown extensions, then admit only the
@@ -446,14 +457,16 @@ func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, e
 		return profiles.ClientProfile{}, err
 	}
 	factory := p.Spec
-	if shuffle {
+	backendShuffle := shuffle && p.TLSSpec != nil && p.TLSSpec.ExtensionOrder == "utls"
+	if shuffle && !backendShuffle {
 		factory = p.shuffledSpec
 	}
 	id := tls.ClientHelloID{
 		// Metadata must never collide with uTLS special Golang/Randomized IDs.
-		Client:      "tls-forge-profile",
-		Version:     "0",
-		SpecFactory: factory,
+		Client:               "tls-forge-profile",
+		Version:              "0",
+		SpecFactory:          factory,
+		RandomExtensionOrder: backendShuffle,
 	}
 
 	settings := make(map[http2.SettingID]uint32, len(p.HTTP2.Settings))
@@ -581,7 +594,7 @@ func (p *Profile) validateHTTP1() error {
 // BareBase reports a profile that only names a base of the transport's
 // catalogue, and is that base: no handshake and no HTTP/2 settings of its own.
 func (p *Profile) BareBase() bool {
-	return p.Base != "" && len(p.ClientHello) == 0 && len(p.HTTP2.Settings) == 0
+	return p.Base != "" && p.TLSSpec == nil && len(p.ClientHello) == 0 && len(p.HTTP2.Settings) == 0
 }
 
 func (p Priority) param() http2.PriorityParam {
@@ -624,7 +637,8 @@ func decodeProfile(data []byte, execute bool) (*Profile, error) {
 		}
 	}
 	var written struct {
-		Schema *int `json:"schema"`
+		Schema *int   `json:"schema"`
+		Name   string `json:"name"`
 	}
 	if err := json.Unmarshal(data, &written); err != nil {
 		return nil, fmt.Errorf("profile: %w", err)
@@ -634,13 +648,13 @@ func decodeProfile(data []byte, execute bool) (*Profile, error) {
 	case written.Schema == nil:
 		// Written before the format had a version.
 		if err := json.Unmarshal(data, &p); err != nil {
-			return nil, fmt.Errorf("profile: %w", err)
+			return nil, fmt.Errorf("profile %q: %w", written.Name, err)
 		}
 	case *written.Schema >= 1 && *written.Schema <= Schema:
 		decoder := json.NewDecoder(bytes.NewReader(data))
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&p); err != nil {
-			return nil, fmt.Errorf("profile: schema %d: %w", *written.Schema, err)
+			return nil, fmt.Errorf("profile %q: schema %d: %w", written.Name, *written.Schema, err)
 		}
 		if *written.Schema == 1 && len(p.ClientHints) > 0 {
 			return nil, fmt.Errorf("profile: schema 1 has no client_hints: they are schema %d's", Schema)
@@ -671,6 +685,14 @@ func decodeProfile(data []byte, execute bool) (*Profile, error) {
 func (p *Profile) validateFields() error {
 	if p.Name == "" {
 		return fmt.Errorf("profile: name is required")
+	}
+	if p.TLSSpec != nil {
+		if len(p.ClientHello) != 0 || p.Base != "" || p.PerConnection != nil {
+			return fmt.Errorf("profile %q: tls_spec is exclusive with client_hello, base and per_connection", p.Name)
+		}
+		if err := p.TLSSpec.validate(); err != nil {
+			return fmt.Errorf("profile %q: %w", p.Name, err)
+		}
 	}
 	if p.PerConnection != nil {
 		for _, length := range p.PerConnection.ECHPayloadLengths {
@@ -756,7 +778,7 @@ func defaultHints() *hintDefaults {
 // written in the current schema, whichever it was read in.
 func (p *Profile) Save() ([]byte, error) {
 	current := *p
-	if current.PerConnection == nil {
+	if current.PerConnection == nil && current.TLSSpec == nil {
 		current.PerConnection = &PerConnection{ShufflesExtensions: p.ShufflesExtensions(), ECHPayloadLengths: slices.Clone(p.echPayloadLengths())}
 	}
 	current.Behavior = p.savedBehavior()

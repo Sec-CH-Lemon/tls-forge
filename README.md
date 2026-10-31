@@ -3123,6 +3123,15 @@ neutral internal adapter ID, preventing `Golang`, `CustomInternal` and
 `Randomized*` metadata from bypassing profile data. See the
 [before/after checks](docs/remediation/2026-10-31/A13-identity.ru.md).
 
+A13 adds an explicit [`tls_spec` profile representation](docs/profiles.md#declarative-tls-specifications-pending-engine-1--a13)
+for preset imports without captured keys or sessions. Its named generation
+sources, parameterized padding and explicit GREASE payloads are independent of
+profile name and User-Agent. This is an additional pending engine1 capability;
+it does not itself complete the catalogue/network-estimator obligations.
+Profile-load errors identify the selected profile, including malformed TLS data.
+The missing-handshake error now names all three representations:
+`client_hello`, `tls_spec` and `base`.
+
 A13 network-hint research has [six headed156/macOS observations](docs/remediation/2026-10-31/A13-network-observations.ru.md)
 with raw headers/NetLog and pinned Chromium/libc++ rules. The production
 network estimator and historical/platform acceptance remain open.
