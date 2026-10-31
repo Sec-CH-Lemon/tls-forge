@@ -445,3 +445,9 @@ Executable profiles also require the three explicit HTTPS DNS query choices:
 that lacks the entire group; execution rejects it before I/O. Explicit `Migrate`
 creates a separate candidate using the pinned migration data. A partially
 specified group is invalid. See the [DNS field reference](profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1).
+
+For HTTP/2 setting 6, finite values above 16 MiB are rejected, except the
+backend's all-ones (`4294967295`) sentinel. That sentinel selects Framer's
+16 MiB default; it does not allocate an unbounded header list. The advertised
+value is advisory, and a lower receive limit is permitted by
+[RFC 9113 section 6.5.2](https://www.rfc-editor.org/rfc/rfc9113.html#section-6.5.2).

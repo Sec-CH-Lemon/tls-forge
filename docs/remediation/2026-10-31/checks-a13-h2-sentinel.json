@@ -1,0 +1,29 @@
+{
+  "status": "accepted-local-component",
+  "source_before": "2dd4606417c30e8398793b3a37d27b25e4d31e03",
+  "engine": "unreleased1.0.0",
+  "profile_data_changed": false,
+  "scope": "H2 backend all-ones advertised sentinel with independent 16MiB decoder limit; not catalogue or browser acceptance",
+  "checks": {
+    "sentinel-before.log": {
+      "sha256": "818c04036a89da79af19bbf1c5fbc4a6953a4e99e47338a91a0faa7b173854db",
+      "result": "retained-diagnostic"
+    },
+    "sentinel-after.log": {
+      "sha256": "1b7eecf161ddee42077e3612186796a07b34e7051625441c9eed407350f5403f",
+      "result": "retained-diagnostic"
+    },
+    "sentinel-after2.log": {
+      "sha256": "9611eecc260c0b4f61ba9481a4adb93fff333c1d104f94d3fac637c21af23e92",
+      "result": "pass"
+    },
+    "sentinel-mutant.log": {
+      "sha256": "3e7b53358e2040d449009fde88cea79e2424bd30816d8a946dcbf081a422d075",
+      "result": "negative-control-killed"
+    },
+    "sentinel-profile.log": {
+      "sha256": "137bda33c1e4e6345ee6b208ad4c798b8a7a1c2b74e562241b2ed56bd6251e5e",
+      "result": "pass"
+    }
+  }
+}

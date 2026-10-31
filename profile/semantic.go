@@ -88,7 +88,9 @@ func (p *Profile) validateHTTP2() error {
 			return p.invalid(fmt.Sprintf("http2.settings[%d].value", i), s.Value, "0 or 1 (RFC9218)")
 		case s.ID == 1 && s.Value > maxHeaderTableBytes:
 			return p.invalid(fmt.Sprintf("http2.settings[%d].value", i), s.Value, "at most 1048576, the engine's bound on the HPACK table a server can fill")
-		case s.ID == 6 && s.Value > maxHeaderListBytes:
+		// The all-ones advertised value maps to Framer's zero and its
+		// 16 MiB default. Other large values bypass that bound.
+		case s.ID == 6 && s.Value > maxHeaderListBytes && s.Value != math.MaxUint32:
 			return p.invalid(fmt.Sprintf("http2.settings[%d].value", i), s.Value, "at most 16777216, the engine's bound on a header list a server can send")
 		}
 	}

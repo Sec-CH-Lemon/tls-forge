@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Accept H2's all-ones header-list backend sentinel while retaining the actual
+  16 MiB decoder bound. Check the advertised value, a valid smaller response,
+  an oversized compressed response and a bound-removal negative control.
+
 - Record the A13 checkpoint, separately validated83-alias TLS candidate and
   required dependency-publication step. Keep F02/C,F03C-E and native A13 open;
   committed source builds without local dependency replacements.

@@ -3143,3 +3143,8 @@ latency-publication thresholds; production estimator acceptance remains open.
 [A13 status and continuation](docs/remediation/2026-10-31/A13.ru.md) records
 committed fixes, the separately archived TLS candidate and open catalogue/
 network-estimator criteria. Committed source retains published dependency pins.
+
+The H2 `SETTINGS_MAX_HEADER_LIST_SIZE` all-ones backend sentinel is accepted
+without raising the decoder's independent 16 MiB ceiling. Other finite values
+above that ceiling remain rejected before I/O. This preserves catalogue data;
+it does not establish historical browser equivalence.
