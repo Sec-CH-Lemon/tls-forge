@@ -31,11 +31,6 @@ type a13H3Observed struct {
 
 // An independent literal HTTP/3 peer advertises no dynamic QPACK capability.
 // It keeps the original SETTINGS payload and request field-section bytes.
-func a13CatalogueH3Peer(t *testing.T) (string, <-chan a13H3Observed) {
-	t.Helper()
-	return a13CatalogueH3PeerObserved(t, nil)
-}
-
 func a13CatalogueH3PeerObserved(t *testing.T, onConnection func(*quic.Conn)) (string, <-chan a13H3Observed) {
 	t.Helper()
 	seed := httptest.NewTLSServer(nil)
