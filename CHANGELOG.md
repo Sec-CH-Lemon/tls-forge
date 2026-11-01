@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Loosen landing headline tracking, use a self-hosted Inter Variable subset,
+  and increase feature, workflow and FAQ reading text while retaining mobile
+  and desktop Lighthouse 100.
+
 - Redesign the landing with a frosted-glass visual system, an illustrative
   animated request path, decorative scroll parallax, reduced-motion support
   and a matching Open Graph image.

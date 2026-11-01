@@ -61,6 +61,10 @@ its mobile and desktop audits after deployment.
 The hero network flow is illustrative and makes no requests. The local
 motion.js moves only decorative layers on scroll and respects reduced-motion
 preferences; the frosted panels and social image share the same visual style.
+The page self-hosts a Latin subset of Inter Variable in
+[`web/landing/fonts/`](web/landing/fonts/) under the SIL Open Font License;
+system monospace remains reserved for code and request data. The type scale
+uses restrained headline tracking and 16px feature, workflow and FAQ copy.
 
 `.github/workflows/landing.yml` checks all four Lighthouse categories at 100
 on mobile and desktop, then publishes only `web/landing/` through GitHub Pages
