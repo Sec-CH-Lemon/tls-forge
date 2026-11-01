@@ -11,6 +11,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Align release Go gates with accepted CI: run race root and other packages on separate Linux runners with20m test limits, retain normal tests on all three OSes with10m limits, and gate set storage on every Go job.
+
 - Pin the test-only Alt-Svc readiness correction and aligned Go consumer lock; preserve protocol assertions, connection counts and the original readiness budget. Retain the failed native CI and require a fresh full run.
 
 - Test native Linux route and TCP_INFO boundaries with parameter-based I/O seams; retain the existing production calls and JSON policies.

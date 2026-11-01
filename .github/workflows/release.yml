@@ -125,11 +125,9 @@ jobs:
         with:
           python-version: '3.13'
 
-      # Nothing is built that has not passed the gates a push to main passes:
-      # a release is the worst moment to find a test failing.
+      # The native Go jobs below gate storing the set. Keep race on separate
+      # Linux runners, as ci.yml does, so root and CLI do not compete for I/O.
       - run: go vet ./...
-        if: steps.where.outputs.build == 'true'
-      - run: go test -race -timeout 8m ./...
         if: steps.where.outputs.build == 'true'
       - run: make cover
         if: steps.where.outputs.build == 'true'
@@ -197,8 +195,50 @@ jobs:
           retention-days: 7
           path: set/
 
+  go-race:
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        scope: [root, packages]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go build ./...
+      - run: go vet ./...
+      # Exactly the accepted CI partition: root plus every other discovered
+      # package, each under race once, with Go's own20m timeout and dump.
+      - name: test root under race
+        if: matrix.scope == 'root'
+        run: go test -race -timeout 20m .
+      - name: test all other packages under race
+        if: matrix.scope == 'packages'
+        shell: bash
+        run: |
+          root="$(go list -m)"
+          discovered="$(go list ./...)"
+          others=()
+          found_root=false
+          while IFS= read -r package; do
+            if [[ "$package" == "$root" ]]; then
+              found_root=true
+            else
+              others+=("$package")
+            fi
+          done <<< "$discovered"
+          if [[ "$found_root" != true || "${#others[@]}" -eq 0 ]]; then
+            exit 1
+          fi
+          go test -race -timeout 20m "${others[@]}"
+
   go-platforms:
-    timeout-minutes: 20
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -214,7 +254,7 @@ jobs:
           cache: true
       - run: go build ./...
       - run: go vet ./...
-      - run: go test -timeout 5m ./...
+      - run: go test -timeout 10m ./...
 
   package-smoke:
     timeout-minutes: 15
@@ -256,7 +296,7 @@ jobs:
 
   store:
     timeout-minutes: 15
-    needs: [set, go-platforms, package-smoke]
+    needs: [set, go-race, go-platforms, package-smoke]
     runs-on: ubuntu-latest
     permissions:
       contents: write

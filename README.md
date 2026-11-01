@@ -3230,3 +3230,5 @@ The standalone Go example pins the same published transport dependencies as the 
 Native Linux network metadata checks cover both kernel route formats and TCP_INFO failure/measurement paths; production still uses the original OS calls, with parameter-based I/O seams for deterministic controls.
 
 The pinned Alt-Svc regression waits for publication in the client QUIC pool; the real-dial control preserves protocol and connection-count assertions. Native CI status and retained failures are in the [follow-up report](docs/remediation/2026-11-01/Network-hints-native.ru.md).
+
+Release preparation runs the full workflow with `dry_run=true` on `development`. Its two Linux race jobs use the accepted20m root/other-package partition; ordinary tests retain all three platforms with10m timeouts. Storing or publishing a set waits for all of them; see [RELEASING.md](RELEASING.md).

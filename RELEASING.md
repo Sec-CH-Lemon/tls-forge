@@ -5,9 +5,10 @@ A release is a tag. Pushing `vX.Y.Z` starts
 the release's set once, every file it publishes, holds it to the same gates
 as a push to `main`, and stores it in the tag's draft GitHub release before
 anything is published. Then it publishes that set to npm, PyPI, GitHub
-Releases, the Homebrew tap and the GitHub Container Registry. Nothing reads
-the version from a committed file: the tag is the version, and every package
-is stamped from it.
+Releases, the Homebrew tap and the GitHub Container Registry. The requested tag
+version must equal the compiled version in `engine/version.json`; every package
+is stamped with that same identity. Publication is the release anchor: an
+unpublished candidate does not advance `latest_released_version`.
 
 ## Before the tag
 
@@ -53,14 +54,17 @@ is the SHA-256 of its `manifest.json`.
 
 ## What the workflow does
 
-1. **set**, on a tag that has no release yet, runs the gates (vet, race
-   tests, the coverage gate, govulncheck, golangci-lint, the Node.js and
+1. **set**, on a tag that has no release yet, runs the gates (vet,
+   the coverage gate, govulncheck, golangci-lint, the Node.js and
    Python suites, the real-daemon smoke test, the release-script tests, the
    examples and `make generated-check`) and builds the set. On a tag whose
    draft or release holds a set already, it takes that set instead and builds
    nothing. Either way it verifies the set against this commit.
-2. **go-platforms** builds, vets and tests the module on Linux, macOS and
-   Windows. **package-smoke** installs and runs the set's archive, npm package
+2. **go-race** uses the accepted CI partition on two Linux runners: root and
+   all other discovered packages, every package once with the20m per-binary
+   timeout. **go-platforms** retains ordinary build/vet/test on Linux, macOS
+   and Windows with the10m test timeout. These jobs have40m ceilings and all
+   must pass before **store** can run. **package-smoke** installs and runs the set's archive, npm package
    and wheel on Linux (x86-64 and arm64), macOS and Windows, and on the oldest
    Node.js and Python the packages support.
 3. **store** signs provenance for every file of the set, when this run built
@@ -117,7 +121,7 @@ other change: what each action's new commit changes is part of it.
 ## A dry run
 
 ```bash
-gh workflow run release.yml --ref main
+gh workflow run release.yml --ref development -f dry_run=true -f version=1.0.0
 ```
 
 `dry_run` is on unless it is turned off. Off a tag it builds the engine's
@@ -127,6 +131,11 @@ as a release does, runs the gate when the reference can be restored, and asks
 the draft, npm and PyPI what each has, saying what it would give each. It
 stores, signs and publishes nothing. Run on a tag, it takes the set the tag
 has, if it has one, and says what a release run again would do.
+
+Use the exact candidate branch commit for preparation; the example above is
+the current unreleased1.0.0 candidate on `development`. A full dry run retains
+the three strict Google Chrome gates and all five package-smoke targets.
+It creates no release tag and advances no release metadata.
 
 ## When a release fails part of the way
 
