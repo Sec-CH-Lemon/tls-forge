@@ -12,10 +12,14 @@ unpublished candidate does not advance `latest_released_version`.
 
 ## Before the tag
 
-1. `main` is green, and `make check` passes on the commit to be tagged.
-2. `[Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md) becomes
-   `[X.Y.Z] - YYYY-MM-DD`, dated the day of the tag, with an empty
-   `[Unreleased]` above it.
+1. The exact candidate commit is green in CI and the full release dry run.
+   Prepare it on `development`; the future tag must name that same accepted
+   source. A clean `git archive` export excludes unrelated local work.
+2. Prepare `[X.Y.Z] - Unreleased` in [`CHANGELOG.md`](CHANGELOG.md), keeping
+   an empty `[Unreleased]` above it and the development history separate.
+   After publication is approved, replace that version section's `Unreleased`
+   with `YYYY-MM-DD`, dated the day of the tag. Preparation does not claim
+   publication or change the release anchor.
 3. `make generated-check` passes: Go is formatted and tidy, and the
    stylesheet and `THIRD-PARTY-NOTICES.txt` are what their sources make. The
    release checks this and stops when they are stale.
@@ -189,8 +193,14 @@ registries then serve is proved by the
 for the version:
 
 ```bash
-gh workflow run published-e2e.yml --ref main -f version=X.Y.Z -f check_brew=true
+gh workflow run published-e2e.yml --ref vX.Y.Z -f version=X.Y.Z -f check_brew=true
 ```
 
 Disable `check_brew` for a pre-release, or for an older version once the tap
 has moved past it.
+
+Only after actual stable publication has been verified, record that version
+as `latest_released_version` with `release_status: released` and
+`pending_engine_change: false`. A failed run, draft or dry run is not that
+verification. The next engine change then reserves the next major; it does
+not reinterpret the unpublished internal snapshot labels as public releases.
