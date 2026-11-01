@@ -8,6 +8,7 @@ import (
 
 func TestPolicyRejectsUnsupportedAmbiguousAndUnboundedChoices(t *testing.T) {
 	for name, edit := range map[string]func(*Policy){
+		"header-delivery":                     func(p *Policy) { p.Compute.HeaderDelivery = "guess" },
 		"ect-label":                           func(p *Policy) { p.ECT[0].Label = "made-up" },
 		"ect-rtt-overflow":                    func(p *Policy) { p.ECT[0].TypicalHTTPMS = math.MaxInt32 + 1 },
 		"ect-transport-overflow":              func(p *Policy) { p.ECT[0].TypicalTransportMS = math.MaxInt32 + 1 },
@@ -93,5 +94,21 @@ func TestMethodFilterUsesHTTPTokenGrammarAndOwnsMutableMetadata(t *testing.T) {
 	copy.Addresses.Rules[0].Public = true
 	if *p.Environment.Fallback.Signal != 0 || p.Environment.Families[0] != "ipv4" || p.Addresses.Rules[0].Public {
 		t.Fatal("mutable metadata/address policy aliases caller")
+	}
+}
+
+func TestPolicySelectsMetadataIdentityAndObservationDeliveryIndependently(t *testing.T) {
+	for _, identity := range []string{"connection-type", "route-interface-addresses"} {
+		for _, start := range []string{"request", "headers", "next-step"} {
+			for _, headers := range []string{"headers", "next-step"} {
+				p := candidatePolicy(t)
+				p.Environment.Identity = identity
+				p.Compute.TransactionStart = start
+				p.Compute.HeaderDelivery = headers
+				if err := p.Validate(); err != nil {
+					t.Fatal(identity, start, headers, err)
+				}
+			}
+		}
 	}
 }

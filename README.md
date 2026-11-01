@@ -3209,3 +3209,5 @@ metadata and a browser-instance salt. Its race/100%/lint/fuzz evidence is compon
 acceptance; root profile/SDK activation and complete browser acceptance remain pending.
 
 The [A13 network capability record](docs/remediation/2026-10-31/A13-network-capability.ru.md) preserves exact shared-registry acceptance; production estimator activation and browser acceptance remain pending.
+
+The [A13 observation-policy follow-up](docs/remediation/2026-10-31/A13-network-delivery-policy.ru.md) records explicit identity and callback-delivery choices, with standalone validation and preserved source provenance.

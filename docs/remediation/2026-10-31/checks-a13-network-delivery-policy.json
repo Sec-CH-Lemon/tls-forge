@@ -1,0 +1,58 @@
+{
+  "scope": "Standalone policy representation and validation; root Client.Do integration remains separate",
+  "before_root_commit": "e824ea8a430287b9b2db68cfc9e6ea7a385e6d4b",
+  "changed_files": [
+    "networkquality/policy.go",
+    "networkquality/policy_test.go",
+    "networkquality/testdata/chromium156-nqe-source-candidate.json"
+  ],
+  "choices": {
+    "environment.identity": [
+      "route-interface-addresses",
+      "connection-type"
+    ],
+    "compute.transaction_start": [
+      "request",
+      "headers",
+      "next-step"
+    ],
+    "compute.headers_delivery": [
+      "headers",
+      "next-step"
+    ]
+  },
+  "source_semantics": {
+    "Chrome156": "GetCurrentNetworkID returns connection type with empty ID and unknown signal",
+    "Chrome152": "Pinned source enables async/deferred next-step header observation by default; effective browser field trials are not established by source"
+  },
+  "before": {
+    "accepted": false,
+    "error": "unsupported network identity rule"
+  },
+  "after": {
+    "accepted": true
+  },
+  "checks": {
+    "race": "pass",
+    "statements": 737,
+    "uncovered_statements": 0,
+    "lint_issues": 0,
+    "independent_selection_combinations": 12
+  },
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/NQE-DELIVERY-POLICY-R22",
+    "files": 12,
+    "bytes": 1253712,
+    "manifest_sha256": "5135c00ab8c5aa545fe7cb406780b99cfeece1dbc796eccfb7e8c89c2e87f687",
+    "verified": true,
+    "ignored": true,
+    "directory_mode": "0700",
+    "file_mode": "0600"
+  },
+  "limitations": [
+    "No root profile or transport activation in this commit",
+    "Source-derived candidate data is not browser acceptance",
+    "Passive OS notifications, physical network transition and throughput cohorts remain open",
+    "Original R20 evidence and 735-statement result remain immutable"
+  ]
+}

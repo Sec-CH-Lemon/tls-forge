@@ -311,7 +311,8 @@
     "hanging_min_ms": 500,
     "missing_rtt_ms": 10000,
     "use_end": true,
-    "transaction_start": "headers"
+    "transaction_start": "headers",
+    "headers_delivery": "headers"
   },
   "throughput": {
     "min_inflight": 5,
@@ -381,7 +382,7 @@
       "ipv4",
       "ipv6"
     ],
-    "identity": "route-interface-addresses"
+    "identity": "connection-type"
   },
   "addresses": {
     "rules": [

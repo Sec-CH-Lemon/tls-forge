@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Add explicit network-quality metadata identity and deferred observation delivery
+  policy choices; standalone race/coverage737/737 and lint pass. Runtime profile
+  activation and physical-network/browser acceptance remain separate.
+
 - Record the explicit network-hint capability registry acceptance: uTLS2f8200b,
   both exact696-run graphs, unchanged frozen migration data. Publication and
   final observer/profile acceptance remain separate.

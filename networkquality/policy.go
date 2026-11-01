@@ -60,6 +60,7 @@ type ECTRule struct {
 
 // ComputePolicy selects recomputation, RTT correction and hanging-request rules.
 type ComputePolicy struct {
+	HeaderDelivery      string  `json:"headers_delivery"`
 	TransactionStart    string  `json:"transaction_start"`
 	UseEnd              bool    `json:"use_end"`
 	IntervalMS          int64   `json:"interval_ms"`
@@ -180,7 +181,7 @@ func (p Policy) Validate() error {
 	if p.Environment.Missing != "fallback" && p.Environment.Missing != "reject" {
 		return fmt.Errorf("unsupported missing network metadata policy")
 	}
-	if p.Environment.Identity != "route-interface-addresses" {
+	if p.Environment.Identity != "route-interface-addresses" && p.Environment.Identity != "connection-type" {
 		return fmt.Errorf("unsupported network identity rule")
 	}
 	if len(p.Environment.Families) < 1 || len(p.Environment.Families) > 2 {
@@ -264,8 +265,11 @@ func (p Policy) Validate() error {
 		return fmt.Errorf("final ECT threshold must be zero")
 	}
 	c := p.Compute
-	if c.TransactionStart != "request" && c.TransactionStart != "headers" {
+	if c.TransactionStart != "request" && c.TransactionStart != "headers" && c.TransactionStart != "next-step" {
 		return fmt.Errorf("unsupported transaction start delivery")
+	}
+	if c.HeaderDelivery != "headers" && c.HeaderDelivery != "next-step" {
+		return fmt.Errorf("unsupported header observation delivery")
 	}
 	t := p.Throughput
 	s := p.Socket
