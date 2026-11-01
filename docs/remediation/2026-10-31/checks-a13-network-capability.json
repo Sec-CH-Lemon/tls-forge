@@ -1,0 +1,56 @@
+{
+  "scope": "Shared strict behavior capability registry only; production network estimator remains a separate candidate",
+  "before_commit": "bfb5cb3ef7ea4c0e1836cdf2dfd2fda60ff522a0",
+  "commit": "2f8200b8a4aadf8e963a39a4f3aafe379d4c0247",
+  "selector": "headers.network_hints",
+  "implemented_choices": [
+    "none",
+    "literal",
+    "weighted-observations"
+  ],
+  "frozen_migration_templates_unchanged": true,
+  "production_graph_anchor": "root6130203c public dependency graph before observer integration",
+  "checks": {
+    "standalone": {
+      "accepted": true,
+      "source_commit": "2f8200b8a4aadf8e963a39a4f3aafe379d4c0247",
+      "source_sha256": "21797738021c193d56d736636dfab08dfa579e5f34ee6befcdc396c9607576fe",
+      "test_runs": 696,
+      "returncodes": [
+        0
+      ],
+      "unexpected": [],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict."
+    },
+    "production": {
+      "accepted": true,
+      "source_commit": "2f8200b8a4aadf8e963a39a4f3aafe379d4c0247",
+      "source_sha256": "21797738021c193d56d736636dfab08dfa579e5f34ee6befcdc396c9607576fe",
+      "test_runs": 696,
+      "returncodes": [
+        0
+      ],
+      "unexpected": [],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict."
+    }
+  },
+  "new_allowances": [],
+  "new_exclusions": [],
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/UTLS-NQE-CAPABILITY-R21",
+    "files": 14,
+    "bytes": 29438284,
+    "manifest_sha256": "66616270ae97f0edfafe85bc09adef0ec4eb5b8baf34914558424c952728e4d6",
+    "verified": true,
+    "ignored": true,
+    "directory_mode": "0700",
+    "file_mode": "0600"
+  },
+  "limitations": [
+    "Local fork commit only; not pushed or pinned in root",
+    "Final observer dependency graph will require its own acceptance",
+    "No new real-browser witness; full A13 remains open"
+  ]
+}

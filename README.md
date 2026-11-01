@@ -3207,3 +3207,5 @@ The [A13 network estimator state component](docs/remediation/2026-10-31/A13-netw
 adds explicit JSON policies, bounded observations/windows/cache, typed network
 metadata and a browser-instance salt. Its race/100%/lint/fuzz evidence is component
 acceptance; root profile/SDK activation and complete browser acceptance remain pending.
+
+The [A13 network capability record](docs/remediation/2026-10-31/A13-network-capability.ru.md) preserves exact shared-registry acceptance; production estimator activation and browser acceptance remain pending.
