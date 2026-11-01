@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Add a static open-source project landing page in `web/landing` with responsive
+  layout, semantic content, quick start, project scope, social metadata and
+  sitemap; add a tag-triggered GitHub Pages workflow gated by mobile/desktop
+  Lighthouse 100.
+
 - Complete A12 native acceptance on3faef706:28/28 main jobs and8/8 full fork
   gates; actual Linux23-package race coverage, unchanged20m/40m limits and
   zero allowances/exclusions. Preserve original failures and all before/after

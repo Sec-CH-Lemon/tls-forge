@@ -1,0 +1,97 @@
+name: landing
+
+on:
+  push:
+    tags: ['landing-v*']
+  pull_request:
+    branches: [development]
+    paths:
+      - web/landing/**
+      - .github/workflows/landing.yml
+
+concurrency:
+  group: landing-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - uses: ./.github/actions/google-chrome
+      - name: Install Lighthouse
+        run: npm install --prefix "$RUNNER_TEMP/lighthouse" --no-audit --no-fund lighthouse@13.6.0
+      - name: Audit mobile and desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory web/landing > "$RUNNER_TEMP/landing-http.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          ready=false
+          for ((attempt=0; attempt<50; attempt++)); do
+            if curl --fail --silent http://127.0.0.1:8765/ -o /dev/null; then
+              ready=true
+              break
+            fi
+            sleep 0.1
+          done
+          if [ "$ready" != true ]; then
+            cat "$RUNNER_TEMP/landing-http.log"
+            exit 1
+          fi
+          export CHROME_PATH="$CHROME"
+          lighthouse="$RUNNER_TEMP/lighthouse/node_modules/lighthouse/cli/index.js"
+          node "$lighthouse" http://127.0.0.1:8765/ \
+            --chrome-flags='--headless --no-sandbox' \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --output=json --output-path="$RUNNER_TEMP/landing-mobile.json" --quiet
+          node "$lighthouse" http://127.0.0.1:8765/ \
+            --preset=desktop --chrome-flags='--headless --no-sandbox' \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --output=json --output-path="$RUNNER_TEMP/landing-desktop.json" --quiet
+          node - "$RUNNER_TEMP/landing-mobile.json" "$RUNNER_TEMP/landing-desktop.json" <<'NODE'
+          const fs = require('node:fs');
+          for (const file of process.argv.slice(2)) {
+            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const scores = Object.fromEntries(
+              ['performance', 'accessibility', 'best-practices', 'seo']
+                .map(name => [name, Math.round(report.categories[name].score * 100)])
+            );
+            console.log(file, scores);
+            if (Object.values(scores).some(score => score !== 100)) process.exitCode = 1;
+          }
+          NODE
+
+  deploy:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/landing-v')
+    needs: audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: web/landing
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

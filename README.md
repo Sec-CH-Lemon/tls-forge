@@ -53,6 +53,20 @@ tls-forge fetch https://example.com/ > page.html
 runs](#cookies-across-runs), [keeping every request](#keeping-every-request)
 and the [Go, Node.js and Python libraries](#language-libraries) come after.
 
+The project's static landing page is in [`web/landing/`](web/landing/). Serve
+that directory as a site root; it needs no build step or external assets. Its
+canonical, social-image and sitemap URLs target `https://tls-forge.com/`.
+Lighthouse scores depend on the final host, headers and network path, so run
+its mobile and desktop audits after deployment.
+
+`.github/workflows/landing.yml` checks all four Lighthouse categories at 100
+on mobile and desktop, then publishes only `web/landing/` through GitHub Pages
+when a separate `landing-v*` tag is pushed from `development`; an ordinary
+branch push does not deploy. Configure the repository's Pages source as **GitHub
+Actions** and its custom domain as `tls-forge.com` before changing the apex DNS
+to [GitHub Pages](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site).
+Keep `fp.tls-forge.com` on its direct measurement server; its TLS endpoint must
+not be put behind the website's proxy or CDN.
 ## Install
 
 A Chromium-based browser is required only for `capture` and `compare`. Fetching,

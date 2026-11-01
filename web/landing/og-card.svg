@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-labelledby="title description">
+  <title id="title">TLS Forge</title><desc id="description">Browser-measured networking for your code</desc>
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101b2d"/><stop offset="1" stop-color="#090d16"/></linearGradient><linearGradient id="line" x2="1" y2="1"><stop stop-color="#47a6ec" stop-opacity=".1"/><stop offset=".5" stop-color="#47a6ec" stop-opacity=".65"/><stop offset="1" stop-color="#47a6ec" stop-opacity=".1"/></linearGradient></defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g fill="none" stroke="url(#line)" stroke-width="2"><path d="M855 55 1160 315 855 575 550 315Z"/><path d="M855 108 1100 315 855 522 610 315Z"/><path d="M855 162 1038 315 855 468 672 315Z"/><path d="M855 215 975 315 855 415 735 315Z"/></g>
+  <path d="M72 83 98 109 72 135 46 109 72 83Z" fill="none" stroke="#60c3ff" stroke-width="2"/><path d="M59 109h26" stroke="#60c3ff" stroke-width="2"/>
+  <text x="115" y="120" fill="#f7faff" font-family="Arial, sans-serif" font-size="35" font-weight="700">TLS<tspan font-weight="400" fill="#9eb0c9">FORGE</tspan></text>
+  <text x="50" y="328" fill="#f7faff" font-family="Arial, sans-serif" font-size="58" font-weight="700">A browser’s network</text>
+  <text x="50" y="398" fill="#f7faff" font-family="Arial, sans-serif" font-size="58" font-weight="700">fingerprint. <tspan fill="#79cbff">In your code.</tspan></text>
+  <text x="52" y="505" fill="#a9b8ce" font-family="Arial, sans-serif" font-size="26">Open source · CLI · Proxy · Go · Node.js · Python</text>
+</svg>
