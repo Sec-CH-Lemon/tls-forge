@@ -87,6 +87,13 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 
 ### Security and correctness
 
+- Derive strict release-gate network-hint availability from the declared,
+  implemented JSON generator. Preserve all original scenario/header checks and
+  add canonical syntax, bounds, quantization and ECT-vocabulary validation.
+  Missing/disabled generators and malformed values remain failures; actual
+  H1/H2 Client.Do controls verify JSON availability and origin opt-in.
+  The JSON result retains original generated-hint samples and normalization
+  metadata, including on successful comparisons.
 - Bound HTTP/2 HPACK/CONTINUATION processing, chunk parsing, content-decoding
   layers and response/header memory. Keep malformed-input controls and bounded
   resource regressions.

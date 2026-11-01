@@ -105,6 +105,13 @@ is the SHA-256 of its `manifest.json`.
    A version the registry has already is not built again. It pulls both back
    and runs them.
 
+The strict gate retains every scenario on every platform. Its generated
+network hints are checked against the JSON-selected renderer, including numeric
+syntax, bounds and quantization; it does not require captured network literals.
+Windows NTLM/Negotiate are currently unsupported by the product. Their existing
+platform-specific bench notes do not exempt them from this release gate; the
+observed Windows failure blocks release acceptance.
+
 ## What it needs
 
 - The `release` environment, which the two publishing jobs run in.

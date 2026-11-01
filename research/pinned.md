@@ -58,7 +58,10 @@ In order, and stopping at the first that fails:
    priority, the names of its headers in order and spelling and their values,
    and what it made of each page. A value the machine decides (the user agent,
    the window, the memory, the network, the system's version and processor) is
-   compared by its presence; one the build decides (`sec-ch-ua`, its platform,
+   compared by its presence; estimator-generated RTT/downlink/ECT additionally
+   must have canonical syntax, policy bounds/quantization and a declared ECT
+   label. Availability comes from actual output of the JSON-selected generator,
+   never invented captured values. One the build decides (`sec-ch-ua`, its platform,
    its full version and form factor) is held to the profile's, and each of
    either has to be one the profile has, or tls-forge would not send it. What
    differs goes to `--out` as `scenarios`, and the result does not pass.
@@ -102,3 +105,24 @@ values of the client hints a server asks for, as Chrome sent them on its
 platform (Linux's and Windows's on GitHub's runners), so Chrome on Linux or
 Windows is held to its own platform's values in the scenarios that ask for
 them.
+
+## R26 release preparation (1 November2026)
+
+The full strict run at b26bb10f retained all228H1/H2 scenarios and174decodings
+on every platform. Cold TLS/H1/H2 matched on Linux/macOS/Windows. The scenario
+gate found an outdated literal-only availability lookup after the estimator
+migration, stale full-version hints and the previously documented Windows
+NTLM/Negotiate boundary (see [support](support.md)). The release gate does not
+apply the bench's platform exclusions. Windows failures remain release blockers.
+
+The updated availability check runs the actual declared estimator without
+network I/O. Existing machine-dependent equality normalization remains; raw
+values are kept. Added checks reject malformed, out-of-range, off-quantum or
+undeclared ECT values. Missing generators, header order/count, method, body,
+connection, build values and decoding differences keep failing. The original
+`internal/harness/compare.go` is unchanged.
+
+The result's `generated_network_hints` retains the selected noise/ECT policy,
+the declared normalization, and original per-request header values, spelling
+and order for every observed RTT/downlink/ECT field, including successful
+checks. It does not infer RNG quality or equality of physical networks.

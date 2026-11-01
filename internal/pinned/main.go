@@ -46,14 +46,15 @@ func main() { exit(run(context.Background(), os.Args[1:], os.Stdout, os.Stderr))
 // is built from and the identity of its set, the SHA-256 of the set's
 // manifest.
 type Result struct {
-	Commit     string               `json:"commit,omitempty"`
-	Set        string               `json:"set,omitempty"`
-	Chrome     string               `json:"chrome"`
-	Platform   string               `json:"platform"`
-	Arch       string               `json:"arch"`
-	OK         bool                 `json:"ok"`
-	Comparison *tlsforge.Comparison `json:"comparison"`
-	Scenarios  []string             `json:"scenarios"`
+	Commit       string                 `json:"commit,omitempty"`
+	Set          string                 `json:"set,omitempty"`
+	Chrome       string                 `json:"chrome"`
+	Platform     string                 `json:"platform"`
+	Arch         string                 `json:"arch"`
+	OK           bool                   `json:"ok"`
+	Comparison   *tlsforge.Comparison   `json:"comparison"`
+	Scenarios    []string               `json:"scenarios"`
+	NetworkHints *networkHintValidation `json:"generated_network_hints,omitempty"`
 }
 
 // The seams the tests reach through.
@@ -170,6 +171,10 @@ func hold(ctx context.Context, o options) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	values, err := comparisonValues(worn)
+	if err != nil {
+		return nil, err
+	}
 	said, err := versionOf(ctx, o.browser)
 	if err != nil {
 		return nil, err
@@ -199,7 +204,8 @@ func hold(ctx context.Context, o options) (*Result, error) {
 		return nil, fmt.Errorf("measuring the decodings: %w", err)
 	}
 	// Said as a list, empty too.
-	differences := append([]string{}, harness.Compare(requests.Scenarios, got, valuesOf(worn))...)
+	differences := append([]string{}, harness.Compare(requests.Scenarios, got, values)...)
+	differences = append(differences, estimatedHintDifferences(worn, got)...)
 	differences = append(differences, harness.CompareDecoding(decoding.Cases, pages)...)
 	platform := map[string]string{"darwin": "macos"}[goos]
 	if platform == "" {
@@ -208,6 +214,7 @@ func hold(ctx context.Context, o options) (*Result, error) {
 	return &Result{
 		Chrome: version, Platform: platform, Arch: goarch,
 		OK: comparison.OK() && len(differences) == 0, Comparison: comparison, Scenarios: differences,
+		NetworkHints: estimatedHintSamples(worn, got),
 	}, nil
 }
 
