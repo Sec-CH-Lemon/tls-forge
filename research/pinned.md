@@ -113,7 +113,8 @@ on every platform. Cold TLS/H1/H2 matched on Linux/macOS/Windows. The scenario
 gate found an outdated literal-only availability lookup after the estimator
 migration, stale full-version hints and the previously documented Windows
 NTLM/Negotiate boundary (see [support](support.md)). The release gate does not
-apply the bench's platform exclusions. Windows failures remain release blockers.
+apply the bench's platform exclusions. Those failures initially blocked the dry-run;
+the auth comparison also needs a Windows reference rather than macOS bytes.
 
 The updated availability check runs the actual declared estimator without
 network I/O. Existing machine-dependent equality normalization remains; raw
@@ -126,3 +127,14 @@ The result's `generated_network_hints` retains the selected noise/ECT policy,
 the declared normalization, and original per-request header values, spelling
 and order for every observed RTT/downlink/ECT field, including successful
 checks. It does not infer RNG quality or equality of physical networks.
+
+The optional fixture `observation_ms` maps scenario IDs to fixed observation
+windows, bounded15–60s and never shorter than the original window. Only the
+wait condition changes; all scene content, request capture and comparison stay
+the same. The page must actually open before timing starts. The strict gate
+measures the whole catalogue even with this metadata. The manual-only
+[oracle workflow](../.github/workflows/release-oracle.yml) records two independent
+Windows auth cohorts against the owned loopback peer, with exact source,
+browser binary hash and OS version/build. Raw evidence is encrypted to the
+supplied public certificate. No auth token normalization or automatic fixture
+promotion is allowed. The original macOS fixture remains unchanged.

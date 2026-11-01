@@ -65,6 +65,7 @@ var (
 	}
 	compare         = tlsforge.CompareToBrowser
 	measureRequests = harness.Measure
+	measureObserved = harness.MeasureObserved
 	measureDecoding = harness.MeasureDecoding
 	profileOf       = profile.Get
 )
@@ -195,7 +196,12 @@ func hold(ctx context.Context, o options) (*Result, error) {
 	ctx, cancel := context.WithTimeout(ctx, o.scenarios)
 	defer cancel()
 	b := harness.Chrome{Path: o.browser, Args: o.args}
-	got, err := measureRequests(ctx, b, nil, o.progress)
+	var got map[string]harness.MeasuredScenario
+	if len(requests.ObservationMS) == 0 {
+		got, err = measureRequests(ctx, b, nil, o.progress)
+	} else {
+		got, err = measureObserved(ctx, b, nil, requests.ObservationMS, o.progress)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("measuring the scenarios: %w", err)
 	}

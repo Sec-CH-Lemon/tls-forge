@@ -474,6 +474,43 @@ func TestTheGateHoldsTheBrowserToWhatAPageDoes(t *testing.T) {
 	}
 }
 
+func TestFixtureObservationRetainsEveryScenarioAndStrictComparison(t *testing.T) {
+	b := laidOut(t)
+	id := "auth-digest-negotiate"
+	f := &harness.RequestsFixture{Scenarios: map[string]harness.MeasuredScenario{id: scenario},
+		ObservationMS: harness.ObservationWindows{id: 15000}}
+	if err := f.Write(b.requests); err != nil {
+		t.Fatal(err)
+	}
+	var asked tlsforge.MeasureOptions
+	seams(t, "Google Chrome "+stableOf(t), matching(&asked))
+	old := measureObserved
+	t.Cleanup(func() { measureObserved = old })
+	measureRequests = func(context.Context, harness.Browser, []string, io.Writer) (map[string]harness.MeasuredScenario, error) {
+		t.Fatal("fixture window was not used")
+		return nil, nil
+	}
+	for _, changed := range []bool{false, true} {
+		measureObserved = func(_ context.Context, _ harness.Browser, only []string, windows harness.ObservationWindows,
+			_ io.Writer) (map[string]harness.MeasuredScenario, error) {
+			if only != nil || !reflect.DeepEqual(windows, f.ObservationMS) {
+				t.Fatal("release selected fewer scenarios or changed the observation")
+			}
+			got := scenario
+			if changed {
+				got.H1 = slices.Clone(got.H1)
+				got.H1[0].Body = "unexpected"
+			}
+			return map[string]harness.MeasuredScenario{id: got}, nil
+		}
+		var stdout, stderr bytes.Buffer
+		code := run(context.Background(), b.args(), &stdout, &stderr)
+		if changed && (code != 1 || !strings.Contains(stdout.String(), "body")) || !changed && code != 0 {
+			t.Fatalf("changed=%v: exit %d %s %s", changed, code, stdout.String(), stderr.String())
+		}
+	}
+}
+
 func TestOneDifferenceIsSaidAsOne(t *testing.T) {
 	b := laidOut(t)
 	var asked tlsforge.MeasureOptions

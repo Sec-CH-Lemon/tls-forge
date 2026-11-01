@@ -1,0 +1,79 @@
+name: release-oracle-evidence
+
+# Diagnostic calibration only. Raw local-peer request evidence stays encrypted;
+# no fixture is promoted automatically and no package or release is published.
+on:
+  workflow_dispatch:
+    inputs:
+      evidence-certificate:
+        description: Base64 PEM public recipient certificate for private evidence
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows-auth:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        cohort: [1, 2]
+    env:
+      GOWORK: 'off'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: ./.github/actions/google-chrome
+      - name: record exact source, host and browser identity
+        shell: pwsh
+        env:
+          COHORT: ${{ matrix.cohort }}
+        run: |
+          New-Item -ItemType Directory -Path private-evidence | Out-Null
+          $os = Get-CimInstance Win32_OperatingSystem
+          $metadata = [ordered]@{
+            source = $env:GITHUB_SHA
+            cohort = $env:COHORT
+            run = $env:GITHUB_RUN_ID
+            chrome = $env:CHROME_VERSION
+            chrome_sha256 = (Get-FileHash -LiteralPath $env:CHROME -Algorithm SHA256).Hash.ToLower()
+            os_caption = $os.Caption
+            os_version = $os.Version
+            os_build = $os.BuildNumber
+            os_arch = $os.OSArchitecture
+            plan_sha256 = (Get-FileHash verification/release-auth-windows-plan.json -Algorithm SHA256).Hash.ToLower()
+            mode = 'headless=new, lang=en-US, no-sandbox; fresh profile per scenario/protocol'
+          }
+          $metadata | ConvertTo-Json | Set-Content private-evidence/metadata.json -Encoding utf8
+          Copy-Item verification/release-auth-windows-plan.json private-evidence/requests.json
+      - name: record both scenarios over both protocols without exclusions
+        shell: pwsh
+        run: |
+          go run scripts/record-release-requests.go --browser "$env:CHROME" --fixture private-evidence/requests.json 2>&1 | Tee-Object private-evidence/progress.log
+          if ($LASTEXITCODE -ne 0) { throw "recording failed: $LASTEXITCODE" }
+          Get-FileHash private-evidence/requests.json -Algorithm SHA256 | Format-List | Out-File private-evidence/digest.txt
+      - name: encrypt private evidence
+        if: always()
+        shell: pwsh
+        env:
+          EVIDENCE_CERTIFICATE: ${{ inputs.evidence-certificate }}
+        run: |
+          [IO.File]::WriteAllBytes('recipient.pem', [Convert]::FromBase64String($env:EVIDENCE_CERTIFICATE))
+          tar -czf evidence.tar.gz private-evidence
+          if ($LASTEXITCODE -ne 0) { throw 'cannot archive private evidence' }
+          & 'C:\Program Files\Git\usr\bin\openssl.exe' cms -encrypt -binary -aes-256-cbc -in evidence.tar.gz -out evidence.cms -outform DER recipient.pem
+          if ($LASTEXITCODE -ne 0) { throw 'cannot encrypt private evidence' }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: release-oracle-windows-${{ matrix.cohort }}
+          path: evidence.cms
+          if-no-files-found: error
+          retention-days: 7

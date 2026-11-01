@@ -40,6 +40,10 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 
 ### Added and changed
 
+- Calibrate Windows release-browser auth fixtures in two native cohorts,
+  retaining every scenario, exact SSPI bytes and the original15s observation.
+  Add an encrypted, manual-only evidence workflow and explicit fixture
+  `observation_ms`; unfinished or silent measurements cannot become fixtures.
 - Refresh only Chrome156 full-version/full-version-list hints from measured
   Google Stable builds:156.0.8078.79 on Linux and156.0.8078.80 on macOS/Windows.
   Keep close_notify variants aligned. Preserve exact prior bytes and append

@@ -28,6 +28,10 @@ type RequestsFixture struct {
 	Measured  string                      `json:"measured"`
 	How       string                      `json:"how"`
 	Scenarios map[string]MeasuredScenario `json:"scenarios"`
+	// ObservationMS selects a fixed observation window instead of an end page
+	// for a scenario that legitimately stops at an authentication challenge.
+	// It never shortens the original observation or changes the requests kept.
+	ObservationMS ObservationWindows `json:"observation_ms,omitempty"`
 }
 
 // MeasuredScenario is what a scenario's page asked of the server, over HTTP/2
@@ -60,7 +64,16 @@ type Request struct {
 }
 
 // LoadRequests reads a fixture of requests.
-func LoadRequests(path string) (*RequestsFixture, error) { return load[RequestsFixture](path) }
+func LoadRequests(path string) (*RequestsFixture, error) {
+	f, err := load[RequestsFixture](path)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := observedCatalogue(f.ObservationMS); err != nil {
+		return nil, fmt.Errorf("harness: %s: %w", path, err)
+	}
+	return f, nil
+}
 
 // load reads a fixture of type T.
 func load[T any](path string) (*T, error) {

@@ -108,9 +108,15 @@ is the SHA-256 of its `manifest.json`.
 The strict gate retains every scenario on every platform. Its generated
 network hints are checked against the JSON-selected renderer, including numeric
 syntax, bounds and quantization; it does not require captured network literals.
-Windows NTLM/Negotiate are currently unsupported by the product. Their existing
-platform-specific bench notes do not exempt them from this release gate; the
-observed Windows failure blocks release acceptance.
+The Windows auth oracle must be measured on Windows: SSPI and the portable
+macOS implementation produce different requests. Every scenario still runs,
+with exact authorization bytes and no platform exclusion. A fixture may select
+a fixed `observation_ms` window of15–60s instead of an end page Chrome never
+requests; it cannot shorten the original window and starts only after the page
+actually opens. Calibration is manual-only in `release-oracle.yml`, two native
+cohorts with encrypted raw evidence; it never promotes a fixture automatically.
+NTLM/Negotiate product support remains an explicit unsupported capability,
+separate from this browser-versus-fixture check.
 
 ## What it needs
 

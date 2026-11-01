@@ -1,0 +1,12 @@
+{
+  "browser": "Google Chrome Stable on Windows Server 2025; exact browser/OS/binary/source metadata is recorded by release-oracle.yml",
+  "measured": "unmeasured diagnostic plan",
+  "how": "Two independent native cohorts, fresh profile per scenario/protocol, owned loopback peer with u:p. Observe Negotiate for the full original15s after the opening request; preserve NTLM's original4s window. No platform exclusions or authentication-byte normalization.",
+  "scenarios": {
+    "auth-digest-negotiate": {},
+    "auth-digest-ntlm": {}
+  },
+  "observation_ms": {
+    "auth-digest-negotiate": 15000
+  }
+}

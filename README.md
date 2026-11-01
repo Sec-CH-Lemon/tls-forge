@@ -3258,8 +3258,12 @@ the normalization policy. Chrome156 build hints now name the measured
 Google Stable156.0.8078.79 on Linux and156.0.8078.80 on macOS/Windows. Exact
 previous profile bytes and field-scoped witnesses are in
 [the hint-build derivation inventory](profile/provenance/release-hint-builds.json);
-all earlier capture/policy hashes remain unchanged. Windows NTLM and
-Negotiate remain unimplemented; their strict release scenarios are retained
-and block acceptance until that limitation is resolved.
+all earlier capture/policy hashes remain unchanged. The Windows browser gate
+uses a separately measured Windows auth oracle rather than macOS SSPI bytes.
+All228 scenarios remain mandatory. NTLM/Negotiate product support remains
+unimplemented and outside this release preparation.
+
+Release-oracle calibration uses the manual-only [release-oracle workflow](.github/workflows/release-oracle.yml): two independent Windows cohorts of the two auth scenarios, encrypted evidence, exact OS/browser/source identity. `go run scripts/record-release-requests.go --browser PATH --fixture FILE` records every explicitly listed scenario and refuses incomplete results. The fixture's optional `observation_ms` map selects fixed windows of15–60s, never shorter than the original; an actual opening request is required before the window starts. Strict release measurement always selects the whole catalogue, without platform exclusions.
+
 
 Prepared1.0.0 release notes are in [CHANGELOG.md](CHANGELOG.md); its full unpublished development journal is preserved in [the history archive](research/releases/1.0.0-development-history.md). The [release readiness receipt](research/releases/1.0.0-readiness.ru.md) records the exact candidate, dry-run results and remaining limits.
