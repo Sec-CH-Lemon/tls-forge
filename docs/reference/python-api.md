@@ -17,10 +17,10 @@ client is one identity, and once it has been given up there is no identity
 left to make requests with.
 
 ```python
-Client(*, profile: 'str | None' = None, proxy: 'str | None' = None, timeout: 'float' = 45.0, binary: 'str | os.PathLike[str] | None' = None, insecure: 'bool' = False, cookie_file: 'str | os.PathLike[str] | None' = None, cookie_set: 'str | None' = None, on_stderr: 'Callable[[str], None] | None' = None) -> 'None'
+Client(*, profile: 'str | None' = None, proxy: 'str | None' = None, timeout: 'float' = DEFAULT_TIMEOUT, binary: 'str | os.PathLike[str] | None' = None, insecure: 'bool' = False, cookie_file: 'str | os.PathLike[str] | None' = None, cookie_set: 'str | None' = None, on_stderr: 'Callable[[str], None] | None' = None) -> 'None'
 ```
 
-### `Client.__init__(self, *, profile: 'str | None' = None, proxy: 'str | None' = None, timeout: 'float' = 45.0, binary: 'str | os.PathLike[str] | None' = None, insecure: 'bool' = False, cookie_file: 'str | os.PathLike[str] | None' = None, cookie_set: 'str | None' = None, on_stderr: 'Callable[[str], None] | None' = None) -> 'None'`
+### `Client.__init__(self, *, profile: 'str | None' = None, proxy: 'str | None' = None, timeout: 'float' = DEFAULT_TIMEOUT, binary: 'str | os.PathLike[str] | None' = None, insecure: 'bool' = False, cookie_file: 'str | os.PathLike[str] | None' = None, cookie_set: 'str | None' = None, on_stderr: 'Callable[[str], None] | None' = None) -> 'None'`
 
 :param profile: which browser to impersonate, e.g. ``"chrome"``.
 :param proxy: an ``http://`` or ``socks5://`` URL.
@@ -238,7 +238,7 @@ Find the transport binary.
 ## `bundled_binary`
 
 ```python
-bundled_binary(platform: 'str' = 'darwin') -> 'Path'
+bundled_binary(platform: 'str' = sys.platform) -> 'Path'
 ```
 
 The binary shipped inside this package, whether or not it is there.
@@ -246,7 +246,7 @@ The binary shipped inside this package, whether or not it is there.
 ## `exe_name`
 
 ```python
-exe_name(platform: 'str' = 'darwin') -> 'str'
+exe_name(platform: 'str' = sys.platform) -> 'str'
 ```
 
 The executable's name, which is the command's name, not the package's.

@@ -37,8 +37,10 @@ a compact mobile drawer and tabbed language examples. Guides
 and API reference both support light and dark themes. The
 local theme override is in `docs-theme/main.html` and its styles are in
 `docs/assets/extra.css`.
-`make docs-site-check` regenerates the references, builds the site strictly and
-checks internal links in its rendered HTML cards before publication.
+`make docs-site-check` checks the references against source, builds the site strictly and
+checks internal links in its rendered HTML cards before publication. Python
+reference defaults retain their source expressions, such as `sys.platform`,
+rather than recording the documentation builder's platform.
 
 ## Quick start
 

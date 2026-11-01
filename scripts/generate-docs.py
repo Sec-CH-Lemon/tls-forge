@@ -8,6 +8,7 @@ The generator only reads source and writes files under docs/reference/.
 from __future__ import annotations
 
 import argparse
+import ast
 import importlib
 import inspect
 import json
@@ -17,6 +18,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import textwrap
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -84,6 +86,33 @@ def node_page() -> str:
     return "\n".join(("# Node.js API", "", "Generated from the package's public TypeScript declarations. See the [Node.js integration guide](../integrations/node.md) for examples.", "", "```typescript", types.rstrip(), "```", ""))
 
 
+class SourceDefault:
+    """A documented default expression, without evaluating it on the build host."""
+
+    def __init__(self, expression: ast.expr) -> None:
+        self.expression = ast.unparse(expression)
+
+    def __repr__(self) -> str:
+        return self.expression
+
+
+def python_signature(value: object) -> str:
+    signature = inspect.signature(value)
+    source = value.__init__ if inspect.isclass(value) else value
+    try:
+        function = ast.parse(textwrap.dedent(inspect.getsource(source))).body[0]
+    except (OSError, TypeError):
+        # Dataclass-generated constructors have no source; their stable
+        # signatures already display factory defaults symbolically.
+        return str(signature)
+    positional = function.args.posonlyargs + function.args.args
+    defaults = dict(zip([arg.arg for arg in positional][-len(function.args.defaults):], function.args.defaults))
+    defaults.update((arg.arg, default) for arg, default in zip(function.args.kwonlyargs, function.args.kw_defaults) if default is not None)
+    parameters = [parameter.replace(default=SourceDefault(defaults[name])) if name in defaults else parameter
+                  for name, parameter in signature.parameters.items()]
+    return str(signature.replace(parameters=parameters))
+
+
 def python_page() -> str:
     sys.path.insert(0, str(ROOT / "python" / "src"))
     module = importlib.import_module("tlsforge")
@@ -97,7 +126,7 @@ def python_page() -> str:
                 page += [doc, ""]
             if not hasattr(value, "__required_keys__"):
                 try:
-                    page += ["```python", f"{name}{inspect.signature(value)}", "```", ""]
+                    page += ["```python", f"{name}{python_signature(value)}", "```", ""]
                 except (TypeError, ValueError):
                     pass
             annotations = getattr(value, "__annotations__", {})
@@ -111,9 +140,9 @@ def python_page() -> str:
                 if isinstance(method, property):
                     page += [f"### `{name}.{method_name}`", "", inspect.getdoc(method) or "Property.", ""]
                 elif inspect.isfunction(method):
-                    page += [f"### `{name}.{method_name}{inspect.signature(method)}`", "", inspect.getdoc(method) or "", ""]
+                    page += [f"### `{name}.{method_name}{python_signature(method)}`", "", inspect.getdoc(method) or "", ""]
         elif inspect.isfunction(value):
-            page += ["```python", f"{name}{inspect.signature(value)}", "```", "", inspect.getdoc(value) or "", ""]
+            page += ["```python", f"{name}{python_signature(value)}", "```", "", inspect.getdoc(value) or "", ""]
         else:
             page += [f"`{value!r}`", ""]
     return "\n".join(page)

@@ -79,6 +79,7 @@ docs-generate:
 	python3 scripts/generate-docs.py --write
 
 docs-site-check:
+	$(PYTHON) -m unittest discover -s scripts -p test_generate_docs.py
 	python3 scripts/generate-docs.py --check
 	$(DOCS_MKDOCS) build --strict --clean
 	python3 scripts/check-docs-html-links.py

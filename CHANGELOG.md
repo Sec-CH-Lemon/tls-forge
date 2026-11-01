@@ -40,6 +40,10 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 
 ### Added and changed
 
+- Render Python API defaults from their source expressions, preserving host
+  dependence such as `sys.platform` without freezing the documentation builder's
+  OS. Require identical actual-SDK reference output for three platform contexts
+  and retain detection of source/default changes.
 - Rebuild public documentation in `docs/` with installation paths, task guides,
   CLI/Go/Node.js/Python examples and source-generated reference pages. Move
   historical reports and evidence to `research/` without including them in the public MkDocs site.
