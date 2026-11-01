@@ -3200,3 +3200,5 @@ The `networkquality` package supplies bounded weighted observation buffers and
 explicit libc++ host-hash primitives for the A13 estimator. Their independent
 oracles and provenance live in `networkquality/testdata`; this component alone
 does not activate network-hint generation.
+
+The [A13 response-ownership follow-up](docs/remediation/2026-10-31/A13-response-lifecycle.ru.md) records automatic-H2 before/after evidence and both full source-pinned fhttp graphs. Root publication and full F03 acceptance remain pending.

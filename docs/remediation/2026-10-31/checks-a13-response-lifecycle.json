@@ -1,0 +1,62 @@
+{
+  "scope": "generic fhttp response ownership and automatic H2 observation, not full F03 or browser acceptance",
+  "before_commit": "fc7146a720798c99a89253fd9e8df5d99e18c2f5",
+  "commit": "bd9be7192a4b7c990bd3a4ef8a179cf62b814226",
+  "before": "Actual automatic H2 returned valid body/protocol but all3 hooks were0; same unchanged test retained in the fix",
+  "targeted_race_repetitions": 16,
+  "targeted_cases_per_repetition": 13,
+  "body_endings": [
+    "EOF/error",
+    "explicit Close",
+    "no-body completion",
+    "background drainer ownership transfer"
+  ],
+  "transport_body_wrappers_added": false,
+  "checks": {
+    "standalone": {
+      "source_commit": "bd9be7192a4b7c990bd3a4ef8a179cf62b814226",
+      "source_sha256": "6b45b5ecd821b2e5d1eb7bba6bf10606ad9571d81d14bb51562de0a2d8f10a0b",
+      "test_runs": 1905,
+      "returncodes": [
+        0,
+        0,
+        0
+      ],
+      "accepted": true,
+      "unexpected": [],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict."
+    },
+    "production": {
+      "source_commit": "bd9be7192a4b7c990bd3a4ef8a179cf62b814226",
+      "source_sha256": "6b45b5ecd821b2e5d1eb7bba6bf10606ad9571d81d14bb51562de0a2d8f10a0b",
+      "test_runs": 1905,
+      "returncodes": [
+        0,
+        0,
+        0
+      ],
+      "accepted": true,
+      "unexpected": [],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict."
+    }
+  },
+  "new_allowances": [],
+  "new_exclusions": [],
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/FHTTP-LIFECYCLE-R19",
+    "files": 24,
+    "bytes": 15721492,
+    "manifest_sha256": "611796e0776c83b809fca69b96c94ad46831cba2e0d4ee1cf397f6f79d9c568c",
+    "verified": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  },
+  "limitations": [
+    "Both new fhttp commits remain local; root still pins prior public fhttp",
+    "Private H3 adapter lifecycle controls passed but QUIC/tls-client full observer graph acceptance is not yet complete",
+    "A13 full state/profile/SDK/native/historical acceptance remains open"
+  ]
+}

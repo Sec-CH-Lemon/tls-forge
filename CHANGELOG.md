@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Record fhttp response-ownership hooks and automatic-H2 regression acceptance;
+  both exact full graphs pass1905 runs without new allowances. Root dependency
+  publication and complete A13 acceptance remain pending.
+
 - Add bounded weighted observation buffers and explicit libc++ host-hash
   primitives for the pending A13 network estimator, with independent C++
   oracles and LLVM attribution. Network-hint generation is not yet activated.
