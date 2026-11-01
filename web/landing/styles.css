@@ -39,6 +39,10 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--aqua); outline
 .container { width: min(var(--container), calc(100% - 48px)); margin-inline: auto; }
 .skip-link { position: fixed; z-index: 100; top: -70px; left: 20px; padding: 12px 18px; border-radius: 10px; background: #f4f9ff; color: #071019; }
 .skip-link:focus { top: 12px; }
+.icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.github-icon, .star-icon { display: block; flex: none; fill: currentColor; }
+.github-icon { width: 18px; height: 18px; }
+.star-icon { width: 14px; height: 14px; }
 
 .site-header { position: fixed; z-index: 50; inset: 16px 0 auto; height: 68px; pointer-events: none; }
 .header-inner {
@@ -62,9 +66,10 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--aqua); outline
 .desktop-nav { display: flex; align-items: center; gap: clamp(12px, 1.9vw, 29px); }
 .desktop-nav a, .header-github { color: #c7d5e2; font-size: 14px; font-weight: 650; text-decoration: none; white-space: nowrap; transition: color .18s ease, background .18s ease; }
 .desktop-nav a:hover, .header-github:hover, .site-footer a:hover { color: #fff; }
-.header-github { padding: 10px 16px; border: 1px solid rgba(166, 245, 231, .42); border-radius: 11px; background: rgba(147, 231, 223, .1); color: #d9fff8; }
+.header-github { display: inline-flex; align-items: center; gap: 9px; padding: 6px 8px 6px 12px; border: 1px solid rgba(166, 245, 231, .42); border-radius: 11px; background: rgba(147, 231, 223, .1); color: #d9fff8; }
 .header-github:hover { background: rgba(147, 231, 223, .2); }
-.header-github span { margin-left: 6px; }
+.github-stars { display: inline-flex; align-items: center; gap: 5px; min-width: 37px; justify-content: center; padding: 6px 7px; border: 1px solid rgba(166, 245, 231, .23); border-radius: 7px; background: rgba(5, 22, 35, .32); color: #b8f6e8; font-variant-numeric: tabular-nums; font-size: 12px; }
+.mobile-github { display: none; }
 .mobile-menu { display: none; }
 
 .hero { position: relative; isolation: isolate; overflow: hidden; min-height: 790px; padding: 155px 0 124px; }
@@ -104,6 +109,8 @@ h1 em, .text-gradient { font-style: normal; color: #a7e4e2; background: linear-g
 .button-secondary { color: #e9f7ff; background: rgba(174, 218, 246, .065); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 .button-secondary:hover { border-color: rgba(167, 243, 229, .64); background: rgba(174, 218, 246, .12); }
 .button span { font-size: 18px; font-weight: 400; }
+.button-github { gap: 10px; }
+.button-github > span { margin-left: 7px; }
 .hero-note { margin: 26px 0 0; color: #8fa9bb; font-size: 13px; line-height: 1.6; }
 .hero-edge { position: absolute; bottom: 0; left: 50%; width: min(1000px, 80%); height: 1px; transform: translateX(-50%); background: linear-gradient(90deg, transparent, rgba(171, 236, 241, .42), transparent); }
 
@@ -280,6 +287,8 @@ code { color: #a9eade; font-family: ui-monospace, SFMono-Regular, Menlo, Consola
 .site-footer p { margin: 14px 0 0; color: #94abba; font-size: 13px; }
 .site-footer nav { display: flex; flex-wrap: wrap; justify-content: flex-end; align-content: start; gap: 17px 25px; max-width: 550px; padding-top: 7px; }
 .site-footer nav a { color: #b6c8d3; font-size: 13px; font-weight: 650; text-decoration: none; }
+.site-footer nav .footer-github { display: inline-flex; align-items: center; gap: 7px; }
+.footer-github .github-icon { width: 16px; height: 16px; }
 .site-footer .footer-note { grid-column: 1/-1; margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line); font-size: 11px; }
 
 @media (max-width: 1060px) {
@@ -304,16 +313,21 @@ code { color: #a9eade; font-family: ui-monospace, SFMono-Regular, Menlo, Consola
 @media (max-width: 760px) {
   .container { width: min(var(--container), calc(100% - 36px)); }
   .site-header { top: 10px; height: 60px; }
-  .header-inner { padding: 0 13px 0 17px; border-radius: 16px; }
+  .header-inner { gap: 8px; padding: 0 13px 0 17px; border-radius: 16px; }
   .brand { font-size: 20px; }
   .brand-icon { width: 27px; height: 27px; }
   .desktop-nav, .header-github { display: none; }
+  .mobile-github { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; padding: 7px 8px; border: 1px solid rgba(166, 245, 231, .3); border-radius: 10px; color: #d9fff8; text-decoration: none; }
+  .mobile-github .github-icon { width: 16px; height: 16px; }
+  .mobile-github .github-stars { min-width: 25px; gap: 3px; padding: 0; border: 0; background: none; }
+  .mobile-github .star-icon { width: 12px; height: 12px; }
   .mobile-menu { display: block; position: relative; }
   .mobile-menu summary { width: 42px; height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; cursor: pointer; list-style: none; }
   .mobile-menu summary::-webkit-details-marker { display: none; }
   .mobile-menu summary span { width: 20px; height: 2px; border-radius: 2px; background: #e9f9fa; }
   .mobile-menu nav { position: absolute; right: 0; top: 48px; width: min(280px, calc(100vw - 36px)); display: flex; flex-direction: column; padding: 9px; border: 1px solid var(--line-bright); border-radius: 15px; background: rgba(18, 33, 50, .96); box-shadow: 0 25px 55px rgba(0, 5, 15, .55); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); }
   .mobile-menu nav a { padding: 11px 10px; border-radius: 7px; color: #e7f4fa; font-size: 14px; text-decoration: none; }
+  .mobile-menu nav .github-nav-link { display: flex; align-items: center; gap: 9px; }
   .mobile-menu nav a:hover { background: rgba(201, 249, 246, .1); }
   section[id] { scroll-margin-top: 85px; }
   .hero { padding-top: 130px; }
@@ -327,6 +341,10 @@ code { color: #a9eade; font-family: ui-monospace, SFMono-Regular, Menlo, Consola
   .feature-card { min-height: 235px; }
   .boundary-grid { padding: 36px; }
   .sdk-row { margin-top: 36px; }
+}
+@media (max-width: 360px) {
+  .site-header .brand { gap: 7px; font-size: 18px; }
+  .site-header .brand-icon { width: 24px; height: 24px; }
 }
 @media (max-width: 520px) {
   .hero { padding: 119px 0 88px; }

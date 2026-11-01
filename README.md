@@ -72,6 +72,12 @@ and `proxy` for routing an existing HTTP(S) client through a selected network
 profile. Its proxy example mentions the generated CA required by HTTPS clients;
 the page also explains SDKs, capture/compare and request diagnostics without
 claiming that tls-forge renders pages or solves challenges.
+Prominent repository links use GitHub's Primer Octicons. The header shows the
+last known star count (initially baked into the HTML) and `github-stars.js`
+refreshes it in the background from GitHub's public stargazer-count endpoint,
+with a 30-minute browser cache and a five-second timeout. If the API fails or
+rate-limits the visitor, the visible count remains; no GitHub request blocks
+the landing's initial render.
 
 `.github/workflows/landing.yml` checks all four Lighthouse categories at 100
 on mobile and desktop, then publishes only `web/landing/` through GitHub Pages

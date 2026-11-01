@@ -11,6 +11,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Add GitHub icons to the landing's repository links and a cached, background
+  star counter in the header with a visible fallback when the API is unavailable.
+
 - Rework the landing around its primary workflows: `fetch` for HTML/API
   collection and `proxy` for browser-profiled outbound requests from existing
   clients, with SDKs, capture/compare, request diagnostics and clear limits.
