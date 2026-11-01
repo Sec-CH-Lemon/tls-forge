@@ -11,6 +11,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Refresh the standalone Go example dependency lock after the coordinated transport pins; consumer checks do not depend on go.work.
+
 - Bind the existing AirPort regression to Darwin test builds; preserve its test name, assertions and native witness.
 
 - Replace existing Chrome155/156 network-hint literals with a complete JSON-owned

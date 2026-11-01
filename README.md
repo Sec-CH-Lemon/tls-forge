@@ -3222,3 +3222,5 @@ within the same request. [JSON modes and metadata inputs](docs/profile-behavior.
 are explicit; captured estimates are not frozen into executable defaults.
 
 The [native CI follow-up](docs/remediation/2026-11-01/Network-hints-native.ru.md) records platform-specific acceptance. The unchanged AirPort regression lives in `network_environment_airport_darwin_test.go`, alongside the Darwin API it exercises.
+
+The standalone Go example pins the same published transport dependencies as the engine and is checked with `GOWORK=off`.
