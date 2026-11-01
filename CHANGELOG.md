@@ -40,6 +40,8 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 
 ### Added and changed
 
+- Require the complete413response in the proxy body-limit test before
+  closing its caller/server. Preserve the body bound and100%coverage gate.
 - Fix an HTTP/2 preface PING being suppressed by a fast peer response during
   HEADERS Write. Decide before HEADERS I/O, keep the separate PING after it.
   JSON timers/IDs and existing wire/deadline checks remain unchanged.

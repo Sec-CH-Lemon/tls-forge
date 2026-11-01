@@ -482,6 +482,12 @@ func TestRequestBodyLimit(t *testing.T) {
 	if res.StatusCode != http.StatusRequestEntityTooLarge {
 		t.Fatalf("status = %d, want 413", res.StatusCode)
 	}
+	// A status alone leaves forward writing the refusal while this test closes
+	// the body and server. Observe the complete response before ending the run.
+	body, err := io.ReadAll(res.Body)
+	if err != nil || string(body) != "request body exceeds 4 bytes\n" {
+		t.Fatalf("incomplete 413 response: %q, %v", body, err)
+	}
 	if called {
 		t.Error("an oversized body reached the destination")
 	}

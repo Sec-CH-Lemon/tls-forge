@@ -3252,6 +3252,8 @@ The pinned Alt-Svc regression waits for publication in the client QUIC pool; the
 
 Release preparation runs the full workflow with `dry_run=true` on `development`. Its Linux race jobs partition the complete compiled root test/example/fuzz inventory across two runners and retain every other package. Independent manifests must prove disjoint, complete coverage of the same inventory before storage. Every binary retains20m; ordinary tests retain all three platforms with10m timeouts. Storing or publishing a set waits for all of them; see [RELEASING.md](RELEASING.md).
 
+The proxy body-limit acceptance reads the complete413response before closing the caller/server, so a header-only result cannot stand in for a completed refusal.
+
 The strict browser gate obtains generated network-hint availability from the
 selected JSON estimator, validates wire syntax, bounds, quantization and ECT
 labels, and keeps its original scenario/header comparisons. Its
