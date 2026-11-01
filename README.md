@@ -3231,6 +3231,6 @@ Native Linux network metadata checks cover both kernel route formats and TCP_INF
 
 The pinned Alt-Svc regression waits for publication in the client QUIC pool; the real-dial control preserves protocol and connection-count assertions. Native CI status and retained failures are in the [follow-up report](docs/remediation/2026-11-01/Network-hints-native.ru.md).
 
-Release preparation runs the full workflow with `dry_run=true` on `development`. Its two Linux race jobs use the accepted20m root/other-package partition; ordinary tests retain all three platforms with10m timeouts. Storing or publishing a set waits for all of them; see [RELEASING.md](RELEASING.md).
+Release preparation runs the full workflow with `dry_run=true` on `development`. Its Linux race jobs partition the complete compiled root test/example/fuzz inventory across two runners and retain every other package. Independent manifests must prove disjoint, complete coverage of the same inventory before storage. Every binary retains20m; ordinary tests retain all three platforms with10m timeouts. Storing or publishing a set waits for all of them; see [RELEASING.md](RELEASING.md).
 
 Prepared1.0.0 release notes are in [CHANGELOG.md](CHANGELOG.md); its full unpublished development journal is preserved in [the history archive](docs/releases/1.0.0-development-history.md). The [release readiness receipt](docs/releases/1.0.0-readiness.ru.md) records the exact candidate, dry-run results and remaining limits.

@@ -63,9 +63,11 @@ packages use1.0.0; the latest published stable release remains0.2.2.
   is in [README.md](README.md).
 - Keep the existing release gates and distribute one verified immutable set of
   five native archives, six npm packages, one Python sdist and five wheels,
-  licence notices and a Homebrew formula. Linux race runs on separate root and
-  other-package runners with the accepted20m limits; normal tests retain all
-  three OSes with10m limits. Set storage waits for every Go and package gate.
+  licence notices and a Homebrew formula. Linux race partitions the complete
+  compiled root test/example/fuzz inventory across two runners and retains all
+  other packages. A separate manifest gate requires one source, disjoint complete
+  selections and successful execution. Every binary retains20m; normal tests
+  retain all three OSes with10m limits. Set storage waits for every gate.
 
 ### Security and correctness
 

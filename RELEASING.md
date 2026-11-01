@@ -64,9 +64,13 @@ is the SHA-256 of its `manifest.json`.
    examples and `make generated-check`) and builds the set. On a tag whose
    draft or release holds a set already, it takes that set instead and builds
    nothing. Either way it verifies the set against this commit.
-2. **go-race** uses the accepted CI partition on two Linux runners: root and
-   all other discovered packages, every package once with the20m per-binary
-   timeout. **go-platforms** retains ordinary build/vet/test on Linux, macOS
+2. **go-race** uses two Linux partitions of the complete compiled root
+   test/example/fuzz inventory, plus all other discovered packages. Every root
+   name runs once, including race-only cases and complete child tests. The
+   independent **go-root-inventory** gate checks matching source/inventory,
+   successful execution and disjoint complete selections before storage. Every
+   binary retains20m; no manual test list or omission is allowed.
+   **go-platforms** retains ordinary build/vet/test on Linux, macOS
    and Windows with the10m test timeout. These jobs have40m ceilings and all
    must pass before **store** can run. **package-smoke** installs and runs the set's archive, npm package
    and wheel on Linux (x86-64 and arm64), macOS and Windows, and on the oldest

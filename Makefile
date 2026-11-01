@@ -79,6 +79,7 @@ generated-check:
 # A gate as well: every action a workflow uses is pinned to the commit of a
 # release, with the release named beside it, as Dependabot keeps it.
 workflows-check:
+	$(PYTHON) -m unittest discover -s scripts -p test_go_root_shard.py
 	$(PYTHON) -m unittest discover -s scripts -p test_a10_cache_compare.py
 	python3 -m unittest discover -s scripts -p test_a8_h3_analyze.py
 	python3 -m unittest discover -s scripts -p test_a8_h3_packets.py
