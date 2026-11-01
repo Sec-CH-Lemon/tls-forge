@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Redesign the landing with a frosted-glass visual system, an illustrative
+  animated request path, decorative scroll parallax, reduced-motion support
+  and a matching Open Graph image.
+
 - Add a static open-source project landing page in `web/landing` with responsive
   layout, semantic content, quick start, project scope, social metadata and
   sitemap; add a tag-triggered GitHub Pages workflow gated by mobile/desktop

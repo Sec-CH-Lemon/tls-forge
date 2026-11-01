@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090d16">
+  <meta name="theme-color" content="#071019">
   <meta name="description" content="TLS Forge is an open-source HTTP client with browser-measured TLS and HTTP profiles. Use the CLI, proxy, Go, Node.js or Python; capture and compare fingerprints locally.">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://tls-forge.com/">
@@ -22,6 +22,7 @@
   <meta name="twitter:image" content="https://tls-forge.com/og-card.png">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="styles.css">
+  <script src="motion.js" defer></script>
   <title>TLS Forge — Browser-measured TLS &amp; HTTP client</title>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"TLS Forge","description":"Open-source HTTP client with browser-measured TLS and HTTP profiles, a CLI, proxy, and Go, Node.js and Python SDKs.","codeRepository":"https://github.com/Sec-CH-Lemon/tls-forge","license":"https://www.apache.org/licenses/LICENSE-2.0","programmingLanguage":["Go","JavaScript","Python"],"url":"https://tls-forge.com/"}</script>
 </head>
@@ -48,19 +49,51 @@
 
   <main id="main">
     <section class="hero" id="top" aria-labelledby="hero-title">
-      <div class="hero-grid" aria-hidden="true"></div>
-      <div class="hero-orbit" aria-hidden="true"><span></span><span></span><span></span></div>
-      <div class="container hero-inner">
-        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> OPEN SOURCE · APACHE 2.0</p>
-        <h1 id="hero-title">A browser’s network fingerprint.<br><em>In your code.</em></h1>
-        <p class="hero-copy">TLS Forge brings browser-measured TLS and HTTP behavior to a CLI, proxy, and Go, Node.js and Python clients. Capture a real browser, keep its profile in JSON, and inspect the differences locally.</p>
-        <div class="hero-actions">
-          <a class="button button-primary" href="#get-started">Get started <span aria-hidden="true">↗</span></a>
-          <a class="button button-secondary" href="https://github.com/Sec-CH-Lemon/tls-forge" target="_blank" rel="noopener noreferrer">Explore on GitHub <span aria-hidden="true">↗</span></a>
-        </div>
-        <p class="hero-note">One measured identity across the network stack. No browser required to make requests.</p>
+      <div class="hero-atmosphere" aria-hidden="true">
+        <span class="hero-aura hero-aura-teal" data-parallax="85"></span>
+        <span class="hero-aura hero-aura-violet" data-parallax="-55"></span>
+        <span class="hero-mesh"></span>
       </div>
-      <div class="hero-rule" aria-hidden="true"></div>
+      <div class="container hero-layout">
+        <div class="hero-inner">
+          <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> OPEN SOURCE · APACHE 2.0</p>
+          <h1 id="hero-title">A browser’s network fingerprint.<br><em>In your code.</em></h1>
+          <p class="hero-copy">TLS Forge brings browser-measured TLS and HTTP behavior to a CLI, proxy, and Go, Node.js and Python clients. Capture a real browser, keep its profile in JSON, and inspect the differences locally.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#get-started">Get started <span aria-hidden="true">↗</span></a>
+            <a class="button button-secondary" href="https://github.com/Sec-CH-Lemon/tls-forge" target="_blank" rel="noopener noreferrer">Explore on GitHub <span aria-hidden="true">↗</span></a>
+          </div>
+          <p class="hero-note">One measured identity across the network stack. No browser required to make requests.</p>
+        </div>
+        <figure class="network-panel" aria-labelledby="network-caption">
+          <div class="network-panel-top" aria-hidden="true">
+            <span class="panel-mark"><span class="status-dot"></span> REQUEST FLOW</span>
+            <span class="panel-mode">PROFILE / JSON</span>
+          </div>
+          <div class="network-stage" aria-hidden="true">
+            <div class="request-tag">GET <span>/resource</span></div>
+            <svg class="network-route" viewBox="0 0 640 270" preserveAspectRatio="none">
+              <path class="route-shadow" d="M64 139 C135 139 144 112 222 139 S334 165 407 139 S513 112 576 139"/>
+              <path class="route-line" d="M64 139 C135 139 144 112 222 139 S334 165 407 139 S513 112 576 139"/>
+              <path class="route-dashes" d="M64 139 C135 139 144 112 222 139 S334 165 407 139 S513 112 576 139"/>
+              <circle class="packet packet-one" r="5" fill="#b9fff1"><animateMotion dur="4.2s" repeatCount="indefinite" path="M64 139 C135 139 144 112 222 139 S334 165 407 139 S513 112 576 139"/></circle>
+              <circle class="packet packet-two" r="4" fill="#b7c8ff"><animateMotion dur="4.2s" begin="-2.1s" repeatCount="indefinite" path="M64 139 C135 139 144 112 222 139 S334 165 407 139 S513 112 576 139"/></circle>
+            </svg>
+            <div class="network-node node-client"><span class="node-icon">⌘</span><span class="node-label">CLIENT</span></div>
+            <div class="network-node node-tls"><span class="node-icon">◇</span><span class="node-label">TLS</span></div>
+            <div class="network-node node-http"><span class="node-icon">≡</span><span class="node-label">HTTP</span></div>
+            <div class="network-node node-origin"><span class="node-icon">◎</span><span class="node-label">ORIGIN</span></div>
+            <div class="response-tag">one profile <span>↗</span></div>
+          </div>
+          <div class="network-trace" aria-hidden="true">
+            <div><span class="trace-index">01</span><span>ClientHello</span><span class="trace-value">profile values</span></div>
+            <div><span class="trace-index">02</span><span>ALPN</span><span class="trace-value">h2</span></div>
+            <div><span class="trace-index">03</span><span>HTTP headers</span><span class="trace-value">ordered</span></div>
+          </div>
+          <figcaption id="network-caption">Illustrative request path. The profile carries TLS and HTTP choices together.</figcaption>
+        </figure>
+      </div>
+      <span class="hero-edge" aria-hidden="true"></span>
     </section>
 
     <section class="signal-strip" aria-label="Supported surfaces">
@@ -87,6 +120,7 @@
     </section>
 
     <section class="section features-section" id="features" aria-labelledby="features-title">
+      <span class="section-aura features-aura" data-parallax="55" aria-hidden="true"></span>
       <div class="container">
         <div class="section-heading"><p class="eyebrow">02 / THE TOOLKIT</p><h2 id="features-title">Measured from the wire.<br><span class="text-gradient">Built for real requests.</span></h2><p>Each piece has a job: describe the identity, send the request, and make any mismatch visible.</p></div>
         <div class="feature-grid">
@@ -101,6 +135,7 @@
     </section>
 
     <section class="section workflow-section" id="workflow" aria-labelledby="workflow-title">
+      <span class="section-aura workflow-aura" data-parallax="-65" aria-hidden="true"></span>
       <div class="container"><div class="section-heading"><p class="eyebrow">03 / THE WORKFLOW</p><h2 id="workflow-title">From observation<br><span class="text-gradient">to a repeatable request.</span></h2><p>A local measurement loop connects what the browser sent to what your code sends.</p></div>
         <ol class="steps">
           <li><span class="step-index">01</span><div><h3>Observe a browser</h3><p><code>capture</code> records the raw ClientHello and HTTP behavior through a local echo server.</p></div></li>
@@ -126,7 +161,7 @@ brew install tls-forge</code></pre><p class="code-comment"># Send one request</p
 
     <section class="section faq-section" id="faq" aria-labelledby="faq-title"><div class="container faq-grid"><div><p class="eyebrow">05 / COMMON QUESTIONS</p><h2 id="faq-title">Before you<br><span class="text-gradient">forge a request.</span></h2></div><div class="faq-list"><details><summary>Do I need Chrome to make requests?</summary><p>No. Fetching, proxying and the language SDKs do not require a browser. A Chromium-based browser is needed for local capture and comparison.</p></details><details><summary>Can changing a User-Agent do the same thing?</summary><p>No. A server can also observe the TLS handshake, HTTP/2 settings and header order. TLS Forge keeps these choices together in a profile.</p></details><details><summary>Does a matching fingerprint guarantee access?</summary><p>No. Sites can use JavaScript challenges, cookies, behavior and other signals. TLS Forge addresses the network fingerprint, not every access control.</p></details><details><summary>How do I check a profile?</summary><p>Run <code>tls-forge compare</code> with a Chromium-based browser installed. It measures both sides locally and reports the fields it can compare.</p></details><details><summary>What license does the project use?</summary><p>TLS Forge is open source under the <a href="https://github.com/Sec-CH-Lemon/tls-forge/blob/development/LICENSE">Apache License 2.0</a>.</p></details></div></div></section>
 
-    <section class="closing-section" aria-labelledby="closing-title"><div class="container closing-inner"><p class="eyebrow">BUILD WITH TLS FORGE</p><h2 id="closing-title">See the request<br><span class="text-gradient">the server sees.</span></h2><p>Explore the code, inspect the profiles and run your own local comparison.</p><div class="hero-actions"><a class="button button-primary" href="https://github.com/Sec-CH-Lemon/tls-forge" target="_blank" rel="noopener noreferrer">View on GitHub <span aria-hidden="true">↗</span></a><a class="button button-secondary" href="https://github.com/Sec-CH-Lemon/tls-forge#quick-start">Read the docs <span aria-hidden="true">↗</span></a></div></div></section>
+    <section class="closing-section" aria-labelledby="closing-title"><span class="section-aura closing-aura" data-parallax="70" aria-hidden="true"></span><div class="container closing-inner"><p class="eyebrow">BUILD WITH TLS FORGE</p><h2 id="closing-title">See the request<br><span class="text-gradient">the server sees.</span></h2><p>Explore the code, inspect the profiles and run your own local comparison.</p><div class="hero-actions"><a class="button button-primary" href="https://github.com/Sec-CH-Lemon/tls-forge" target="_blank" rel="noopener noreferrer">View on GitHub <span aria-hidden="true">↗</span></a><a class="button button-secondary" href="https://github.com/Sec-CH-Lemon/tls-forge#quick-start">Read the docs <span aria-hidden="true">↗</span></a></div></div></section>
   </main>
   <footer class="site-footer"><div class="container footer-inner"><div><a class="brand" href="#top" aria-label="TLSFORGE home"><svg class="brand-icon" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M18 2 33 18 18 34 3 18 18 2Z" stroke="currentColor" stroke-width="1.4"/><path d="M18 8 27 18 18 28 9 18 18 8Z" stroke="currentColor" stroke-width="1.4"/><path d="M9 18h18" stroke="currentColor" stroke-width="1.4"/></svg><span>TLS<span class="brand-light">FORGE</span></span></a><p>Browser-measured networking for developers.</p></div><nav aria-label="Footer navigation"><a href="#features">Features</a><a href="#workflow">How it works</a><a href="#get-started">Get started</a><a href="https://github.com/Sec-CH-Lemon/tls-forge">GitHub</a><a href="https://github.com/Sec-CH-Lemon/tls-forge/blob/development/LICENSE">License</a></nav><p class="footer-note">© 2026 TLS Forge contributors. Apache-2.0.</p></div></footer>
 </body>

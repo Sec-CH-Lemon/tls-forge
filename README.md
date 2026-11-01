@@ -58,6 +58,9 @@ that directory as a site root; it needs no build step or external assets. Its
 canonical, social-image and sitemap URLs target `https://tls-forge.com/`.
 Lighthouse scores depend on the final host, headers and network path, so run
 its mobile and desktop audits after deployment.
+The hero network flow is illustrative and makes no requests. The local
+motion.js moves only decorative layers on scroll and respects reduced-motion
+preferences; the frosted panels and social image share the same visual style.
 
 `.github/workflows/landing.yml` checks all four Lighthouse categories at 100
 on mobile and desktop, then publishes only `web/landing/` through GitHub Pages
