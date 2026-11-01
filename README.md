@@ -2726,7 +2726,9 @@ Chrome 155 on macOS, 2026-10-23):
 - a connection is closed as soon as a GOAWAY leaves it no stream
   (`h2.close_on_goaway`);
 - a request to an HTTP/2 connection that has read nothing for more than 10 s
-  sends a PING after its HEADERS, the first saying 1 (`h2.preface_ping_*`);
+  sends a PING after its HEADERS, the first saying 1 (`h2.preface_ping_*`).
+  The decision is prepared before HEADERS I/O; a fast response read during
+  that write cannot cancel an already due PING;
   left unanswered 10 s with nothing read, it gives the connection up with a
   GOAWAY PROTOCOL_ERROR "Failed ping.", and the request goes again at once on
   another connection, as a refused one does (below, «A request sent again»).

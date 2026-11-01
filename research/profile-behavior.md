@@ -705,6 +705,15 @@ The forks: utls `TestCloseSendsCloseNotifyAsThePolicySays`, fhttp
 
 ## The connection's own PING (unreleased engine 1)
 
+The PING decision is prepared when HEADERS are created, before their write.
+Its separate wire write remains after HEADERS. A response read during HEADERS
+I/O cannot retract the prepared PING; a pending-check transition cannot create
+a PING that was not prepared. DATA still decides before its write. This repairs
+the existing mechanism without changing JSON timers/IDs or selecting by browser
+name. The coordinated release stays unpublished1.0.0/engine1. Two fresh
+Chrome156.0.8078.80/macOS cohorts of three reused-connection sequences retain
+HEADERS then P1 after the original10s idle threshold.
+
 Chrome tells a dead HTTP/2 connection from a quiet one by a PING of its own
 (SpdySession::MaybeSendPrefacePing, WritePingFrame, CheckPingStatus): when it
 writes a request's HEADERS, or a DATA frame that carries any of a body, to a

@@ -145,6 +145,18 @@ Eight fresh profiles,16target requests: two per scenario/protocol/cohort.
 Complete request arrays agree exactly. The Windows reference replaces only
 the two auth scenarios;226common scenarios remain deeply equal to the original
 macOS fixture, which is unchanged. All228request scenarios and174decodings
-still run perOS. Type1/SPNEGO bytes are scoped environment-derived values,
+still run perOS. NTLM Type1 messages sent under NTLM/Negotiate are scoped environment-derived values,
 compared in full, without a new normalization. This peer does not exercise
 Type3 or completion of a real NTLM/Negotiate authentication exchange.
+
+C4source98d669ef passed main30/30 but release root0 missed P1 after a fast
+response. The original fixture is unchanged: official Chrome156 CreateHeaders
+queues the decision before I/O, while fhttp checked after Flush. Controlled
+real Client.Do raw-read-before-write-return reproduces missing P1 against
+bd9be71. Local f88cd25 prepares the decision before I/O and retains the
+separate PING after HEADERS; original150/400ms timers,5s deadline, record34,
+P1/P2, GOAWAY and retry checks remain unchanged. Real Chrome156.80/macOS
+retains the order in2cohorts x3launches after an explicit warm fetch then11s
+idle on the same connection. First cold-socket closure is preserved separately;
+it is not a persistent-connection PING measurement. Full fork/native acceptance
+of the fix is required before release.

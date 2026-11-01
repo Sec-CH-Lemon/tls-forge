@@ -49,6 +49,10 @@ tls-forge fetch --profile /tmp/my-chrome-profile.json https://example.com/
 
 The exact `engine_major` must remain valid for the running binary. Renaming or retagging an older profile does not establish compatibility. A new client loads a new snapshot; an existing client keeps its owned profile. Compare changed behavior against independent browser observations in the same scenario, including fresh and reused connections where relevant. Keep the original profile and raw evidence.
 
+## HTTP/2 preface PING
+
+The existing `h2.preface_ping_*` fields own idle/hung timers, first ID and failure policy. The engine prepares the PING decision before HEADERS I/O and writes it separately after HEADERS. A response read during that write cannot cancel an already due PING. DATA keeps its decision before its write. No new profile default or browser-name dispatch is involved. This mechanism fix remains within the same unpublished engine1 candidate; revalidate measured profiles against the actual source.
+
 ## HTTP/3 and QPACK
 
 QPACK is implemented in the unreleased engine 1. The profile selects table capacity, encoder strategy and warmup, literal string coding, reference base, stream creation order, feedback, and error templates. The engine maintains actual dynamic table and stream state. Changing `h3.qpack.encoder_strategy` to `insert`, for example, requires a compatible `h3.qpack.encoder_table_bytes` and the relevant peer SETTINGS; it is not proof of Chrome's selection rule. Consult the [shipped fields](profile-fields.md) for concrete values and the historical engineering reference in `research/profile-behavior.md` for measurement provenance.
