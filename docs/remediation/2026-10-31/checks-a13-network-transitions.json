@@ -1,0 +1,741 @@
+{
+  "scope": "bounded browser observation, not production F03 or full A13 acceptance",
+  "browser": "Google Chrome156.0.8078.76",
+  "platform": "macOS27.0.1 arm64",
+  "mode": "headed fresh copies of declared warm template; binary/driver provenance in capsule",
+  "ect": {
+    "scope": "finite Chrome156/macOS transition cohorts; not production estimator or physical network reset acceptance",
+    "runs": [
+      {
+        "launch": "a0",
+        "requests": 34,
+        "statuses": {
+          "200": 34
+        },
+        "all_four_ects_in_actual_headers": true,
+        "actual_header_observations": 20,
+        "phase_ect_sequences": [
+          [
+            "4g",
+            "4g",
+            "4g",
+            "3g",
+            "3g",
+            "3g"
+          ],
+          [
+            "3g",
+            "3g",
+            "3g",
+            "3g",
+            "2g",
+            "2g",
+            "2g",
+            "2g"
+          ],
+          [
+            "2g",
+            "2g",
+            "2g",
+            "2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g"
+          ],
+          [
+            "slow-2g",
+            "slow-2g",
+            "slow-2g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g"
+          ]
+        ],
+        "netlog_ping_events": 70,
+        "netlog_quality_events": 8,
+        "seconds": 438.1538028717041,
+        "network_reset_measured": false
+      },
+      {
+        "launch": "a1",
+        "requests": 34,
+        "statuses": {
+          "200": 34
+        },
+        "all_four_ects_in_actual_headers": true,
+        "actual_header_observations": 20,
+        "phase_ect_sequences": [
+          [
+            "4g",
+            "4g",
+            "4g",
+            "3g",
+            "3g",
+            "3g"
+          ],
+          [
+            "3g",
+            "3g",
+            "3g",
+            "3g",
+            "2g",
+            "2g",
+            "2g",
+            "2g"
+          ],
+          [
+            "2g",
+            "2g",
+            "2g",
+            "2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g"
+          ],
+          [
+            "slow-2g",
+            "slow-2g",
+            "slow-2g",
+            "2g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g"
+          ]
+        ],
+        "netlog_ping_events": 70,
+        "netlog_quality_events": 9,
+        "seconds": 438.00153517723083,
+        "network_reset_measured": false
+      },
+      {
+        "launch": "a2",
+        "requests": 34,
+        "statuses": {
+          "200": 34
+        },
+        "all_four_ects_in_actual_headers": true,
+        "actual_header_observations": 20,
+        "phase_ect_sequences": [
+          [
+            "4g",
+            "4g",
+            "4g",
+            "3g",
+            "3g",
+            "3g"
+          ],
+          [
+            "3g",
+            "3g",
+            "3g",
+            "3g",
+            "2g",
+            "2g",
+            "2g",
+            "2g"
+          ],
+          [
+            "2g",
+            "2g",
+            "2g",
+            "2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g"
+          ],
+          [
+            "slow-2g",
+            "slow-2g",
+            "3g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g"
+          ]
+        ],
+        "netlog_ping_events": 72,
+        "netlog_quality_events": 9,
+        "seconds": 455.4456911087036,
+        "network_reset_measured": false
+      },
+      {
+        "launch": "b0",
+        "requests": 34,
+        "statuses": {
+          "200": 34
+        },
+        "all_four_ects_in_actual_headers": true,
+        "actual_header_observations": 20,
+        "phase_ect_sequences": [
+          [
+            "4g",
+            "4g",
+            "4g",
+            "3g",
+            "3g",
+            "3g"
+          ],
+          [
+            "3g",
+            "3g",
+            "3g",
+            "2g",
+            "2g",
+            "2g",
+            "2g",
+            "2g"
+          ],
+          [
+            "2g",
+            "2g",
+            "2g",
+            "2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g"
+          ],
+          [
+            "slow-2g",
+            "slow-2g",
+            "3g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g"
+          ]
+        ],
+        "netlog_ping_events": 74,
+        "netlog_quality_events": 8,
+        "seconds": 462.9783947467804,
+        "network_reset_measured": false
+      },
+      {
+        "launch": "b1",
+        "requests": 34,
+        "statuses": {
+          "200": 34
+        },
+        "all_four_ects_in_actual_headers": true,
+        "actual_header_observations": 20,
+        "phase_ect_sequences": [
+          [
+            "4g",
+            "4g",
+            "4g",
+            "3g",
+            "3g",
+            "3g"
+          ],
+          [
+            "3g",
+            "3g",
+            "3g",
+            "2g",
+            "2g",
+            "2g",
+            "2g",
+            "2g"
+          ],
+          [
+            "2g",
+            "2g",
+            "2g",
+            "2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g"
+          ],
+          [
+            "slow-2g",
+            "slow-2g",
+            "3g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g"
+          ]
+        ],
+        "netlog_ping_events": 74,
+        "netlog_quality_events": 9,
+        "seconds": 463.018119096756,
+        "network_reset_measured": false
+      },
+      {
+        "launch": "b2",
+        "requests": 34,
+        "statuses": {
+          "200": 34
+        },
+        "all_four_ects_in_actual_headers": true,
+        "actual_header_observations": 20,
+        "phase_ect_sequences": [
+          [
+            "4g",
+            "4g",
+            "4g",
+            "3g",
+            "3g",
+            "3g"
+          ],
+          [
+            "3g",
+            "3g",
+            "3g",
+            "3g",
+            "2g",
+            "2g",
+            "2g",
+            "2g"
+          ],
+          [
+            "2g",
+            "2g",
+            "2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g",
+            "slow-2g"
+          ],
+          [
+            "slow-2g",
+            "slow-2g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g",
+            "4g"
+          ]
+        ],
+        "netlog_ping_events": 72,
+        "netlog_quality_events": 9,
+        "seconds": 649.1426198482513,
+        "network_reset_measured": false
+      }
+    ],
+    "total_public_gets": 204,
+    "all_six_runs_satisfy_preregistered_criteria": true,
+    "original_campaign_failure_preserved": "nqe-cohort-driver-finding.json"
+  },
+  "short_host_noise": {
+    "scope": "finite build156/macOS cold seeded short-host noise observations; no RNG distribution claim",
+    "runs": [
+      {
+        "launch": "a0",
+        "header_observations": 24,
+        "compatible_salts": {
+          "False": [],
+          "True": [
+            16
+          ]
+        },
+        "rtt_headers": [
+          "50"
+        ],
+        "downlink_seed_kbps_source": 1600
+      },
+      {
+        "launch": "a1",
+        "header_observations": 24,
+        "compatible_salts": {
+          "False": [],
+          "True": [
+            4
+          ]
+        },
+        "rtt_headers": [
+          "50"
+        ],
+        "downlink_seed_kbps_source": 1600
+      },
+      {
+        "launch": "a2",
+        "header_observations": 24,
+        "compatible_salts": {
+          "False": [],
+          "True": [
+            20
+          ]
+        },
+        "rtt_headers": [
+          "0",
+          "50"
+        ],
+        "downlink_seed_kbps_source": 1600
+      },
+      {
+        "launch": "b0",
+        "header_observations": 24,
+        "compatible_salts": {
+          "False": [],
+          "True": [
+            16
+          ]
+        },
+        "rtt_headers": [
+          "0",
+          "50"
+        ],
+        "downlink_seed_kbps_source": 1600
+      },
+      {
+        "launch": "b1",
+        "header_observations": 24,
+        "compatible_salts": {
+          "False": [],
+          "True": [
+            7
+          ]
+        },
+        "rtt_headers": [
+          "0",
+          "50"
+        ],
+        "downlink_seed_kbps_source": 1600
+      },
+      {
+        "launch": "b2",
+        "header_observations": 24,
+        "compatible_salts": {
+          "False": [],
+          "True": [
+            12
+          ]
+        },
+        "rtt_headers": [
+          "50"
+        ],
+        "downlink_seed_kbps_source": 1600
+      }
+    ]
+  },
+  "controls": {
+    "frozen_ect_4g_rejected": true,
+    "old_libcxx_short_abi_rejected_in_all_six_settled_runs": true,
+    "salt_uniqueness_not_required": true,
+    "original_short_startup_assumption_rejected": "un-settled b0 has early downlink changes; no single1600 input fits all rows; kept as separate cold startup evidence",
+    "original_ect_driver_failure_retained": "nqe-cohort-driver-finding.json"
+  },
+  "throughput": {
+    "scope": "fixed finite4/6 transfer observation; JS overlap is not proof of NQE eligible URLRequest count; no numeric threshold acceptance inferred",
+    "runs": [
+      {
+        "launch": "a0",
+        "batches": [
+          {
+            "phase": "four-large",
+            "successful_gets": 4,
+            "javascript_fetch_overlap_peak": 4,
+            "bytes": 1048576
+          },
+          {
+            "phase": "six-small",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 6144
+          },
+          {
+            "phase": "six-large",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 1572864
+          }
+        ],
+        "actual_headers": {
+          "four-large": {
+            "alpha.nqe.test:51420": "1.75",
+            "beta.nqe.test:51420": "1.5",
+            "gamma.nqe.test:51420": "1.75",
+            "delta.nqe.test:51420": "1.65"
+          },
+          "six-small": {
+            "alpha.nqe.test:51420": "1.75",
+            "beta.nqe.test:51420": "1.5",
+            "gamma.nqe.test:51420": "1.75",
+            "delta.nqe.test:51420": "1.65"
+          },
+          "six-large": {
+            "alpha.nqe.test:51420": "1.75",
+            "beta.nqe.test:51420": "1.5",
+            "gamma.nqe.test:51420": "1.75",
+            "delta.nqe.test:51420": "1.65"
+          }
+        },
+        "same_downlink_headers_across_three_phases": true
+      },
+      {
+        "launch": "a1",
+        "batches": [
+          {
+            "phase": "four-large",
+            "successful_gets": 4,
+            "javascript_fetch_overlap_peak": 4,
+            "bytes": 1048576
+          },
+          {
+            "phase": "six-small",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 6144
+          },
+          {
+            "phase": "six-large",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 1572864
+          }
+        ],
+        "actual_headers": {
+          "four-large": {
+            "alpha.nqe.test:51420": "1.5",
+            "beta.nqe.test:51420": "1.6",
+            "gamma.nqe.test:51420": "1.5",
+            "delta.nqe.test:51420": "1.75"
+          },
+          "six-small": {
+            "alpha.nqe.test:51420": "1.5",
+            "beta.nqe.test:51420": "1.6",
+            "gamma.nqe.test:51420": "1.5",
+            "delta.nqe.test:51420": "1.75"
+          },
+          "six-large": {
+            "alpha.nqe.test:51420": "1.5",
+            "beta.nqe.test:51420": "1.6",
+            "gamma.nqe.test:51420": "1.5",
+            "delta.nqe.test:51420": "1.75"
+          }
+        },
+        "same_downlink_headers_across_three_phases": true
+      },
+      {
+        "launch": "a2",
+        "batches": [
+          {
+            "phase": "four-large",
+            "successful_gets": 4,
+            "javascript_fetch_overlap_peak": 4,
+            "bytes": 1048576
+          },
+          {
+            "phase": "six-small",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 6144
+          },
+          {
+            "phase": "six-large",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 1572864
+          }
+        ],
+        "actual_headers": {
+          "four-large": {
+            "alpha.nqe.test:51420": "1.75",
+            "beta.nqe.test:51420": "1.5",
+            "gamma.nqe.test:51420": "1.75",
+            "delta.nqe.test:51420": "1.65"
+          },
+          "six-small": {
+            "alpha.nqe.test:51420": "1.75",
+            "beta.nqe.test:51420": "1.5",
+            "gamma.nqe.test:51420": "1.75",
+            "delta.nqe.test:51420": "1.65"
+          },
+          "six-large": {
+            "alpha.nqe.test:51420": "1.75",
+            "beta.nqe.test:51420": "1.5",
+            "gamma.nqe.test:51420": "1.75",
+            "delta.nqe.test:51420": "1.65"
+          }
+        },
+        "same_downlink_headers_across_three_phases": true
+      },
+      {
+        "launch": "b0",
+        "batches": [
+          {
+            "phase": "four-large",
+            "successful_gets": 4,
+            "javascript_fetch_overlap_peak": 4,
+            "bytes": 1048576
+          },
+          {
+            "phase": "six-small",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 6144
+          },
+          {
+            "phase": "six-large",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 1572864
+          }
+        ],
+        "actual_headers": {
+          "four-large": {
+            "alpha.nqe.test:51420": "1.5",
+            "beta.nqe.test:51420": "1.6",
+            "gamma.nqe.test:51420": "1.5",
+            "delta.nqe.test:51420": "1.75"
+          },
+          "six-small": {
+            "alpha.nqe.test:51420": "1.5",
+            "beta.nqe.test:51420": "1.6",
+            "gamma.nqe.test:51420": "1.5",
+            "delta.nqe.test:51420": "1.75"
+          },
+          "six-large": {
+            "alpha.nqe.test:51420": "1.5",
+            "beta.nqe.test:51420": "1.6",
+            "gamma.nqe.test:51420": "1.5",
+            "delta.nqe.test:51420": "1.75"
+          }
+        },
+        "same_downlink_headers_across_three_phases": true
+      },
+      {
+        "launch": "b1",
+        "batches": [
+          {
+            "phase": "four-large",
+            "successful_gets": 4,
+            "javascript_fetch_overlap_peak": 4,
+            "bytes": 1048576
+          },
+          {
+            "phase": "six-small",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 6144
+          },
+          {
+            "phase": "six-large",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 1572864
+          }
+        ],
+        "actual_headers": {
+          "four-large": {
+            "alpha.nqe.test:51420": "1.65",
+            "beta.nqe.test:51420": "1.75",
+            "gamma.nqe.test:51420": "1.65",
+            "delta.nqe.test:51420": "1.55"
+          },
+          "six-small": {
+            "alpha.nqe.test:51420": "1.65",
+            "beta.nqe.test:51420": "1.75",
+            "gamma.nqe.test:51420": "1.65",
+            "delta.nqe.test:51420": "1.55"
+          },
+          "six-large": {
+            "alpha.nqe.test:51420": "10",
+            "beta.nqe.test:51420": "10",
+            "gamma.nqe.test:51420": "10",
+            "delta.nqe.test:51420": "10"
+          }
+        },
+        "same_downlink_headers_across_three_phases": false
+      },
+      {
+        "launch": "b2",
+        "batches": [
+          {
+            "phase": "four-large",
+            "successful_gets": 4,
+            "javascript_fetch_overlap_peak": 4,
+            "bytes": 1048576
+          },
+          {
+            "phase": "six-small",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 6144
+          },
+          {
+            "phase": "six-large",
+            "successful_gets": 6,
+            "javascript_fetch_overlap_peak": 6,
+            "bytes": 1572864
+          }
+        ],
+        "actual_headers": {
+          "four-large": {
+            "alpha.nqe.test:51420": "1.6",
+            "beta.nqe.test:51420": "1.7",
+            "gamma.nqe.test:51420": "1.6",
+            "delta.nqe.test:51420": "1.5"
+          },
+          "six-small": {
+            "alpha.nqe.test:51420": "1.6",
+            "beta.nqe.test:51420": "1.7",
+            "gamma.nqe.test:51420": "1.6",
+            "delta.nqe.test:51420": "1.5"
+          },
+          "six-large": {
+            "alpha.nqe.test:51420": "1.6",
+            "beta.nqe.test:51420": "1.7",
+            "gamma.nqe.test:51420": "1.6",
+            "delta.nqe.test:51420": "1.5"
+          }
+        },
+        "same_downlink_headers_across_three_phases": true
+      }
+    ],
+    "limitations": "No downstream update in these finite phases; source defaults remain source-derived and require complete window/eligibility timeline before claiming effective-parameter measurement."
+  },
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/NQE-TRANSITIONS-R17",
+    "files": 464,
+    "bytes": 352815109,
+    "manifest_sha256": "27214cdac530b8b7f7e1d683635ea4963e813df2db9c4290989e993fd19e802d",
+    "verified": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  },
+  "limitations": [
+    "No physical network change/reset acceptance",
+    "No new Linux/Windows or historical browser acceptance",
+    "No throughput effective-threshold verdict from unchanged finite headers",
+    "Runtime estimator, SDK capability and production path acceptance remain open"
+  ]
+}
