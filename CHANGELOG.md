@@ -83,6 +83,9 @@ packages use1.0.0; the latest published stable release remains0.2.2.
   sensitive diagnostic URLs without altering the transmitted application data.
 - Preserve complete bodies and actual protocol/connection counts in test peers;
   Alt-Svc readiness waits for client pool publication, not peer handshake alone.
+  Python backpressure controls complete offline hello before timing a body write
+  and require an actual blocked writer at stop; the0.2s request deadline,2s
+  elapsed bound, cleanup and SessionReset assertions remain.
 
 ### Validation and limits
 

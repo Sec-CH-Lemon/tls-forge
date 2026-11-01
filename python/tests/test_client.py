@@ -583,14 +583,34 @@ def test_a_write_the_transport_does_not_read_ends_at_the_deadline(client, monkey
     monkeypatch.setenv("TLSFORGE_TEST_DEAF_FOR", "10")
     one = client(timeout=0.2)
     baseline = threading.active_count()
+    # Capability discovery precedes the request's deadline. A slow cold hello
+    # can otherwise satisfy the same Timeout/SessionReset assertions without
+    # ever exercising a blocked body write. Ready the real peer separately;
+    # the request itself still has its original0.2s deadline.
+    with monkeypatch.context() as ready:
+        ready.setattr(one, "_timeout", 2)
+        one.hello()
+    stopped_writing: list[bool] = []
+    stop = one._stop
+
+    def stop_observed_writer():
+        writer = one._writer
+        stopped_writing.append(writer is not None and writer.is_alive())
+        return stop()
+
+    monkeypatch.setattr(one, "_stop", stop_observed_writer)
     started = time.monotonic()
     with pytest.raises(Timeout, match=r"timed out after 0.2s$"):
         one.post("https://ok/big", _BIG)
     assert time.monotonic() - started < 2
+    assert stopped_writing == [True], "the timed request never stopped a blocked writer"
     assert one._process is None
     assert _settled(baseline)
     # The transport stopped had the session in it.
     monkeypatch.delenv("TLSFORGE_TEST_DEAF_FOR")
+    with monkeypatch.context() as ready:
+        ready.setattr(one, "_timeout", 2)
+        one.hello()
     with pytest.raises(tlsforge.SessionReset, match="a request timed out, and it was stopped"):
         one.get("https://ok/after")
     assert one.get("https://ok/again").status == 200
