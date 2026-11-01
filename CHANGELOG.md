@@ -40,6 +40,8 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 
 ### Added and changed
 
+- Preserve original Go coverage profiles after success or failure as
+  `go-coverage`/`release-go-coverage` artifacts for7days; coverage stays100%.
 - Require the complete413response in the proxy body-limit test before
   closing its caller/server. Preserve the body bound and100%coverage gate.
 - Fix an HTTP/2 preface PING being suppressed by a fast peer response during
