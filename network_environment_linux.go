@@ -43,7 +43,7 @@ func linuxNetworkRoute(families []string, readFile func(string) ([]byte, error),
 }
 func linuxDefaultRoute(raw, family string) (string, string, bool) {
 	var name, gateway string
-	var metric uint64 = ^uint64(0)
+	metric := ^uint64(0)
 	for _, line := range strings.Split(raw, "\n") {
 		fields := strings.Fields(line)
 		var candidate, nextHop string
