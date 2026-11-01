@@ -23,9 +23,22 @@ Mac Go, SDK, packaging и package-smoke прошли.
   TARGETS; одна inventory для всех поддержанных ОС. Ошибка target graph фатальна.
 - Native Linux route/TCP_INFO error paths проверяются отдельно; I/O передаётся
   параметрами, без глобальных подмен или изменения значений политики.
+- Linux staticcheck требует вывести тип metric из правой части; значение
+  `^uint64(0)` и алгоритм выбора маршрута остаются прежними.
+- Опубликованный test-only tls-client4d345b0 ожидает публикации клиентского
+  QUIC-пула, сохраняя прежний общий бюджет readiness4s. Отдельный real-dial
+  control удерживает фактический dial после handshake и подтверждает H2 до
+  публикации, H3 после неё и ровно одно соединение каждого протокола.
 
 Cross-vet и test-binary compilation Linux/Windows, Darwin regression под race,
 полный examples gate и независимость notices от host selection проверены локально.
+Generated/docs и Linux-selected lint прошли. Оба полных локальных графа
+tls-client4d345b0 приняты по476 test runs;32 race-повтора readiness проходят.
+Новых allowances/exclusions нет; прежние шесть skips форка остаются явными.
+Root и standalone Go example закрепляют публичный `v1.15.2-0.20261101114743-4d345b04deee`;
+`GOWORK=off` tidy/verify/build и Darwin controls под race прошли.
+[Точные результаты и первичные отказы](checks-network-hints-native.json).
+
 **Итоговый native CI ещё не принят:** подготовленным commits нужен отдельный
 push и завершённый CI. Никаких понижений coverage, таймаутов, skips или allowances.
 

@@ -442,7 +442,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/tls-client v1.15.2-0.20261101102849-3b8dd33e415b
+github.com/igor-lemon/tls-client v1.15.2-0.20261101114743-4d345b04deee
 --------------------------------------------------------------------------------
 
 Copyright (c) 2023, Bogdan Finn

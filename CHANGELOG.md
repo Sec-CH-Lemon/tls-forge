@@ -11,6 +11,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Pin the test-only Alt-Svc readiness correction and aligned Go consumer lock; preserve protocol assertions, connection counts and the original readiness budget. Retain the failed native CI and require a fresh full run.
+
 - Test native Linux route and TCP_INFO boundaries with parameter-based I/O seams; retain the existing production calls and JSON policies.
 
 - Generate one deterministic licence inventory across the existing release targets; fail when any target graph cannot be read, retaining all applicable notices.

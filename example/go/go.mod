@@ -12,7 +12,7 @@ require (
 	github.com/ebitengine/purego v0.10.2 // indirect
 	github.com/igor-lemon/fhttp v0.6.10-0.20261101025353-bd9be7192a4b // indirect
 	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261101100452-ed643428b38b // indirect
-	github.com/igor-lemon/tls-client v1.15.2-0.20261101102849-3b8dd33e415b // indirect
+	github.com/igor-lemon/tls-client v1.15.2-0.20261101114743-4d345b04deee // indirect
 	github.com/igor-lemon/utls v1.7.8-barnius.0.20261101043215-2f8200b8a4aa // indirect
 	github.com/igor-lemon/websocket v1.5.6-barnius.0.20261026204638-961b3d7db465 // indirect
 	github.com/klauspost/compress v1.20.0 // indirect

@@ -1,0 +1,468 @@
+{
+  "scope": "bounded native CI follow-up; no new browser measurements",
+  "accepted_natively": false,
+  "published_root": "ef1f9a6205028af8990cf44f49defe8dd8271ff8",
+  "before_ci": {
+    "main": {
+      "databaseId": 41300980769,
+      "headSha": "ef1f9a6205028af8990cf44f49defe8dd8271ff8",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41300980769",
+      "jobs": [
+        {
+          "name": "wrapper-smoke",
+          "conclusion": "success"
+        },
+        {
+          "name": "packaging",
+          "conclusion": "success"
+        },
+        {
+          "name": "node (windows-latest, 24, true)",
+          "conclusion": "success"
+        },
+        {
+          "name": "lint",
+          "conclusion": "failure"
+        },
+        {
+          "name": "node (ubuntu-latest, 20.12, false)",
+          "conclusion": "success"
+        },
+        {
+          "name": "coverage",
+          "conclusion": "failure"
+        },
+        {
+          "name": "go (ubuntu-latest, root)",
+          "conclusion": "failure"
+        },
+        {
+          "name": "go (ubuntu-latest, packages)",
+          "conclusion": "failure"
+        },
+        {
+          "name": "python (ubuntu-latest, 3.9)",
+          "conclusion": "success"
+        },
+        {
+          "name": "generated",
+          "conclusion": "failure"
+        },
+        {
+          "name": "security",
+          "conclusion": "success"
+        },
+        {
+          "name": "node (ubuntu-latest, 24, true)",
+          "conclusion": "success"
+        },
+        {
+          "name": "docker",
+          "conclusion": "success"
+        },
+        {
+          "name": "go (macos-latest, all)",
+          "conclusion": "success"
+        },
+        {
+          "name": "python (windows-latest, 3.13)",
+          "conclusion": "success"
+        },
+        {
+          "name": "examples (macos-latest)",
+          "conclusion": "failure"
+        },
+        {
+          "name": "examples (windows-latest)",
+          "conclusion": "failure"
+        },
+        {
+          "name": "browser",
+          "conclusion": "success"
+        },
+        {
+          "name": "node (macos-latest, 24, true)",
+          "conclusion": "success"
+        },
+        {
+          "name": "python (macos-latest, 3.13)",
+          "conclusion": "success"
+        },
+        {
+          "name": "examples (ubuntu-latest)",
+          "conclusion": "failure"
+        },
+        {
+          "name": "python (ubuntu-latest, 3.13)",
+          "conclusion": "success"
+        },
+        {
+          "name": "go (windows-latest, all)",
+          "conclusion": "failure"
+        },
+        {
+          "name": "package-smoke (ubuntu-24.04-arm, 24, 3.13)",
+          "conclusion": "success"
+        },
+        {
+          "name": "package-smoke (macos-latest, 24, 3.13)",
+          "conclusion": "success"
+        },
+        {
+          "name": "package-smoke (windows-latest, 24, 3.13)",
+          "conclusion": "success"
+        },
+        {
+          "name": "package-smoke (ubuntu-latest, 24, 3.13)",
+          "conclusion": "success"
+        },
+        {
+          "name": "package-smoke (ubuntu-latest, 20.12, 3.9)",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "forks": {
+      "databaseId": 41301185203,
+      "headSha": "ef1f9a6205028af8990cf44f49defe8dd8271ff8",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41301185203",
+      "jobs": [
+        {
+          "name": "fork (utls, standalone)",
+          "conclusion": "success"
+        },
+        {
+          "name": "fork (utls, production)",
+          "conclusion": "success"
+        },
+        {
+          "name": "fork (tls-client, standalone)",
+          "conclusion": "success"
+        },
+        {
+          "name": "fork (quic-go-utls, production)",
+          "conclusion": "success"
+        },
+        {
+          "name": "fork (fhttp, production)",
+          "conclusion": "success"
+        },
+        {
+          "name": "fork (tls-client, production)",
+          "conclusion": "failure"
+        },
+        {
+          "name": "fork (quic-go-utls, standalone)",
+          "conclusion": "success"
+        },
+        {
+          "name": "fork (fhttp, standalone)",
+          "conclusion": "success"
+        }
+      ]
+    }
+  },
+  "local_corrections": [
+    {
+      "commit": "edd7bd94e1f010230fa8b03b0d715cf99c044077",
+      "title": "Scope AirPort regression to Darwin",
+      "files": [
+        "network_environment_airport_test.go",
+        "network_environment_airport_darwin_test.go",
+        "docs/remediation/2026-11-01/Network-hints-native.ru.md",
+        "README.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "commit": "1825ce014755d947ad67da32c2f105d4836919f8",
+      "title": "Refresh standalone Go example dependencies",
+      "files": [
+        "example/go/go.mod",
+        "example/go/go.sum",
+        "README.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "commit": "1b8fe31f0a40b9f30d56a58922ed4be1d46b060e",
+      "title": "Generate notices across existing release targets",
+      "files": [
+        "scripts/notices.sh",
+        "THIRD-PARTY-NOTICES.txt",
+        "README.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "commit": "2903d046ed26b70b0ebd53107ccb254cc46f0403",
+      "title": "Cover native Linux network metadata boundaries",
+      "files": [
+        "network_environment_linux.go",
+        "network_tcp_linux.go",
+        "network_environment_linux_test.go",
+        "network_tcp_linux_test.go",
+        "README.md",
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "commit": "988225a725779191bac6a42d11e6d525ffc4295a",
+      "title": "Simplify Linux route metric declaration",
+      "files": [
+        "network_environment_linux.go"
+      ]
+    }
+  ],
+  "published_test_only_fork": {
+    "fork": "tls-client",
+    "authorized_head": "4d345b04deee9f2888e03975f1f60ec89df967c6",
+    "before": "3b8dd33e415bf2cac5ad35795d2b3aed99502366",
+    "after": "4d345b04deee9f2888e03975f1f60ec89df967c6",
+    "branch": "tls-forge",
+    "published_at": "2026-11-01T12:00:11.277664+00:00"
+  },
+  "fork_local_after": {
+    "standalone": {
+      "accepted": true,
+      "test_runs": 476,
+      "source_commit": "4d345b04deee9f2888e03975f1f60ec89df967c6",
+      "returncodes": [
+        0
+      ],
+      "test_skips": [
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5E2E_HTTP3ThroughProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5PacketConn_ReadFromDropsForeignSource"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_HappyPath"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_ProtocolRacingUsesProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_SetProxyAtRuntime"
+        ]
+      ],
+      "unexpected": []
+    },
+    "production": {
+      "accepted": true,
+      "test_runs": 476,
+      "source_commit": "4d345b04deee9f2888e03975f1f60ec89df967c6",
+      "returncodes": [
+        0
+      ],
+      "test_skips": [
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5E2E_HTTP3ThroughProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client",
+          "TestSocks5PacketConn_ReadFromDropsForeignSource"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_HappyPath"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_ProtocolRacingUsesProxy"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_RacingSurvivesRepeatedRequests"
+        ],
+        [
+          "github.com/igor-lemon/tls-client/tests",
+          "TestSocks5Proxy_SetProxyAtRuntime"
+        ]
+      ],
+      "unexpected": []
+    }
+  },
+  "checks": {
+    "generated_docs": [
+      {
+        "check": "generated",
+        "command": [
+          "bash",
+          "scripts/check-generated.sh"
+        ],
+        "source_commit": "2903d046ed26b70b0ebd53107ccb254cc46f0403",
+        "returncode": 0,
+        "seconds": 2.01,
+        "log": "generated-after.log"
+      },
+      {
+        "check": "docs",
+        "command": [
+          "make",
+          "docs-check"
+        ],
+        "source_commit": "2903d046ed26b70b0ebd53107ccb254cc46f0403",
+        "returncode": 0,
+        "seconds": 0.124,
+        "log": "docs-after.log"
+      }
+    ],
+    "linux_lint": {
+      "check": "linux source-selected lint",
+      "source_base": "2903d046ed26b70b0ebd53107ccb254cc46f0403",
+      "diff": "metric declaration type inference only",
+      "returncode": 0,
+      "seconds": 3.213,
+      "log": "linux-lint-after.log"
+    }
+  },
+  "no_threshold_timeout_assertion_changes": true,
+  "private_working_evidence": "/private/tmp/tls-forge-a13-native-20261101",
+  "native_after": null,
+  "published_dependency": {
+    "Path": "github.com/igor-lemon/tls-client",
+    "Version": "v1.15.2-0.20261101114743-4d345b04deee",
+    "Info": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/tls-client/@v/v1.15.2-0.20261101114743-4d345b04deee.info",
+    "GoMod": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/tls-client/@v/v1.15.2-0.20261101114743-4d345b04deee.mod",
+    "Zip": "/Users/ihar/go/pkg/mod/cache/download/github.com/igor-lemon/tls-client/@v/v1.15.2-0.20261101114743-4d345b04deee.zip",
+    "Dir": "/Users/ihar/go/pkg/mod/github.com/igor-lemon/tls-client@v1.15.2-0.20261101114743-4d345b04deee",
+    "Sum": "h1:jaFOx4SK0TDGqSiPAnvKTVLhQPM4bVRbB/EHjp2gNjA=",
+    "GoModSum": "h1:kmBC826CM0QhGQAFD8fiO84v0tmhqIgHz+WRPfnWqr8=",
+    "Origin": {
+      "VCS": "git",
+      "URL": "https://github.com/igor-lemon/tls-client",
+      "Hash": "4d345b04deee9f2888e03975f1f60ec89df967c6"
+    }
+  },
+  "published_pin_checks": [
+    {
+      "check": "download",
+      "command": [
+        "go",
+        "mod",
+        "download",
+        "-json",
+        "github.com/igor-lemon/tls-client@v1.15.2-0.20261101114743-4d345b04deee"
+      ],
+      "returncode": 0,
+      "seconds": 0.75,
+      "log": "published-pin-download.log"
+    },
+    {
+      "check": "root-tidy",
+      "command": [
+        "go",
+        "mod",
+        "tidy"
+      ],
+      "returncode": 0,
+      "seconds": 0.066,
+      "log": "published-pin-root-tidy.log"
+    },
+    {
+      "check": "root-verify",
+      "command": [
+        "go",
+        "mod",
+        "verify"
+      ],
+      "returncode": 0,
+      "seconds": 0.424,
+      "log": "published-pin-root-verify.log"
+    },
+    {
+      "check": "root-build",
+      "command": [
+        "go",
+        "build",
+        "./..."
+      ],
+      "returncode": 0,
+      "seconds": 2.217,
+      "log": "published-pin-root-build.log"
+    },
+    {
+      "check": "example-tidy",
+      "command": [
+        "go",
+        "mod",
+        "tidy"
+      ],
+      "returncode": 0,
+      "seconds": 0.053,
+      "log": "published-pin-example-tidy.log"
+    },
+    {
+      "check": "example-build",
+      "command": [
+        "go",
+        "test",
+        "./..."
+      ],
+      "returncode": 0,
+      "seconds": 0.423,
+      "log": "published-pin-example-build.log"
+    },
+    {
+      "check": "darwin-regression",
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-count=1",
+        "-timeout",
+        "20m",
+        "-run",
+        "^(TestA13NativeNetworkMetadataIsActualAndHasNoEstimates|TestA13SourceBoundConnectionTypeIdentityDoesNotInventSSID|TestDarwinAirPortEthernetEntityIsWiFi)$",
+        "."
+      ],
+      "returncode": 0,
+      "seconds": 9.802,
+      "log": "published-pin-darwin-regression.log"
+    }
+  ],
+  "fork_delta_files": [
+    "LEMON.md",
+    "altsvc_readiness_test.go",
+    "altsvc_test.go"
+  ],
+  "runtime_fork_files_changed": [],
+  "notice_regeneration": "only pinned tls-client version line changed; licence inventory identical",
+  "final_examples": {
+    "check": "all existing examples",
+    "returncode": 0,
+    "seconds": 9.191,
+    "log": "pin-final-examples.log"
+  },
+  "final_generated_docs": [
+    {
+      "check": "generated",
+      "returncode": 0,
+      "seconds": 1.939,
+      "log": "pin-final-generated.log"
+    },
+    {
+      "check": "docs",
+      "returncode": 0,
+      "seconds": 0.167,
+      "log": "pin-final-docs.log"
+    }
+  ],
+  "gate_inventory_change": "only tls-client source commit; allowances/exclusions/thresholds unchanged"
+}

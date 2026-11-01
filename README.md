@@ -3228,3 +3228,5 @@ The standalone Go example pins the same published transport dependencies as the 
 `make notices` uses Node to read the release builder's existing `TARGETS`, then Go to collect their actual linked dependencies. The shared notice inventory is reproducible across hosts and includes platform-specific dependencies.
 
 Native Linux network metadata checks cover both kernel route formats and TCP_INFO failure/measurement paths; production still uses the original OS calls, with parameter-based I/O seams for deterministic controls.
+
+The pinned Alt-Svc regression waits for publication in the client QUIC pool; the real-dial control preserves protocol and connection-count assertions. Native CI status and retained failures are in the [follow-up report](docs/remediation/2026-11-01/Network-hints-native.ru.md).
