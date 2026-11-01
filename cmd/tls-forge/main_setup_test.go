@@ -55,6 +55,9 @@ func TestMain(m *testing.M) {
 	if os.Getenv(asProgram) == "1" {
 		profile.Default.SetDir(os.Getenv("TLSFORGE_PROFILES"))
 		ipServices = []addressService{{URL: os.Getenv(serviceVariable), read: readJSON}}
+		if os.Getenv(stdinReadyVariable) == "1" {
+			listInput = &stdinReadyReader{reader: listInput, ready: os.NewFile(3, "stdin-readiness")}
+		}
 		if os.Getenv(sayFrames) == "1" {
 			// Last, on standard error: whether the transport was ever told to say
 			// what frames it reads.

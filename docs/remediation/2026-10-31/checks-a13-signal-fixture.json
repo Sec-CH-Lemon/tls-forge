@@ -1,0 +1,23 @@
+{
+  "scope": "test-only child readiness; full A13 open",
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/ASYNC-FIXTURES-R13",
+    "files": 28,
+    "bytes": 170840703,
+    "manifest_sha256": "b8255c5fc63834b9426807d1bfb2f40ed3774240f74438713f4b9c623eb8c919",
+    "verified": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  },
+  "baseline_r13_failure": "exit15 after fixed1s startup sleep",
+  "controlled_before_startup_ms": 1500,
+  "controlled_before_red": true,
+  "after_normal_race_repetitions": 32,
+  "after_delayed_race_repetitions": 8,
+  "killed_control": "production signal handler disabled",
+  "after_signal_deadline_seconds": 5,
+  "exit_assertion": 1,
+  "stderr_assertion": "tlsforge: context canceled",
+  "production_files_changed": []
+}

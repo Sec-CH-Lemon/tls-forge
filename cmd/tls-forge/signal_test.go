@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -31,6 +32,28 @@ func program(t *testing.T, args ...string) *osexec.Cmd {
 	cmd := osexec.Command(os.Args[0], args...)
 	cmd.Env = append(os.Environ(), asProgram+"=1")
 	return cmd
+}
+
+// The child announces its actual stdin read through a private test pipe. This
+// neither installs a signal handler nor adds a product flag or output field.
+const stdinReadyVariable = "TLSFORGE_TEST_STDIN_READY"
+
+type stdinReadyReader struct {
+	reader io.Reader
+	ready  *os.File
+	once   sync.Once
+	err    error
+}
+
+func (r *stdinReadyReader) Read(b []byte) (int, error) {
+	r.once.Do(func() {
+		_, r.err = r.ready.Write([]byte{'R'})
+		_ = r.ready.Close()
+	})
+	if r.err != nil {
+		return 0, r.err
+	}
+	return r.reader.Read(b)
 }
 
 // ended waits for the program to end, within a bound, and is how it did.
@@ -236,10 +259,40 @@ func TestFetchWaitingForAListStopsOnSIGTERM(t *testing.T) {
 	t.Cleanup(func() { _ = stdin.Close() })
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
+	ready, announce, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = ready.Close(); _ = announce.Close() })
+	cmd.ExtraFiles = []*os.File{announce}
+	cmd.Env = append(cmd.Env, stdinReadyVariable+"=1")
 	if err := cmd.Start(); err != nil {
 		t.Fatalf("starting: %v", err)
 	}
-	time.Sleep(time.Second)
+	_ = announce.Close()
+	t.Cleanup(func() {
+		if cmd.ProcessState == nil {
+			_ = cmd.Process.Kill()
+			_ = cmd.Wait()
+		}
+	})
+	read := make(chan error, 1)
+	go func() {
+		var marker [1]byte
+		_, err := io.ReadFull(ready, marker[:])
+		if err == nil && marker[0] != 'R' {
+			err = fmt.Errorf("unexpected readiness marker %q", marker)
+		}
+		read <- err
+	}()
+	select {
+	case err := <-read:
+		if err != nil {
+			t.Fatalf("waiting for stdin read: %v", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("program never reached the stdin read")
+	}
 	told(t, cmd)
 	if status := ended(t, cmd, 5*time.Second); status.ExitStatus() != 1 ||
 		!strings.Contains(stderr.String(), "tlsforge: context canceled") {
