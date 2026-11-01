@@ -3321,3 +3321,5 @@ Release-oracle calibration uses the manual-only [release-oracle workflow](.githu
 
 
 Prepared1.0.0 release notes are in [CHANGELOG.md](CHANGELOG.md); its full unpublished development journal is preserved in [the history archive](research/releases/1.0.0-development-history.md). The [release readiness receipt](research/releases/1.0.0-readiness.ru.md) records the exact candidate, dry-run results and remaining limits.
+
+The accepted 1.0.0 dry-run uses commit `51918c0`. Its [JSON receipt](research/releases/1.0.0-readiness.json) records the exact source, set, native checks and limits. A later documentation commit does not change that accepted source; publishing the release requires the owner's separate approval.

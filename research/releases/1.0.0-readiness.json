@@ -1,0 +1,595 @@
+{
+  "schema": 1,
+  "version": "1.0.0",
+  "status": "release_dry_run_accepted",
+  "actual_release_published": false,
+  "accepted_source": "51918c065f311a3b293668e042f516bba74d7354",
+  "source_tree": "84aad5808e7583985c6278a98b1807dfff1d7ac3",
+  "source_archive_sha256": "58f0ab87f10a8bba3ad7aa36a42c8dcdf0030bfd6bf5672cc2a4da320b94f5d8",
+  "compiled_identity": {
+    "version": "1.0.0",
+    "latest_released_version": "0.2.2",
+    "release_status": "unreleased",
+    "pending_engine_change": true
+  },
+  "preparation_base": "6867bd1be1fcd10539983705307d00cbb940c133",
+  "checked_at_utc": "2026-11-01T20:32:38.553174+00:00",
+  "workflows": {
+    "main": {
+      "run": 41342684912,
+      "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41342684912",
+      "attempt": 2,
+      "successful_jobs": 30,
+      "initial_attempt": "23success/7automaticallycancelled by unrelated e70landingpush; only cancelled/dependent jobs resumed after externalCI finished"
+    },
+    "release": {
+      "run": 41342720061,
+      "url": "https://github.com/Sec-CH-Lemon/tls-forge/actions/runs/41342720061",
+      "attempt": 1,
+      "successful_jobs": 19,
+      "publication_jobs_skipped": [
+        "finish",
+        "homebrew",
+        "image",
+        "publish-npm",
+        "publish-pypi"
+      ],
+      "dry_run": true
+    },
+    "forks": {
+      "native_run": 41340878246,
+      "native_source": "9ed604caa1f0aed666709db9fd4948f71a729ee2",
+      "candidate": "51918c065f311a3b293668e042f516bba74d7354",
+      "graph_inputs_identical": [
+        {
+          "path": "go.mod",
+          "sha256": "abb91521957b157c06669a4c16fc516a8c1317326e88fa2875d6bbfeadbb98af"
+        },
+        {
+          "path": "go.sum",
+          "sha256": "6d0a07ee4780cf0116b3334d0b3dba8a23b685b7a7d37263235bd260ee9b9630"
+        },
+        {
+          "path": "verification/fork-failures.json",
+          "sha256": "53a8831d3fd2890e2c1955f91edb34c22e1d36d24679974fb26423d64fc5cc1c"
+        },
+        {
+          "path": "verification/fork-obligations.json",
+          "sha256": "e30e4cc7c716bf67e871ebab689cd6daa0be5b4b29eabefcbe7a543cdccdfb17"
+        },
+        {
+          "path": "scripts/fork_gate.py",
+          "sha256": "5da1d55ee01ccf78f950f20b6afcee3a5e4d13d298ab598e1b80d2b1cb0cd702"
+        }
+      ],
+      "graphs": [
+        {
+          "fork": "fhttp",
+          "graph": "production",
+          "source_commit": "f88cd25a32bc4b11a74c354b5f01d42d1d66e94a",
+          "source_sha256": "19a80048993536bb50349b7c8f508799b4716d16ed6c5aac20d3874dff2e285e",
+          "test_runs": 1911,
+          "test_skips": 36,
+          "returncodes": [
+            0,
+            0,
+            0
+          ],
+          "unexpected": []
+        },
+        {
+          "fork": "fhttp",
+          "graph": "standalone",
+          "source_commit": "f88cd25a32bc4b11a74c354b5f01d42d1d66e94a",
+          "source_sha256": "19a80048993536bb50349b7c8f508799b4716d16ed6c5aac20d3874dff2e285e",
+          "test_runs": 1911,
+          "test_skips": 36,
+          "returncodes": [
+            0,
+            0,
+            0
+          ],
+          "unexpected": []
+        },
+        {
+          "fork": "quic-go-utls",
+          "graph": "production",
+          "source_commit": "ed643428b38b3f59d5bfbaa2d08e4dbd968de91a",
+          "source_sha256": "e6be17b8907eb5bb67ec39a101cab5b7795299e5e5cc635966a4ee6bdaf409de",
+          "test_runs": 2606,
+          "test_skips": 3,
+          "returncodes": [
+            0
+          ],
+          "unexpected": []
+        },
+        {
+          "fork": "quic-go-utls",
+          "graph": "standalone",
+          "source_commit": "ed643428b38b3f59d5bfbaa2d08e4dbd968de91a",
+          "source_sha256": "e6be17b8907eb5bb67ec39a101cab5b7795299e5e5cc635966a4ee6bdaf409de",
+          "test_runs": 2606,
+          "test_skips": 3,
+          "returncodes": [
+            0
+          ],
+          "unexpected": []
+        },
+        {
+          "fork": "tls-client",
+          "graph": "production",
+          "source_commit": "4d345b04deee9f2888e03975f1f60ec89df967c6",
+          "source_sha256": "88e35bd1877655618b0bc851e69777c450e2597632da05f0e4c1220958c70862",
+          "test_runs": 476,
+          "test_skips": 6,
+          "returncodes": [
+            0
+          ],
+          "unexpected": []
+        },
+        {
+          "fork": "tls-client",
+          "graph": "standalone",
+          "source_commit": "4d345b04deee9f2888e03975f1f60ec89df967c6",
+          "source_sha256": "88e35bd1877655618b0bc851e69777c450e2597632da05f0e4c1220958c70862",
+          "test_runs": 476,
+          "test_skips": 6,
+          "returncodes": [
+            0
+          ],
+          "unexpected": []
+        },
+        {
+          "fork": "utls",
+          "graph": "production",
+          "source_commit": "2f8200b8a4aadf8e963a39a4f3aafe379d4c0247",
+          "source_sha256": "21797738021c193d56d736636dfab08dfa579e5f34ee6befcdc396c9607576fe",
+          "test_runs": 696,
+          "test_skips": 1,
+          "returncodes": [
+            0
+          ],
+          "unexpected": []
+        },
+        {
+          "fork": "utls",
+          "graph": "standalone",
+          "source_commit": "2f8200b8a4aadf8e963a39a4f3aafe379d4c0247",
+          "source_sha256": "21797738021c193d56d736636dfab08dfa579e5f34ee6befcdc396c9607576fe",
+          "test_runs": 696,
+          "test_skips": 1,
+          "returncodes": [
+            0
+          ],
+          "unexpected": []
+        }
+      ],
+      "test_runs": 11378,
+      "new_failure_allowances": 0,
+      "new_invocation_exclusions": 0,
+      "native_raw_limit": "fullsummaries/sourceidentities retained in fullnativeZIP; raw JSONL runner-private, identicalfullfHTTPsource rawgraphs preserved locally"
+    }
+  },
+  "coverage": [
+    {
+      "workflow": "ci",
+      "functions": 2032,
+      "every_function": "100.0%",
+      "profile_sha256": "543009234ce0dd5f6f7af9b482a06422b7940438b20ef9d8bad3cc764eaa46d1",
+      "analysis_sha256": "d038a82fa28c686598093e75430492d60a55212f4b86bd9d242b9fbc52ceb57c"
+    },
+    {
+      "workflow": "release",
+      "functions": 2032,
+      "every_function": "100.0%",
+      "profile_sha256": "0e4bca61f40febfa94a0448c94eb838f169233dcda3fc9740e6e1d24f9b52aa2",
+      "analysis_sha256": "d038a82fa28c686598093e75430492d60a55212f4b86bd9d242b9fbc52ceb57c"
+    }
+  ],
+  "root_race": [
+    {
+      "workflow": "ci",
+      "inventory_count": 782,
+      "kinds": {
+        "Fuzz": 2,
+        "Test": 780
+      },
+      "inventory_sha256": "604e9ea825a2e985ffa3f51396470e74a845be06043983670de4d1e6c1f43c0b",
+      "partitions": [
+        {
+          "index": 0,
+          "selected": 391,
+          "returncode": 0,
+          "manifest_sha256": "c34697f4ee555c9cafa2ba54bc25caa28f7bf52f236f56ea2f4de4b00cb25a97"
+        },
+        {
+          "index": 1,
+          "selected": 391,
+          "returncode": 0,
+          "manifest_sha256": "459ea9a7f510166d2b51c453496ab27c799ffe62979ca4d19a7d1efbf2cced18"
+        }
+      ]
+    },
+    {
+      "workflow": "release",
+      "inventory_count": 782,
+      "kinds": {
+        "Fuzz": 2,
+        "Test": 780
+      },
+      "inventory_sha256": "604e9ea825a2e985ffa3f51396470e74a845be06043983670de4d1e6c1f43c0b",
+      "partitions": [
+        {
+          "index": 0,
+          "selected": 391,
+          "returncode": 0,
+          "manifest_sha256": "c34697f4ee555c9cafa2ba54bc25caa28f7bf52f236f56ea2f4de4b00cb25a97"
+        },
+        {
+          "index": 1,
+          "selected": 391,
+          "returncode": 0,
+          "manifest_sha256": "459ea9a7f510166d2b51c453496ab27c799ffe62979ca4d19a7d1efbf2cced18"
+        }
+      ]
+    }
+  ],
+  "release_set": {
+    "commit": "51918c065f311a3b293668e042f516bba74d7354",
+    "version": "1.0.0",
+    "identity": "53b7a10b80ee35b2f83dc36935cf96795ca0298df89be8bea7a111897009ce08",
+    "files": 22,
+    "bytes": 121884242
+  },
+  "chrome": {
+    "cold_comparisons": [
+      {
+        "platform": "macos",
+        "arch": "arm64",
+        "chrome": "156.0.8078.80",
+        "comparison_measurement": {
+          "browser": "Google Chrome 156.0.8078.80",
+          "platform": "macOS 15.8.2, arm 64",
+          "mode": "with a window",
+          "scenario": [
+            "TLS: first contact",
+            "HTTP/1.1: GET, a page opened from the address bar",
+            "HTTP/2: GET, a page opened from the address bar, the first request of its connection"
+          ]
+        }
+      },
+      {
+        "platform": "linux",
+        "arch": "amd64",
+        "chrome": "156.0.8078.79",
+        "comparison_measurement": {
+          "browser": "Google Chrome 156.0.8078.79",
+          "platform": "Linux, x86 64",
+          "mode": "with a window",
+          "scenario": [
+            "TLS: first contact",
+            "HTTP/1.1: GET, a page opened from the address bar",
+            "HTTP/2: GET, a page opened from the address bar, the first request of its connection"
+          ]
+        }
+      },
+      {
+        "platform": "windows",
+        "arch": "amd64",
+        "chrome": "156.0.8078.80",
+        "comparison_measurement": {
+          "browser": "Google Chrome 156.0.8078.80",
+          "platform": "Windows 19.0.0, x86 64",
+          "mode": "with a window",
+          "scenario": [
+            "TLS: first contact",
+            "HTTP/1.1: GET, a page opened from the address bar",
+            "HTTP/2: GET, a page opened from the address bar, the first request of its connection"
+          ]
+        }
+      }
+    ],
+    "actual_execution": {
+      "source": "51918c065f311a3b293668e042f516bba74d7354",
+      "platforms": [
+        {
+          "scenarios": 228,
+          "protocols": [
+            "h2",
+            "h1"
+          ],
+          "request_sequences": 456,
+          "target_requests": 1044,
+          "decodings": 174,
+          "limits": "Progress summaries count completed retained observations; existing internal startup/decoding replay rules are unchanged.",
+          "platform": "linux",
+          "job_log": "7_pinned (linux, amd64, ubuntu-24.04, pinned-linux-amd64.json).txt",
+          "job_log_sha256": "3f62025de26b3a379a1f5ca7ee99a8457f46fa606a23ec85e58e5a7f62715994"
+        },
+        {
+          "scenarios": 228,
+          "protocols": [
+            "h2",
+            "h1"
+          ],
+          "request_sequences": 456,
+          "target_requests": 1044,
+          "decodings": 174,
+          "limits": "Progress summaries count completed retained observations; existing internal startup/decoding replay rules are unchanged.",
+          "platform": "macos",
+          "job_log": "8_pinned (macos, arm64, macos-15, pinned-macos-arm64.json).txt",
+          "job_log_sha256": "17269f177adf6465827eb86a7f0bfd9ee2d12590a5c75a397d91b3a6deee64a4"
+        },
+        {
+          "scenarios": 228,
+          "protocols": [
+            "h2",
+            "h1"
+          ],
+          "request_sequences": 456,
+          "target_requests": 1040,
+          "decodings": 174,
+          "limits": "Progress summaries count completed retained observations; existing internal startup/decoding replay rules are unchanged.",
+          "platform": "windows",
+          "job_log": "5_pinned (windows, amd64, windows-2025, pinned-windows-amd64.json).txt",
+          "job_log_sha256": "7a287a0164fbf76d7beaa9cf4d1708184edf36a398c7ed6e3551cdf7be78f808"
+        }
+      ],
+      "scope": "Actual Chrome executions versus exact platform oracle; separate from product execution and auth capability."
+    },
+    "generated_network_hint_fields": {
+      "kind": "exact retained-wire numeric projection only",
+      "platforms": [
+        {
+          "platform": "linux",
+          "chrome": "156.0.8078.79",
+          "raw_samples": 10,
+          "raw_fields": 30,
+          "negative_controls": 7,
+          "result_sha256": "724d6dec12617b52321d048aa135fcb474b7fd59fb1656cf96ac3c0e7e6f88d3"
+        },
+        {
+          "platform": "macos",
+          "chrome": "156.0.8078.80",
+          "raw_samples": 10,
+          "raw_fields": 30,
+          "negative_controls": 7,
+          "result_sha256": "72c3246658c29834b94646dd9d5adf8ee4d41ce33e60ed7779208bbe78f0a38a"
+        },
+        {
+          "platform": "windows",
+          "chrome": "156.0.8078.80",
+          "raw_samples": 10,
+          "raw_fields": 30,
+          "negative_controls": 7,
+          "result_sha256": "f8cbb89fa50da5bacd9077eea90e427746c510a5a981ea49f3e1568db8fa2ff7"
+        }
+      ],
+      "fields": 90,
+      "normalization": "physical-network equality remains normalized; originals retained; syntax/range/quantization/vocabulary checked",
+      "limits": "No RNG quality, distribution, environment equivalence or whole browser verdict."
+    }
+  },
+  "production_fhttp": "v0.6.10-0.20261101183935-f88cd25a32bc",
+  "commits": [
+    {
+      "commit": "32d80f2955a367a51ad142ef8fc33e9082c63b42",
+      "title": "Align release Go gates with accepted CI",
+      "files": [
+        ".github/workflows/release.yml",
+        "CHANGELOG.md",
+        "README.md",
+        "RELEASING.md"
+      ]
+    },
+    {
+      "commit": "2d28cbddd4adf9ed5c0c5fde66e07333c9a2a8f0",
+      "title": "Prepare unreleased 1.0.0 notes",
+      "files": [
+        "CHANGELOG.md",
+        "README.md",
+        "RELEASING.md",
+        "docs/releases/1.0.0-development-history.md",
+        "docs/releases/1.0.0-readiness.ru.md"
+      ]
+    },
+    {
+      "commit": "a84f86c4cfb8c8d1718a8e29426539ab02d8eb29",
+      "title": "Require a ready peer in Python write-timeout test",
+      "files": [
+        "CHANGELOG.md",
+        "python/tests/test_client.py"
+      ],
+      "runtime_changed": false
+    },
+    {
+      "commit": "cc89bd7a654e0bb031144cd36d09ec75fbe44508",
+      "title": "Partition complete root race inventory in CI",
+      "files": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        "CHANGELOG.md",
+        "Makefile",
+        "README.md",
+        "RELEASING.md",
+        "scripts/go_root_shard.py",
+        "scripts/test_go_root_shard.py"
+      ],
+      "runtime_changed": false,
+      "reason": "two independent aggregate20m root timeouts; unchanged per-binary20m; complete compiler inventory and independent verifier"
+    },
+    {
+      "commit": "db578812944ee6e6101c66ea526692e9f7a46e3c",
+      "title": "Separate public docs from research history",
+      "runtime_changed": false,
+      "history_moved": 146,
+      "strict_docs_gates": true
+    },
+    {
+      "commit": "b26bb10f11621d18f9dddb8dbc5af7e36cb461fb",
+      "title": "Render Python reference defaults from source",
+      "runtime_changed": false,
+      "files": [
+        "CHANGELOG.md",
+        "Makefile",
+        "README.md",
+        "docs/reference/python-api.md",
+        "research/releases/1.0.0-readiness.ru.md",
+        "scripts/generate-docs.py",
+        "scripts/test_generate_docs.py"
+      ]
+    },
+    {
+      "commit": "f197ad468bc6feedf624522f832892617572b1e5",
+      "title": "Recognize generated hints in strict release gate",
+      "runtime_changed": false,
+      "profile_data_changed": false,
+      "harness_comparison_unchanged": true,
+      "strict_windows_cases_retained": true
+    },
+    {
+      "commit": "13add1a9e8ae3121ee15442b9e776941bf926c61",
+      "title": "Refresh measured Chrome 156 build hints",
+      "runtime_changed": false,
+      "json_only_production_change": true,
+      "history_hashes_unchanged": true
+    },
+    {
+      "commit": "181bbd87bb1fdd88ecea9c61d3d39ba6cb96fe90",
+      "title": "Calibrate platform auth observations explicitly",
+      "runtime_changed": false
+    },
+    {
+      "commit": "044c48f30977602624430e9bc2d7c45f16fcca0a",
+      "title": "Route oracle evidence through capture workflow",
+      "runtime_changed": false
+    },
+    {
+      "commit": "98d669ef3ef977db33d8ec982627a40db64c82ee",
+      "title": "Pin measured Windows release auth reference",
+      "runtime_changed": false,
+      "all_request_scenarios": 228,
+      "decoding_cases": 174,
+      "unchanged_common_scenarios": 226,
+      "new_native_cohorts": 2,
+      "harness_compare_unchanged": true
+    },
+    {
+      "commit": "9ed604caa1f0aed666709db9fd4948f71a729ee2",
+      "title": "Keep queued PING after a fast response",
+      "runtime_change": "published fhttp f88cd25; root adds regression/pin/docs only",
+      "public_fhttp": "v0.6.10-0.20261101183935-f88cd25a32bc",
+      "original_ping_test_unchanged": true
+    },
+    {
+      "commit": "c285dba4d4ae372c603d607d9e21a180297d1ecf",
+      "title": "Read the complete proxy body-limit refusal",
+      "runtime_changed": false
+    },
+    {
+      "commit": "51918c065f311a3b293668e042f516bba74d7354",
+      "title": "Retain original native coverage profiles",
+      "runtime_changed": false
+    }
+  ],
+  "fork_commits": [
+    {
+      "repo": "fhttp",
+      "commit": "f88cd25a32bc4b11a74c354b5f01d42d1d66e94a",
+      "title": "Prepare idle PING before writing headers",
+      "pushed": true
+    }
+  ],
+  "publication_audit": {
+    "utc": "2026-11-01T20:30:35.546385+00:00",
+    "latest_published_stable": "v0.2.2",
+    "v1_0_0_release_or_draft": false,
+    "v1_0_0_remote_tag": false,
+    "drafts": [],
+    "compiled_identity": {
+      "version": "1.0.0",
+      "latest_released_version": "0.2.2",
+      "release_status": "unreleased",
+      "pending_engine_change": true
+    },
+    "source": "51918c065f311a3b293668e042f516bba74d7354",
+    "publication_jobs_skipped": [
+      "finish",
+      "homebrew",
+      "image",
+      "publish-npm",
+      "publish-pypi"
+    ]
+  },
+  "evidence_capsules": [
+    {
+      "capsule": "PREPARATION",
+      "manifest_sha256": "268b606f98e2e091c3b787c056bd7ca4c021b1ec63bea67f6165d6552ae45836"
+    },
+    {
+      "capsule": "STRICT-BEFORE",
+      "manifest_sha256": "252c96f909a893a8b3e6cd2ac7bee0842e16cd516350bf61554bfd3805dcd667"
+    },
+    {
+      "capsule": "WINDOWS-ORACLE",
+      "manifest_sha256": "431ed34827211bfbc0ea957848847ed4483650332899757fb5af47ee332d763c"
+    },
+    {
+      "capsule": "PING-LOCAL",
+      "manifest_sha256": "8acec19171fe5387ad9e2f22790716612177468d6bc0585d40646f9584c24ff3"
+    },
+    {
+      "capsule": "PROXY-LIMIT",
+      "manifest_sha256": "f28ab1dea32a8f5a94e113f1246e2f43aeb64dcf183f20a5c614136f43b107b2"
+    }
+  ],
+  "private_final_evidence": "captures/tls-forge-release-1.0.0-20261101/R26/FINAL/",
+  "checks_not_weakened": {
+    "race_binary_timeout": "20m",
+    "normal_binary_timeout": "10m",
+    "go_job_timeout": "40m",
+    "browser_scenario_timeout": "45m",
+    "browser_job_timeout": "75m",
+    "coverage": "100%everyfunction",
+    "root_discovery": "actualGo-racecompilerinventory; all tests/examples/fuzzseeds",
+    "request_scenarios_per_os": 228,
+    "decodings_per_os": 174,
+    "harness_compare_unchanged_from": "b26bb10f",
+    "new_failure_allowances": 0,
+    "new_invocation_exclusions": 0
+  },
+  "original_guard_identity": {
+    "source": "51918c065f311a3b293668e042f516bba74d7354",
+    "tree": "84aad5808e7583985c6278a98b1807dfff1d7ac3",
+    "original_guard_bytes": [
+      {
+        "file": "prefaceping_test.go",
+        "unchanged_from": "6867bd1be1fcd10539983705307d00cbb940c133",
+        "sha256": "1f991efc73c024646993719e54eb8d3005c8318f5821562fc4d6abcab2dc0bbb"
+      },
+      {
+        "file": "internal/harness/compare.go",
+        "unchanged_from": "b26bb10f11621d18f9dddb8dbc5af7e36cb461fb",
+        "sha256": "241d4cfc9e4353fb81fc2aa1a75f5413960c8d982b76429732a1fc8b886c6607"
+      },
+      {
+        "file": "engine/version.json",
+        "unchanged_from": "6867bd1be1fcd10539983705307d00cbb940c133",
+        "sha256": "65a8a07de820149dcbbacdd138088648feff5cc44ba088a2d47748c00c106efc"
+      }
+    ],
+    "new_failure_allowances": 0,
+    "new_invocation_exclusions": 0
+  },
+  "limitations": [
+    "NTLM/Negotiate product support is not implemented; owner explicitly chose to finish1.0.0 without this new capability. Windows calibration is browser-versus-fixture Type1 only.",
+    "Finite named Chrome156 builds/platforms/scenarios; no universal browser indistinguishability, fullRNG/distribution, hostTCP or historical-profile equivalence claim.",
+    "Environment-dependent NQE value equality retains the declared normalization; raw90fields and independent numeric controls are retained.",
+    "Existing fork unique skips pergraph retained: uTLS1/fhttp36/QUIC3/tls-client6; no new failure allowances/invocation exclusions.",
+    "OriginalC5native missing coverage block was not retained by the old workflow; a matching test-completion defect was reproduced, without claiming exclusive native cause.",
+    "Original cold-socket Chrome PING closure and earlier unresolved timing observations remain historical; six PING witnesses use verified warmed reuse onmacOS.",
+    "Owner-selected Chrome ACK/TLSclose_notify RFC deviations remain documented; optional close_notify profiles are unchanged.",
+    "Publication/signing/registry delivery jobs intentionally skipped. Any later commit/rebuiltset needs its own exact source/set binding."
+  ],
+  "report_commit_boundary": "Readiness report is a later documentation-only commit; it does not rename/rebind the accepted519set or include unrelated landing changes in that set."
+}

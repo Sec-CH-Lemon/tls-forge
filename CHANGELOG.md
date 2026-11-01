@@ -66,6 +66,10 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 
 ### Added and changed
 
+- Record the complete 1.0.0 release dry-run: 30 successful CI jobs, 19 successful
+  release jobs and 5 expected publication skips. All 3 native Chrome 156 gates and
+  all 8 fork graphs passed; exact source/set and limitations are in the
+  [readiness receipt](research/releases/1.0.0-readiness.json). No release/tag published.
 - Preserve original Go coverage profiles after success or failure as
   `go-coverage`/`release-go-coverage` artifacts for7days; coverage stays100%.
 - Require the complete413response in the proxy body-limit test before
