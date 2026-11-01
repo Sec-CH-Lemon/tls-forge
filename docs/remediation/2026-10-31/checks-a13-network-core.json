@@ -1,0 +1,47 @@
+{
+  "scope": "bounded JSON-policy state component; actual root Client.Do/profile/SDK integration not activated",
+  "engine": "unreleased1.0.0 unchanged",
+  "covered_statements": 735,
+  "uncovered_statements": 0,
+  "race": "PASS",
+  "lint_issues": 0,
+  "cpp_oracles": {
+    "weighted": 128,
+    "hash": 188,
+    "replayed": true,
+    "original_primitive_sources_unchanged": true
+  },
+  "fuzz": {
+    "typed_context": 4865028,
+    "state_sequences": 649515,
+    "seconds_each": 31,
+    "state_invariants": [
+      "independent eligible/degrading bounds",
+      "window eligibility",
+      "socket/metric bounds",
+      "sorted actual timestamps",
+      "valid generated hint encodings"
+    ]
+  },
+  "before_after": [
+    "mixed active/degrading capacity before disabled tracking at2+1; source sets are independently bounded",
+    "delayed HTTP observation before substituted dispatch time; after retains original headers-end and activity time",
+    "impossible-future clock fixture corrected; original quantization/ECT/frozen-generator assertions retained"
+  ],
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/NQE-CORE-R20",
+    "files": 39,
+    "bytes": 18862184,
+    "manifest_sha256": "19fa07d1d255da495b8ad55cf8dfb34ef52d1b215fd34896a062d120a8a5bd9b",
+    "verified": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  },
+  "limitations": [
+    "No root production activation in this component",
+    "System metadata/transport observers, profile JSON migration and SDK/capability integration remain a private candidate",
+    "Complete browser/native/historical F03 acceptance remains open",
+    "Finite fuzz/source/unit acceptance is not universal browser equivalence"
+  ]
+}

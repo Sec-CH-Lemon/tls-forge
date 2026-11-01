@@ -3202,3 +3202,8 @@ oracles and provenance live in `networkquality/testdata`; this component alone
 does not activate network-hint generation.
 
 The [A13 response-ownership follow-up](docs/remediation/2026-10-31/A13-response-lifecycle.ru.md) records automatic-H2 before/after evidence and both full source-pinned fhttp graphs. Root publication and full F03 acceptance remain pending.
+
+The [A13 network estimator state component](docs/remediation/2026-10-31/A13-network-core.ru.md)
+adds explicit JSON policies, bounded observations/windows/cache, typed network
+metadata and a browser-instance salt. Its race/100%/lint/fuzz evidence is component
+acceptance; root profile/SDK activation and complete browser acceptance remain pending.

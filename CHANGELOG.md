@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Add generic JSON-policy network estimator state, strict metadata, independent
+  observation bounds and actual header timestamps. Preserve before/after and
+  race/100%/lint/fuzz evidence; root production activation remains pending.
+
 - Record fhttp response-ownership hooks and automatic-H2 regression acceptance;
   both exact full graphs pass1905 runs without new allowances. Root dependency
   publication and complete A13 acceptance remain pending.
