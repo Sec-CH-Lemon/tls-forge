@@ -40,6 +40,10 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 
 ### Added and changed
 
+- Refresh only Chrome156 full-version/full-version-list hints from measured
+  Google Stable builds:156.0.8078.79 on Linux and156.0.8078.80 on macOS/Windows.
+  Keep close_notify variants aligned. Preserve exact prior bytes and append
+  an explicit derivation; original capture and A13 hashes stay unchanged.
 - Render Python API defaults from their source expressions, preserving host
   dependence such as `sys.platform` without freezing the documentation builder's
   OS. Require identical actual-SDK reference output for three platform contexts

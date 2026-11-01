@@ -1113,7 +1113,7 @@
     },
     {
       "name": "sec-ch-ua-full-version",
-      "value": "\"156.0.8078.73\""
+      "value": "\"156.0.8078.79\""
     },
     {
       "name": "sec-ch-ua-arch",
@@ -1137,7 +1137,7 @@
     },
     {
       "name": "sec-ch-ua-full-version-list",
-      "value": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.73\", \"Google Chrome\";v=\"156.0.8078.73\""
+      "value": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.79\", \"Google Chrome\";v=\"156.0.8078.79\""
     },
     {
       "name": "sec-ch-ua-form-factors",
@@ -1626,5 +1626,5 @@
       "unknown_ect": "unknown"
     }
   },
-  "notes": "captured 2026-10-29T21:24:19Z from Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_155_linux (unmeasured policies inherited)\nA12 DNS query choices are explicit: inherited product RD=true, EDNS4096, per-server2000ms; these transferred values do not establish historical-browser DNS parity.\nA12 persona selection: virtual8GiB desktop,1280x720 CSS viewport,light theme,no reduced-motion/transparency preference;DPR2macOS/DPR1Linux-Windows. These are explicit configuration values, not measurements of every machine or a headless capture replay. Original capture bytes remain in pre-change archives."
+  "notes": "captured 2026-10-29T21:24:19Z from Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_155_linux (unmeasured policies inherited)\nA12 DNS query choices are explicit: inherited product RD=true, EDNS4096, per-server2000ms; these transferred values do not establish historical-browser DNS parity.\nA12 persona selection: virtual8GiB desktop,1280x720 CSS viewport,light theme,no reduced-motion/transparency preference;DPR2macOS/DPR1Linux-Windows. These are explicit configuration values, not measurements of every machine or a headless capture replay. Original capture bytes remain in pre-change archives.\nRelease R26: full-version and full-version-list only refreshed from Google Chrome Stable 156.0.8078.79 on linux in release dry-run41322185752/source b26bb10f. Each field was observed10times across8 completed fresh-profile headless scenario runs (4scenarios xH1/H2); the separate headed cold TLS/H1/H2 comparison matched. Original captured ClientHello and remaining policies unchanged; prior JSON bytes preserved in the R26 evidence archive."
 }

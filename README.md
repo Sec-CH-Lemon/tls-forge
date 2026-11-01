@@ -3254,7 +3254,11 @@ The strict browser gate obtains generated network-hint availability from the
 selected JSON estimator, validates wire syntax, bounds, quantization and ECT
 labels, and keeps its original scenario/header comparisons. Its
 `generated_network_hints` JSON result retains original per-request values and
-the normalization policy. Windows NTLM and
+the normalization policy. Chrome156 build hints now name the measured
+Google Stable156.0.8078.79 on Linux and156.0.8078.80 on macOS/Windows. Exact
+previous profile bytes and field-scoped witnesses are in
+[the hint-build derivation inventory](profile/provenance/release-hint-builds.json);
+all earlier capture/policy hashes remain unchanged. Windows NTLM and
 Negotiate remain unimplemented; their strict release scenarios are retained
 and block acceptance until that limitation is resolved.
 

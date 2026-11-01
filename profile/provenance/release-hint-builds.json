@@ -1,0 +1,264 @@
+{
+  "schema": 1,
+  "engine_major": 1,
+  "derivations": [
+    {
+      "path": "profile/data/chrome_156/linux.json",
+      "before_file": "provenance/release-hint-builds/92b41c09c55f457672a96771341154a3732e92faef3074635ac1ae9b6ec84d3e.json.txt",
+      "before_sha256": "92b41c09c55f457672a96771341154a3732e92faef3074635ac1ae9b6ec84d3e",
+      "after_sha256": "f0d7aaf8fcf672ebdc637add1534feda4be55869ddd9d1daf178ee27c7853a09",
+      "changes": [
+        {
+          "name": "sec-ch-ua-full-version",
+          "before": "\"156.0.8078.73\"",
+          "after": "\"156.0.8078.79\""
+        },
+        {
+          "name": "sec-ch-ua-full-version-list",
+          "before": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.73\", \"Google Chrome\";v=\"156.0.8078.73\"",
+          "after": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.79\", \"Google Chrome\";v=\"156.0.8078.79\""
+        }
+      ],
+      "witness": {
+        "root_commit": "b26bb10f11621d18f9dddb8dbc5af7e36cb461fb",
+        "release_set": "130fbfba1bea291a2a5237887d06fee693e78f3583be4dd2c3829b253025a6a2",
+        "run_id": 41322185752,
+        "artifact": "pinned-linux-amd64",
+        "result_sha256": "bc1bc29fd0503a91c2a79106ff71b3538a719da7734da865bec14a1e4a90f543",
+        "browser_build": "156.0.8078.79",
+        "platform": "linux",
+        "arch": "amd64",
+        "samples_each": 10,
+        "completed_fresh_profile_scenario_runs": 8,
+        "scenario_ids": [
+          "ch-critical-all",
+          "ch-fetch-all",
+          "ch-nav-all",
+          "ch-nav-all-redirect"
+        ],
+        "cold_differences": {
+          "TLS": 0,
+          "HTTP1": 0,
+          "HTTP2": 0
+        },
+        "classification": "scoped browser-build invariant; no normalization of full-version equality",
+        "scope": "two full-version hint values only; all other fields and captured ClientHello bytes unchanged"
+      }
+    },
+    {
+      "path": "example/profiles/chrome_156_linux_close_notify.json",
+      "before_file": "provenance/release-hint-builds/334d328744aa303c4b69594176f6ec9917d9796247438f212d6a516eebea4000.json.txt",
+      "before_sha256": "334d328744aa303c4b69594176f6ec9917d9796247438f212d6a516eebea4000",
+      "after_sha256": "31e4b3523f00b756aff95124d0c260ab0e4febee83ba65455f98edd651a55c89",
+      "changes": [
+        {
+          "name": "sec-ch-ua-full-version",
+          "before": "\"156.0.8078.73\"",
+          "after": "\"156.0.8078.79\""
+        },
+        {
+          "name": "sec-ch-ua-full-version-list",
+          "before": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.73\", \"Google Chrome\";v=\"156.0.8078.73\"",
+          "after": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.79\", \"Google Chrome\";v=\"156.0.8078.79\""
+        }
+      ],
+      "witness": {
+        "root_commit": "b26bb10f11621d18f9dddb8dbc5af7e36cb461fb",
+        "release_set": "130fbfba1bea291a2a5237887d06fee693e78f3583be4dd2c3829b253025a6a2",
+        "run_id": 41322185752,
+        "artifact": "pinned-linux-amd64",
+        "result_sha256": "bc1bc29fd0503a91c2a79106ff71b3538a719da7734da865bec14a1e4a90f543",
+        "browser_build": "156.0.8078.79",
+        "platform": "linux",
+        "arch": "amd64",
+        "samples_each": 10,
+        "completed_fresh_profile_scenario_runs": 8,
+        "scenario_ids": [
+          "ch-critical-all",
+          "ch-fetch-all",
+          "ch-nav-all",
+          "ch-nav-all-redirect"
+        ],
+        "cold_differences": {
+          "TLS": 0,
+          "HTTP1": 0,
+          "HTTP2": 0
+        },
+        "classification": "scoped browser-build invariant; no normalization of full-version equality",
+        "scope": "two full-version hint values only; all other fields and captured ClientHello bytes unchanged"
+      }
+    },
+    {
+      "path": "profile/data/chrome_156/macos.json",
+      "before_file": "provenance/release-hint-builds/b9f1cda2d88890efbecf6486e17edb1e5c9685eb90d73e948c918746e1e9deb0.json.txt",
+      "before_sha256": "b9f1cda2d88890efbecf6486e17edb1e5c9685eb90d73e948c918746e1e9deb0",
+      "after_sha256": "6f32e9283036e3cf0690e6c188af2560abab548137dbf17beb4b9ad8cc7d08b8",
+      "changes": [
+        {
+          "name": "sec-ch-ua-full-version",
+          "before": "\"156.0.8078.74\"",
+          "after": "\"156.0.8078.80\""
+        },
+        {
+          "name": "sec-ch-ua-full-version-list",
+          "before": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.74\", \"Google Chrome\";v=\"156.0.8078.74\"",
+          "after": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.80\", \"Google Chrome\";v=\"156.0.8078.80\""
+        }
+      ],
+      "witness": {
+        "root_commit": "b26bb10f11621d18f9dddb8dbc5af7e36cb461fb",
+        "release_set": "130fbfba1bea291a2a5237887d06fee693e78f3583be4dd2c3829b253025a6a2",
+        "run_id": 41322185752,
+        "artifact": "pinned-macos-arm64",
+        "result_sha256": "9005638db88f95b5025a4cd3cfbf43b59d10fdaae7fd3e55c18770aa60303b0d",
+        "browser_build": "156.0.8078.80",
+        "platform": "macos",
+        "arch": "arm64",
+        "samples_each": 10,
+        "completed_fresh_profile_scenario_runs": 8,
+        "scenario_ids": [
+          "ch-critical-all",
+          "ch-fetch-all",
+          "ch-nav-all",
+          "ch-nav-all-redirect"
+        ],
+        "cold_differences": {
+          "TLS": 0,
+          "HTTP1": 0,
+          "HTTP2": 0
+        },
+        "classification": "scoped browser-build invariant; no normalization of full-version equality",
+        "scope": "two full-version hint values only; all other fields and captured ClientHello bytes unchanged"
+      }
+    },
+    {
+      "path": "example/profiles/chrome_156_macos_close_notify.json",
+      "before_file": "provenance/release-hint-builds/4c0266c4f77aa74b57379aba44c578c0742e95724e0f970fd6ee8c4d7e780114.json.txt",
+      "before_sha256": "4c0266c4f77aa74b57379aba44c578c0742e95724e0f970fd6ee8c4d7e780114",
+      "after_sha256": "bca2110ac3b337adb2804cf318bca1f8834beaf272ea5e40913a83526e81d42d",
+      "changes": [
+        {
+          "name": "sec-ch-ua-full-version",
+          "before": "\"156.0.8078.74\"",
+          "after": "\"156.0.8078.80\""
+        },
+        {
+          "name": "sec-ch-ua-full-version-list",
+          "before": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.74\", \"Google Chrome\";v=\"156.0.8078.74\"",
+          "after": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.80\", \"Google Chrome\";v=\"156.0.8078.80\""
+        }
+      ],
+      "witness": {
+        "root_commit": "b26bb10f11621d18f9dddb8dbc5af7e36cb461fb",
+        "release_set": "130fbfba1bea291a2a5237887d06fee693e78f3583be4dd2c3829b253025a6a2",
+        "run_id": 41322185752,
+        "artifact": "pinned-macos-arm64",
+        "result_sha256": "9005638db88f95b5025a4cd3cfbf43b59d10fdaae7fd3e55c18770aa60303b0d",
+        "browser_build": "156.0.8078.80",
+        "platform": "macos",
+        "arch": "arm64",
+        "samples_each": 10,
+        "completed_fresh_profile_scenario_runs": 8,
+        "scenario_ids": [
+          "ch-critical-all",
+          "ch-fetch-all",
+          "ch-nav-all",
+          "ch-nav-all-redirect"
+        ],
+        "cold_differences": {
+          "TLS": 0,
+          "HTTP1": 0,
+          "HTTP2": 0
+        },
+        "classification": "scoped browser-build invariant; no normalization of full-version equality",
+        "scope": "two full-version hint values only; all other fields and captured ClientHello bytes unchanged"
+      }
+    },
+    {
+      "path": "profile/data/chrome_156/windows.json",
+      "before_file": "provenance/release-hint-builds/439e7b26b31d03bd6bf419c8eb941521f5099d12bb99b3e3883d670379799874.json.txt",
+      "before_sha256": "439e7b26b31d03bd6bf419c8eb941521f5099d12bb99b3e3883d670379799874",
+      "after_sha256": "476e353d628018c09a0cda443c3792e46117fd4a3048034bf7055e2eb9975f77",
+      "changes": [
+        {
+          "name": "sec-ch-ua-full-version",
+          "before": "\"156.0.8078.74\"",
+          "after": "\"156.0.8078.80\""
+        },
+        {
+          "name": "sec-ch-ua-full-version-list",
+          "before": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.74\", \"Google Chrome\";v=\"156.0.8078.74\"",
+          "after": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.80\", \"Google Chrome\";v=\"156.0.8078.80\""
+        }
+      ],
+      "witness": {
+        "root_commit": "b26bb10f11621d18f9dddb8dbc5af7e36cb461fb",
+        "release_set": "130fbfba1bea291a2a5237887d06fee693e78f3583be4dd2c3829b253025a6a2",
+        "run_id": 41322185752,
+        "artifact": "pinned-windows-amd64",
+        "result_sha256": "651dd340ba9e04dddfe11c186d94e8e5346f6250dfa11ff5257d8a2e27706ef0",
+        "browser_build": "156.0.8078.80",
+        "platform": "windows",
+        "arch": "amd64",
+        "samples_each": 10,
+        "completed_fresh_profile_scenario_runs": 8,
+        "scenario_ids": [
+          "ch-critical-all",
+          "ch-fetch-all",
+          "ch-nav-all",
+          "ch-nav-all-redirect"
+        ],
+        "cold_differences": {
+          "TLS": 0,
+          "HTTP1": 0,
+          "HTTP2": 0
+        },
+        "classification": "scoped browser-build invariant; no normalization of full-version equality",
+        "scope": "two full-version hint values only; all other fields and captured ClientHello bytes unchanged"
+      }
+    },
+    {
+      "path": "example/profiles/chrome_156_windows_close_notify.json",
+      "before_file": "provenance/release-hint-builds/8514c31c7aeb594c4a03b0b06000115688bd5486931dcab00f12f8edac35dbbd.json.txt",
+      "before_sha256": "8514c31c7aeb594c4a03b0b06000115688bd5486931dcab00f12f8edac35dbbd",
+      "after_sha256": "26dcbd819ee8e7c2fdc0fd1909153e5bebc8186caa689776ba7a3ce2f2b7c229",
+      "changes": [
+        {
+          "name": "sec-ch-ua-full-version",
+          "before": "\"156.0.8078.74\"",
+          "after": "\"156.0.8078.80\""
+        },
+        {
+          "name": "sec-ch-ua-full-version-list",
+          "before": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.74\", \"Google Chrome\";v=\"156.0.8078.74\"",
+          "after": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.80\", \"Google Chrome\";v=\"156.0.8078.80\""
+        }
+      ],
+      "witness": {
+        "root_commit": "b26bb10f11621d18f9dddb8dbc5af7e36cb461fb",
+        "release_set": "130fbfba1bea291a2a5237887d06fee693e78f3583be4dd2c3829b253025a6a2",
+        "run_id": 41322185752,
+        "artifact": "pinned-windows-amd64",
+        "result_sha256": "651dd340ba9e04dddfe11c186d94e8e5346f6250dfa11ff5257d8a2e27706ef0",
+        "browser_build": "156.0.8078.80",
+        "platform": "windows",
+        "arch": "amd64",
+        "samples_each": 10,
+        "completed_fresh_profile_scenario_runs": 8,
+        "scenario_ids": [
+          "ch-critical-all",
+          "ch-fetch-all",
+          "ch-nav-all",
+          "ch-nav-all-redirect"
+        ],
+        "cold_differences": {
+          "TLS": 0,
+          "HTTP1": 0,
+          "HTTP2": 0
+        },
+        "classification": "scoped browser-build invariant; no normalization of full-version equality",
+        "scope": "two full-version hint values only; all other fields and captured ClientHello bytes unchanged"
+      }
+    }
+  ]
+}

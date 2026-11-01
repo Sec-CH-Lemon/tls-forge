@@ -1115,7 +1115,7 @@
     },
     {
       "name": "sec-ch-ua-full-version",
-      "value": "\"156.0.8078.74\""
+      "value": "\"156.0.8078.80\""
     },
     {
       "name": "sec-ch-ua-arch",
@@ -1139,7 +1139,7 @@
     },
     {
       "name": "sec-ch-ua-full-version-list",
-      "value": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.74\", \"Google Chrome\";v=\"156.0.8078.74\""
+      "value": "\"Not:A-Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"156.0.8078.80\", \"Google Chrome\";v=\"156.0.8078.80\""
     },
     {
       "name": "sec-ch-ua-form-factors",
@@ -1628,5 +1628,5 @@
       "unknown_ect": "unknown"
     }
   },
-  "notes": "captured 2026-10-29T21:27:56Z from Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_155_macos (unmeasured policies inherited)\nA12 DNS query choices are explicit: inherited product RD=true, EDNS4096, per-server2000ms; these transferred values do not establish historical-browser DNS parity.\nA12 persona selection: virtual8GiB desktop,1280x720 CSS viewport,light theme,no reduced-motion/transparency preference;DPR2macOS/DPR1Linux-Windows. These are explicit configuration values, not measurements of every machine or a headless capture replay. Original capture bytes remain in pre-change archives.\nA12 owner-selected explicit variant: tls.close_notify=true, derived fromprofile/data/chrome_156/macos.json SHA2568d098648c16145212ebe1239d572aed5e94f56e7df1cbfa8b12de99777ec9289. Closing differs from measured Chrome. This single policy does not establish full RFC compliance. Other source/capture provenance remains historical."
+  "notes": "captured 2026-10-29T21:27:56Z from Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_155_macos (unmeasured policies inherited)\nA12 DNS query choices are explicit: inherited product RD=true, EDNS4096, per-server2000ms; these transferred values do not establish historical-browser DNS parity.\nA12 persona selection: virtual8GiB desktop,1280x720 CSS viewport,light theme,no reduced-motion/transparency preference;DPR2macOS/DPR1Linux-Windows. These are explicit configuration values, not measurements of every machine or a headless capture replay. Original capture bytes remain in pre-change archives.\nA12 owner-selected explicit variant: tls.close_notify=true, derived fromprofile/data/chrome_156/macos.json SHA2568d098648c16145212ebe1239d572aed5e94f56e7df1cbfa8b12de99777ec9289. Closing differs from measured Chrome. This single policy does not establish full RFC compliance. Other source/capture provenance remains historical.\nRelease R26: full-version hints refreshed to the same measured Google Chrome Stable 156.0.8078.80 as the corresponding base profile (release dry-run41322185752). TLS close_notify remains this variant's only behavioral difference; original capture and policy data preserved."
 }
