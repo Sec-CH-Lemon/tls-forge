@@ -1,0 +1,27 @@
+{
+  "scope": "test-only DNS observation barrier; full A13 open",
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/ASYNC-FIXTURES-R13",
+    "files": 28,
+    "bytes": 170840703,
+    "manifest_sha256": "b8255c5fc63834b9426807d1bfb2f40ed3774240f74438713f4b9c623eb8c919",
+    "verified": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  },
+  "baseline_r13_failure": "A2 AAAA2 HTTPS1",
+  "original_failure_cause_proven": false,
+  "unchanged_before_race_repetitions": 128,
+  "instrumented_before_race_repetitions": 128,
+  "actual_https_writes": 512,
+  "peer_queries_each_type": 512,
+  "diagnostic_io_errors": 0,
+  "after_race_repetitions": 128,
+  "killed_controls": [
+    "missing HTTPS query",
+    "duplicate HTTPS query"
+  ],
+  "production_files_changed": [],
+  "preserved": "client deadlines/requests/final counts; added per-call exact counts"
+}
