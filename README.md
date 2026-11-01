@@ -3186,3 +3186,12 @@ limits. Catalogue materialization and production network estimation continue.
 The [coordinated tls-client pin](docs/remediation/2026-10-31/A13-coordinated-pin.ru.md)
 also selects the implemented QUIC runtime in the fork's standalone graph.
 Its raw-wire regression rejects a configured source CID length that is ignored.
+
+All83 executable catalogue aliases now read complete JSON TLS/H1/H2/H3 and
+lifecycle descriptors. Fifty select an independent QUIC TLS descriptor; source
+CID/layout, ACK selection, cache capacities and ordering reach the actual wire.
+Their handshake-only scope remains explicit, and source-export equivalence does
+not establish historical browser parity. Raw profiles require explicit generation
+rules; only explicit migration fills archived capabilities. See the
+[A13 catalogue acceptance](docs/remediation/2026-10-31/A13-catalogue-runtime.ru.md)
+and [profile format](docs/profiles.md#independent-quic-tls-and-explicit-transport-choices).

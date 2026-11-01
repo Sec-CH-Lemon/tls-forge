@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -146,6 +147,48 @@ func executableTLSFixture(t *testing.T, p *Profile) *Profile {
 	if !p.BareBase() && len(p.HTTP2.PseudoHeaderOrder) == 0 && len(p.HTTP2.Settings) == 0 {
 		p.HTTP2 = mustGet(t, "chrome_155_macos").HTTP2
 	}
+	return capabilityFixture(t, p)
+}
+
+func capabilityFixture(t *testing.T, p *Profile) *Profile {
+	t.Helper()
+	if p.Behavior == nil {
+		p.Behavior = p.RuntimeBehavior().Clone()
+	}
+	// Construct the current capability part from explicit fixture JSON. Other
+	// values and deliberate mutations stay intact; this is not implicit migration.
+	template := mustGet(t, "chrome_155_macos")
+	if !p.Behavior.Flag("quic.enabled") {
+		template = mustGet(t, "firefox_148")
+	}
+	for key, value := range template.Behavior {
+		if ((!p.Behavior.Flag("quic.enabled") && strings.HasPrefix(key, "quic.")) || slices.Contains(requiredRules, key)) && !p.Behavior.Has(key) {
+			p.Behavior[key] = append(json.RawMessage(nil), value...)
+		}
+	}
+	if p.Behavior.Flag("quic.enabled") {
+		native := mustGet(t, "firefox_148").Behavior
+		if !p.Behavior.Has("quic.ack_gap_packets") {
+			p.Behavior["quic.ack_gap_policy"] = native["quic.ack_gap_policy"]
+		}
+		if !p.Behavior.Has("quic.ack_decimation_after") {
+			p.Behavior["quic.ack_decimation"] = native["quic.ack_decimation"]
+		}
+		for _, pair := range [][2]string{{"quic.stream_receive_window", "quic.max_stream_receive_window"}, {"quic.connection_receive_window", "quic.max_connection_receive_window"}} {
+			p.Behavior[pair[1]] = append(json.RawMessage(nil), p.Behavior[pair[0]]...)
+		}
+	}
+	if p.Behavior.Text("quic.tls_source") == "independent" && p.QUICTLSSpec == nil {
+		p.QUICTLSSpec = template.QUICTLSSpec.clone()
+	}
+	if len(p.ClientHello) > 0 && p.TLSSpec == nil && p.PerConnection == nil {
+		if template.PerConnection != nil {
+			copy := template.Clone()
+			p.PerConnection = copy.PerConnection
+		} else {
+			p.PerConnection = &PerConnection{ShufflesExtensions: template.ShufflesExtensions(), ECHPayloadLengths: []uint16{}}
+		}
+	}
 	return p
 }
 
@@ -224,12 +267,9 @@ func TestOtherSemanticRepresentationBoundaries(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	p, err := Get("chrome_133")
-	if err != nil {
-		t.Fatal(err)
-	}
+	p = capabilityFixture(t, &Profile{EngineMajor: Major(1), Name: "explicit-legacy", Base: "chrome_133"})
 	p.HTTP2.ConnectionFlow = 1
-	if err = p.Validate(); err == nil || !strings.Contains(err.Error(), "bare catalogue") {
+	if err := p.Validate(); err == nil || !strings.Contains(err.Error(), "bare catalogue") {
 		t.Fatal(err)
 	}
 }

@@ -135,7 +135,7 @@ It queues local SETTINGS before request HEADERS, including 0-RTT and direct
 request streams, without waiting for peer SETTINGS or an acknowledgement. The
 SETTINGS values/order and priority/GREASE contents still come from the profile.
 
-Schema 0-2 retains its historical family inference during migration. `Save` materializes `per_connection` and the complete effective policy into schema 4, without mutating the source object; an archive of schema 0-2 this engine does not run keeps the frozen data alone, without the rules only this engine requires. The two JSON templates in `utls/behavior` preserve old default behavior; explicit schema 3 data takes precedence, even for a file called `chrome`. Bare transport-catalogue presets remain legacy backend presets and are not newly measured complete profiles.
+Archived schema0-2 retains historical family inference only for offline formatting and explicit migration. `Save` preserves the declared major and missing current capabilities; it cannot invent current-major raw generation rules. Only explicit `Migrate` uses pinned migration JSON and the original source identity to create a candidate. The frozen `utls/behavior` templates are migration provenance, not new browser defaults. Current catalogue execution reads complete data descriptors, with no Go-preset fallback; their handshake-only scope is not a fresh browser measurement.
 
 Whatever its schema, an executable profile of the current engine runs only with `http.max_content_codings`, `http.content_coding_overflow`, `http.ignored_content_codings` and `cookie.prefixes`: an explicit `behavior` of schema 0-2 without them is refused before any I/O, as schema 3 and 4 are, and one with no `behavior` runs on the frozen templates, which have them. `Inspect` still reads such a file offline.
 
@@ -1397,6 +1397,35 @@ own); the hints of the `IncreaseHttp3Usage` field trials (canonical
 suffixes, known QUIC hosts); a record's DNS ALPN job beside an alternative's
 to another destination (Chrome runs both); versions of QUIC other than 1.
 
+## Explicit QUIC configuration and independent TLS (A13, engine 1)
+
+Every executable profile supplies the following choices, including older
+schemas. They reach native and adapter transports, direct/racing/DNS H3 paths,
+and each browser instance's independently owned TLS caches. The field values
+are data; protocol state transitions and fresh cryptography remain engine code.
+
+| Key | Contract |
+| --- | --- |
+| `quic.config` | `explicit`; no implicit backend configuration. |
+| `quic.tls_source` | `tcp-adapter` or `independent`; the latter requires the separate `quic_tls_spec` described in [profile format](profiles.md#independent-quic-tls-and-explicit-transport-choices). |
+| `quic.max_stream_receive_window`, `quic.max_connection_receive_window` | Explicit maximum windows,1..4294967295 bytes, each at least its initial window. |
+| `quic.keep_alive_ms` | Explicit interval,0..4294967295; zero disables keepalive. |
+| `tls.session_cache_entries`, `quic.session_cache_entries` | Separate capacities,1..65536. |
+| `quic.session_cache` | Explicit QUIC cache selection; cannot enable TCP PSK capability implicitly. |
+| `quic.parameter_order` | Complete18-slot ordered vector, including GREASE and optional parameters. Each supported slot occurs exactly once; only parameters actually selected by the connection are emitted. No captured CID or generated value is frozen by ordering. |
+| `quic.grease_parameter_length_rule` | `byte-modulo`; lengths are freshly selected within the declared bounds. |
+| `quic.grease_parameter_length_min`, `quic.grease_parameter_length_max` | Inclusive0..16 bounds with min≤max. |
+| `quic.ack_initial_packets` | Initial ACK packet count,1..65535. |
+| `quic.ack_reordering_threshold` | Reordering threshold,1..255. |
+| `quic.ack_gap_policy` | `new-gap` or `bounded-gap`; only bounded-gap declares `quic.ack_gap_packets`. |
+| `quic.ack_decimation` | `none` or `threshold`; only threshold declares its decimation parameters. |
+
+Source-derived additions to18 shipped files and3 close_notify variants are
+recorded in `profile/provenance/a13-quic-ownership.json`. Their original capture
+hashes and provenance remain immutable. A source-derived rule is not relabelled
+as a fresh Chrome measurement. The catalogue's83 complete entries likewise keep
+their export provenance and handshake-only scope.
+
 ## QUIC's handshake as Chrome's (unreleased engine 1)
 
 A Chrome profile's QUIC client goes through its handshake as Chrome 155's
@@ -1909,28 +1938,6 @@ before allocation and for decoded field sections, including trailers. Values
 above that ceiling remain advertised as selected but cannot raise the internal
 resource limit. Raw legacy transport options apply only without an explicit
 HTTP/3 settings map. No browser profile values or engine major are changed.
-
-### Explicit legacy HTTP/3 capabilities (A13, pending engine 1)
-
-The ordered `h3.settings` vector supports IDs1,6,7,8,51,16765559,
-727725890 and the declared GREASE family. IDs8 (extended CONNECT),51
-(RFC datagrams) and16765559 (draft-08 datagrams) accept only0 or1.
-Historical WebTransport ID727725890 accepts only0: its enabling state
-machine is unavailable. Unknown capabilities and duplicate IDs are rejected.
-
-Declaring draft datagrams with value1 also requires the explicit string
-`h3.datagram_setting_error_reason`, at most1024 bytes, with optional `{id}`
-and `{value}` substitutions. An empty string is a valid deliberate template.
-An invalid selected draft boolean closes with H3_SETTINGS_ERROR and this
-rendered reason; an unselected draft setting remains an opaque unknown setting.
-The engine negotiates the intersection of explicitly advertised datagram
-versions, preferring RFC when both peers support it; it does not select by
-browser identity. This does not enable WebTransport.
-
-An explicit empty SETTINGS map stays empty in both normal Alt-Svc and racing
-paths. It cannot inherit an H1 header limit. These capabilities are pinned in
-the [A13 dependency acceptance](remediation/2026-10-31/A13-published-forks.ru.md);
-full catalogue and browser acceptance remain separate.
 
 
 ### Capture policy bases (A8 candidate pipeline)

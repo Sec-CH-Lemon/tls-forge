@@ -308,7 +308,7 @@ func TestAnECHPayloadLengthIsOneABrowserCouldDraw(t *testing.T) {
 	// The payload's length field holds 65535 bytes, the AEAD's tag among them.
 	for length, ok := range map[int]bool{0: false, 1: true, 65519: true, 65520: false} {
 		document := fmt.Sprintf(`{"engine_major":1,"schema":1,"name":"x","base":"chrome_133","per_connection":{"ech_payload_lengths":[128,%d]}}`, length)
-		_, err := Load([]byte(document))
+		_, err := Inspect([]byte(document))
 		if (err == nil) != ok || (err != nil && !strings.Contains(err.Error(), fmt.Sprintf("an ECH payload of %d bytes", length))) {
 			t.Errorf("%d: %v", length, err)
 		}

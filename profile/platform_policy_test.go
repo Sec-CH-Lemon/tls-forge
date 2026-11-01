@@ -1,8 +1,6 @@
 package profile
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"os"
 	"reflect"
@@ -35,10 +33,7 @@ func TestPlatformPolicyInheritanceKeepsOSChoicesAndProvenance(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		sum := sha256.Sum256(data)
-		if meta.ProfileSHA256 != hex.EncodeToString(sum[:]) {
-			t.Fatal("provenance exact hash mismatch")
-		}
+		assertA13Derivation(t, "profile/data/chrome_155/"+platform+".json", data, meta.ProfileSHA256)
 		if len(meta.Fields) != 38 {
 			t.Fatalf("shared policy count %d", len(meta.Fields))
 		}

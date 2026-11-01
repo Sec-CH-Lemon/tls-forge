@@ -142,7 +142,7 @@ func from(p *profile.Profile) string {
 // fromCatalogue says a profile is a bare name out of the transport's catalogue:
 // read from no file, measured from no browser, borrowing its handshake.
 func fromCatalogue(p *profile.Profile) bool {
-	return p.Source() == "" && len(p.ClientHello) == 0 && p.Base != ""
+	return p.Catalogue() || p.Source() == "" && len(p.ClientHello) == 0 && p.Base != ""
 }
 
 // browserOf reads the browser, its version and the platform out of a profile,

@@ -1,0 +1,21 @@
+{
+  "source": "tls-client 7b5e8ee614f865a78700c00c9efaaab6dbe071b9;before full materialization; separately bounded sentinel correction",
+  "cause": "non-nil EmptyClientHelloSpecFactory called by profileQUICSpec",
+  "aliases": [
+    "chrome_103",
+    "chrome_104",
+    "chrome_105",
+    "chrome_106",
+    "chrome_107",
+    "chrome_108",
+    "chrome_109",
+    "chrome_110",
+    "chrome_111",
+    "chrome_112",
+    "chrome_116_PSK",
+    "chrome_116_PSK_PQ",
+    "opera_89",
+    "opera_90",
+    "opera_91"
+  ]
+}

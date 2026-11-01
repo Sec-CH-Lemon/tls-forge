@@ -165,8 +165,7 @@ func TestABrowserContextNeedsAChromiumProfileWithHeaders(t *testing.T) {
 		t.Fatalf("profile.Get: %v", err)
 	}
 	firefox.Name, firefox.UserAgent = "firefox_148", "Mozilla/5.0 (Macintosh; rv:148.0) Gecko/20100101 Firefox/148.0"
-	firefox.Behavior = behavior.Generic() // This fixture changes policy explicitly; renaming is metadata only.
-	firefox.PerConnection = nil
+	firefox = genericBrowserFixture(t, firefox)
 	firefox.Headers = []profile.Field{{Name: "user-agent", Value: firefox.UserAgent}}
 	for _, tc := range []struct {
 		option Option
@@ -817,4 +816,17 @@ func TestAnInitiatorIsThePagesURLAsChromeMadeIt(t *testing.T) {
 	if r.initiator.String() != "https://www.example.com/a/pa%20ge?q" || r.from.String() != "https://www.example.com" {
 		t.Errorf("the page is %s, of %s", r.initiator, r.from)
 	}
+}
+
+// These positive fixtures explicitly migrate the selected archived generic
+// policy to current capabilities before testing headers. Execution never fills
+// missing rules. No negative metadata fixture calls this helper.
+func genericBrowserFixture(t *testing.T, p *profile.Profile) *profile.Profile {
+	t.Helper()
+	p.Behavior = behavior.Generic()
+	out, err := p.Migrate(p.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
 }

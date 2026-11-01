@@ -178,18 +178,28 @@ func TestAProfileDrawsItsOrderWhenAskedAndOnlyThen(t *testing.T) {
 	if got := orders(t, built.GetClientHelloId(), false, 20); distinct(got) < 2 {
 		t.Errorf("by default: %d orders", distinct(got))
 	}
-	// A bare base is the transport's own, asked or not.
-	bare := &Profile{EngineMajor: Major(1), Name: "firefox_148", Base: "firefox_148"}
+	// A compatibility base resolves the same data and honors explicit order overrides.
+	bare := capabilityFixture(t, &Profile{EngineMajor: Major(1), Name: "neutral", Base: "firefox_148"})
+	baseline := withoutGREASE(orderOf(t, profiles.MappedTLSClients["firefox_148"].GetClientHelloId(), false))
 	for _, shuffle := range []bool{true, false} {
 		built, err := bare.ClientProfileShuffled(shuffle)
 		if err != nil {
-			t.Fatalf("ClientProfileShuffled(%v): %v", shuffle, err)
+			t.Fatal(err)
 		}
-		got, want := built.GetClientHelloId(), profiles.MappedTLSClients["firefox_148"].GetClientHelloId()
-		if got.Str() != want.Str() || (got.SpecFactory == nil) != (want.SpecFactory == nil) {
-			t.Errorf("a bare base asked %v was made %s", shuffle, got.Str())
+		drawn := orders(t, built.GetClientHelloId(), false, 20)
+		if shuffle {
+			if distinct(drawn) < 2 {
+				t.Fatal("requested shuffle was ignored")
+			}
+		} else {
+			for _, v := range drawn {
+				if !slices.Equal(withoutGREASE(v), baseline) {
+					t.Fatal("fixed base order changed")
+				}
+			}
 		}
 	}
+
 }
 
 func TestABareBaseIsOneWithNothingOfItsOwn(t *testing.T) {

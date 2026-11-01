@@ -1,10 +1,8 @@
 package profile
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"slices"
 
 	tls "github.com/igor-lemon/utls"
@@ -44,69 +42,10 @@ func (s *TLSSpec) clone() *TLSSpec {
 	return &out
 }
 
-// decodeTLSData rejects omitted, null, misspelled and unknown parameters rather
-// than letting encoding/json's case folding and zero defaults choose behavior.
-func decodeTLSData(data []byte, target any) error {
-	if err := validateProfileJSON(data); err != nil {
-		return err
-	}
-	if err := checkTLSShape(data, reflect.TypeOf(target).Elem()); err != nil {
-		return err
-	}
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	return decoder.Decode(target)
-}
-
-func checkTLSShape(data []byte, t reflect.Type) error {
-	if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
-		return fmt.Errorf("TLS data must not be null")
-	}
-	if t == reflect.TypeOf(json.RawMessage{}) {
-		return nil // The extension primitive checks its own parameter object.
-	}
-	if t.Kind() == reflect.Slice {
-		if t.Elem().Kind() == reflect.Uint8 && bytes.HasPrefix(bytes.TrimSpace(data), []byte(`"`)) {
-			return nil
-		} // encoding/json accepts base64 byte strings.
-		var values []json.RawMessage
-		if err := json.Unmarshal(data, &values); err != nil {
-			return err
-		}
-		for _, raw := range values {
-			if err := checkTLSShape(raw, t.Elem()); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	if t.Kind() != reflect.Struct {
-		return nil
-	}
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(data, &fields); err != nil {
-		return err
-	}
-	if fields == nil || len(fields) != t.NumField() {
-		return fmt.Errorf("requires every declared parameter exactly once")
-	}
-	for i := 0; i < t.NumField(); i++ {
-		name := t.Field(i).Tag.Get("json")
-		raw, ok := fields[name]
-		if !ok || bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
-			return fmt.Errorf("requires non-null %s", name)
-		}
-		if err := checkTLSShape(raw, t.Field(i).Type); err != nil {
-			return fmt.Errorf("%s: %w", name, err)
-		}
-	}
-	return nil
-}
-
 // UnmarshalJSON requires the complete, unambiguous declarative representation.
 func (s *TLSSpec) UnmarshalJSON(data []byte) error {
 	type plain TLSSpec
-	return decodeTLSData(data, (*plain)(s))
+	return decodeDescriptorData(data, (*plain)(s))
 }
 
 func (s *TLSSpec) validate() error {
@@ -117,10 +56,18 @@ func (s *TLSSpec) validate() error {
 func (s *TLSSpec) spec() (tls.ClientHelloSpec, error) { return s.compile(true) }
 
 func (s *TLSSpec) compile(generate bool) (tls.ClientHelloSpec, error) {
+	return s.compileContext(generate, false, nil)
+}
+
+func (s *TLSSpec) compileContext(generate, quic bool, params []byte) (tls.ClientHelloSpec, error) {
 	invalid := func(err error) (tls.ClientHelloSpec, error) { return tls.ClientHelloSpec{}, err }
-	if s.SessionID != "random" || s.GREASE != "boringssl" {
+	if !quic && (s.SessionID != "random" || s.GREASE != "boringssl") {
 		return invalid(fmt.Errorf("tls_spec requires session_id=random and grease=boringssl (implemented generation primitives)"))
 	}
+	if quic && (s.SessionID != "empty" || s.GREASE != "boringssl") {
+		return invalid(fmt.Errorf("quic_tls_spec requires session_id=empty and grease=boringssl"))
+	}
+
 	if s.ExtensionOrder != "fixed" && s.ExtensionOrder != "utls" && s.ExtensionOrder != "moving" {
 		return invalid(fmt.Errorf("tls_spec.extension_order requires fixed, utls or moving"))
 	}
@@ -153,7 +100,23 @@ func (s *TLSSpec) compile(generate bool) (tls.ClientHelloSpec, error) {
 		if e.Type == "pre_shared_key" && i != len(s.Extensions)-1 {
 			return invalid(fmt.Errorf("tls_spec.extensions[%d]: pre_shared_key must be last", i))
 		}
-		ext, err := e.build(generate)
+		var ext tls.TLSExtension
+		var err error
+		if quic && e.Type == "quic_transport_parameters" {
+			var source struct {
+				Source string `json:"source"`
+			}
+			err = decodeDescriptorData(e.Parameters, &source)
+			if err == nil && source.Source != "quic-connection" {
+				err = fmt.Errorf("transport parameters require quic-connection source")
+			}
+			if err == nil && len(params) > 65535 {
+				err = fmt.Errorf("transport parameters exceed TLS extension bound")
+			}
+			ext = &tls.GenericExtension{Id: 57, Data: slices.Clone(params)}
+		} else {
+			ext, err = e.build(generate)
+		}
 		if err != nil {
 			return invalid(fmt.Errorf("tls_spec.extensions[%d] (%s): %w", i, e.Type, err))
 		}
@@ -169,7 +132,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 		var p struct {
 			Source string `json:"source"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		if e.Type == "sni" && p.Source == "request-host" {
@@ -180,7 +143,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 		}
 		return bad(fmt.Errorf("unsupported source %q", p.Source))
 	case "status_request", "extended_master_secret", "sct":
-		if err := decodeTLSData(e.Parameters, &struct{}{}); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &struct{}{}); err != nil {
 			return bad(err)
 		}
 		switch e.Type {
@@ -195,7 +158,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 		var p struct {
 			Values []uint16 `json:"values"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		if len(p.Values) == 0 || len(p.Values) > 127 {
@@ -233,7 +196,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 		var p struct {
 			Values []uint8 `json:"values"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		if len(p.Values) == 0 || len(p.Values) > 255 {
@@ -247,7 +210,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 		var p struct {
 			Protocols []string `json:"protocols"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		n := 0
@@ -274,7 +237,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 		var p struct {
 			Mode int `json:"mode"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		if p.Mode < 0 || p.Mode > 2 {
@@ -285,7 +248,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 		var p struct {
 			Limit uint16 `json:"limit"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		if p.Limit < 64 || p.Limit > 16385 {
@@ -296,7 +259,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 		var p struct {
 			Body []byte `json:"body"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		if len(p.Body) > 65535 {
@@ -311,7 +274,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 			Target    int    `json:"target"`
 			Minimum   int    `json:"minimum"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		if p.Algorithm != "range" {
@@ -331,7 +294,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 			Source    string `json:"source"`
 			OmitEmpty bool   `json:"omit_empty"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		if p.Source != "session-cache" {
@@ -351,7 +314,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 				Data   []byte `json:"data"`
 			} `json:"shares"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		if len(p.Shares) == 0 || len(p.Shares) > 32 {
@@ -369,7 +332,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 					return bad(fmt.Errorf("GREASE share requires grease source and at most 255 data bytes"))
 				}
 			} else {
-				if v.Source != "fresh" || len(v.Data) != 0 {
+				if v.Source != "fresh" && (v.Source != "fresh-mlkem768-component" || v.Group != uint16(tls.X25519)) || len(v.Data) != 0 {
 					return bad(fmt.Errorf("key shares require fresh keys; captured key data is forbidden"))
 				}
 				switch tls.CurveID(v.Group) {
@@ -378,7 +341,22 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 					return bad(fmt.Errorf("unsupported fresh key share group %d", v.Group))
 				}
 			}
-			out.KeyShares = append(out.KeyShares, tls.KeyShare{Group: tls.CurveID(v.Group), Data: v.Data})
+			share := tls.KeyShare{Group: tls.CurveID(v.Group), Data: v.Data}
+			if v.Source == "fresh-mlkem768-component" {
+				share.ReuseWith = tls.X25519MLKEM768
+			}
+			out.KeyShares = append(out.KeyShares, share)
+		}
+		for _, v := range out.KeyShares {
+			if v.ReuseWith != 0 {
+				found := false
+				for _, other := range out.KeyShares {
+					found = found || other.Group == v.ReuseWith && len(other.Data) == 0 && other.ReuseWith == 0
+				}
+				if !found {
+					return bad(fmt.Errorf("fresh-mlkem768-component requires a fresh MLKEM768 source share"))
+				}
+			}
 		}
 		return out, nil
 	case "grease_ech":
@@ -391,7 +369,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 			Key            string   `json:"encapsulated_key"`
 			PayloadLengths []uint16 `json:"payload_lengths"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		if p.ConfigID != "random-byte" || p.Key != "hpke-x25519-sha256-aes128gcm" {
@@ -418,7 +396,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 			Data  []byte `json:"data"`
 			Order string `json:"order"`
 		}
-		if err := decodeTLSData(e.Parameters, &p); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &p); err != nil {
 			return bad(err)
 		}
 		if p.Order != "captured" && p.Order != "sorted" && p.Order != "process-shuffle" {
@@ -439,7 +417,7 @@ func (e TLSExtension) build(generate bool) (tls.TLSExtension, error) {
 		}
 		return &tls.GenericExtension{Id: 51764, Data: data}, nil
 	case "encrypt_then_mac":
-		if err := decodeTLSData(e.Parameters, &struct{}{}); err != nil {
+		if err := decodeDescriptorData(e.Parameters, &struct{}{}); err != nil {
 			return bad(err)
 		}
 		return &tls.GenericExtension{Id: 22}, nil

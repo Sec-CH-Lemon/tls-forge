@@ -88,7 +88,7 @@ func TestA6SemanticGateEveryClientEntryBeforeIO(t *testing.T) {
 		t.Fatal(err)
 	}
 	original = workflowProfile(original)
-	for _, variant := range []string{"frame", "window", "duplicate", "stream", "dependency", "connection", "h3", "tls-source", "tls-unknown", "tls-key"} {
+	for _, variant := range []string{"frame", "window", "duplicate", "stream", "dependency", "connection", "h3", "tls-source", "tls-unknown", "tls-key", "draft-reason-missing", "draft-reason-invalid", "setting-value-missing", "setting-value-null"} {
 		for _, entry := range []string{"value", "file", "Fresh", "Do"} {
 			for _, scheme := range []string{"direct", "http", "https", "socks5", "raw-dial", "quic"} {
 				t.Run(variant+"/"+entry+"/"+scheme, func(t *testing.T) {
@@ -114,6 +114,16 @@ func TestA6SemanticGateEveryClientEntryBeforeIO(t *testing.T) {
 						p.HTTP2.ConnectionFlow = 1<<31 - 1
 					case "h3":
 						p.Behavior["h3.grease_payload_lengths"] = json.RawMessage(`[4097]`)
+					case "draft-reason-missing", "draft-reason-invalid":
+						p.Behavior["h3.settings"] = json.RawMessage(`[{"id":51,"value":1},{"id":16765559,"value":1}]`)
+						delete(p.Behavior, "h3.datagram_setting_error_reason")
+						if variant == "draft-reason-invalid" {
+							p.Behavior["h3.datagram_setting_error_reason"] = json.RawMessage(`"{captured}"`)
+						}
+					case "setting-value-missing":
+						p.Behavior["h3.settings"] = json.RawMessage(`[{"id":51}]`)
+					case "setting-value-null":
+						p.Behavior["h3.settings"] = json.RawMessage(`[{"id":51,"value":null}]`)
 					case "tls-source":
 						p.TLSSpec.SessionID = "captured"
 					case "tls-unknown":

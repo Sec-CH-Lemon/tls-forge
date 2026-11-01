@@ -1,0 +1,440 @@
+{
+  "engine_major": 1,
+  "provenance": "Explicit migration candidate defaults: source export uTLS8bfa7fe / QUIC0c35ebb0, not a browser capture; reacceptance required",
+  "independent": {
+    "behavior": {
+      "quic.enabled": false,
+      "quic.session_cache_entries": 32,
+      "quic.config": "explicit",
+      "quic.tls_source": "independent",
+      "quic.session_cache": false,
+      "quic.versions": [
+        1
+      ],
+      "quic.dedicated_socket": false,
+      "quic.source_cid_bytes": 4,
+      "quic.initial_dcid_bytes": 8,
+      "quic.stream_receive_window": 524288,
+      "quic.max_stream_receive_window": 6291456,
+      "quic.connection_receive_window": 786432,
+      "quic.max_connection_receive_window": 15728640,
+      "quic.incoming_bidi_streams": 0,
+      "quic.incoming_uni_streams": 100,
+      "quic.idle_timeout_ms": 30000,
+      "quic.keep_alive_ms": 10000,
+      "quic.initial_packet_bytes": 1280,
+      "quic.datagrams": true,
+      "quic.max_udp_payload": 1452,
+      "quic.active_cid_limit": 4,
+      "quic.ack_timer_ms": 25,
+      "quic.max_ack_delay_ms": 26,
+      "quic.max_datagram_frame": 16383,
+      "quic.parameter_order": [
+        "grease",
+        "5",
+        "6",
+        "7",
+        "4",
+        "8",
+        "9",
+        "1",
+        "3",
+        "11",
+        "10",
+        "12",
+        "14",
+        "15",
+        "17",
+        "32",
+        "6745883625174385",
+        "4278509083"
+      ],
+      "quic.grease_parameter_length_rule": "byte-modulo",
+      "quic.grease_parameter_length_min": 0,
+      "quic.grease_parameter_length_max": 15,
+      "quic.grease_parameter_id_bits": 8,
+      "quic.shuffle_parameters": false,
+      "quic.version_information": false,
+      "quic.grease_version": false,
+      "quic.packet_numbers": "separate",
+      "quic.packet_number_length": "two-byte-minimum",
+      "quic.pto_skip": "application",
+      "quic.initial_layout": "scramble",
+      "quic.ack_initial_packets": 2,
+      "quic.ack_reordering_threshold": 1,
+      "quic.ack_gap_policy": "new-gap",
+      "quic.ack_decimation": "none",
+      "quic.ack_sent_after": "batch",
+      "quic.ack_only_max": 19,
+      "quic.ack_only_frame": "ping",
+      "quic.ecn": "ect0",
+      "quic.mtu_probes": "search",
+      "quic.connection_id_change": "after-handshake",
+      "quic.padding_position": "after-ack",
+      "quic.close_early_application": "transport",
+      "quic.pto_probes": 2,
+      "quic.pto_initial_rtt_ms": 100,
+      "quic.pto_no_sample_multiplier": 2,
+      "quic.pto_no_sample_min_ms": 0,
+      "quic.pto_rttvar_multiplier": 4,
+      "quic.alarm_slack_ms": 0,
+      "quic.ack_alarm_slack_percent": 100,
+      "quic.handshake_idle_timeout_ms": 5000,
+      "quic.handshake_timeout_ms": 10000,
+      "quic.handshake_ack_timer_ms": 0,
+      "quic.idle_close": "silent",
+      "quic.connected_socket": false,
+      "quic.ignore_vn_wrong_cids": false,
+      "quic.ignore_vn_after_retry": false,
+      "quic.accept_zero_available_version": false,
+      "quic.version_parse_error": 8,
+      "quic.version_mismatch_error": 17,
+      "tls.session_cache_entries": 32
+    },
+    "quic_tls_spec": {
+      "hello": {
+        "min_version": 772,
+        "max_version": 772,
+        "cipher_suites": [
+          4865,
+          4866,
+          4867
+        ],
+        "compression_methods": [
+          0
+        ],
+        "session_id": "empty",
+        "grease": "boringssl",
+        "extension_order": "fixed",
+        "extensions": [
+          {
+            "type": "sni",
+            "parameters": {
+              "source": "request-host"
+            }
+          },
+          {
+            "type": "point_formats",
+            "parameters": {
+              "values": [
+                0
+              ]
+            }
+          },
+          {
+            "type": "renegotiation_info",
+            "parameters": {
+              "mode": 0
+            }
+          },
+          {
+            "type": "extended_master_secret",
+            "parameters": {}
+          },
+          {
+            "type": "sct",
+            "parameters": {}
+          },
+          {
+            "type": "quic_transport_parameters",
+            "parameters": {
+              "source": "quic-connection"
+            }
+          },
+          {
+            "type": "status_request",
+            "parameters": {}
+          },
+          {
+            "type": "supported_groups",
+            "parameters": {
+              "values": [
+                4588,
+                29,
+                23,
+                24,
+                25
+              ]
+            }
+          },
+          {
+            "type": "signature_algorithms",
+            "parameters": {
+              "values": [
+                2052,
+                1027,
+                2055,
+                2053,
+                2054,
+                1025,
+                1281,
+                1537,
+                1283,
+                1539,
+                513,
+                515
+              ]
+            }
+          },
+          {
+            "type": "alpn",
+            "parameters": {
+              "protocols": [
+                "h3"
+              ]
+            }
+          },
+          {
+            "type": "supported_versions",
+            "parameters": {
+              "values": [
+                772
+              ]
+            }
+          },
+          {
+            "type": "key_share",
+            "parameters": {
+              "shares": [
+                {
+                  "group": 4588,
+                  "source": "fresh",
+                  "data": []
+                },
+                {
+                  "group": 29,
+                  "source": "fresh-mlkem768-component",
+                  "data": []
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "cipher_order": "hardware-aes",
+      "cipher_suites_without_aes": [
+        4867,
+        4865,
+        4866
+      ]
+    },
+    "quic_tls_spec_cached": {
+      "hello": {
+        "min_version": 772,
+        "max_version": 772,
+        "cipher_suites": [
+          4865,
+          4866,
+          4867
+        ],
+        "compression_methods": [
+          0
+        ],
+        "session_id": "empty",
+        "grease": "boringssl",
+        "extension_order": "fixed",
+        "extensions": [
+          {
+            "type": "sni",
+            "parameters": {
+              "source": "request-host"
+            }
+          },
+          {
+            "type": "point_formats",
+            "parameters": {
+              "values": [
+                0
+              ]
+            }
+          },
+          {
+            "type": "session_ticket",
+            "parameters": {
+              "source": "session-cache"
+            }
+          },
+          {
+            "type": "renegotiation_info",
+            "parameters": {
+              "mode": 0
+            }
+          },
+          {
+            "type": "extended_master_secret",
+            "parameters": {}
+          },
+          {
+            "type": "sct",
+            "parameters": {}
+          },
+          {
+            "type": "quic_transport_parameters",
+            "parameters": {
+              "source": "quic-connection"
+            }
+          },
+          {
+            "type": "status_request",
+            "parameters": {}
+          },
+          {
+            "type": "supported_groups",
+            "parameters": {
+              "values": [
+                4588,
+                29,
+                23,
+                24,
+                25
+              ]
+            }
+          },
+          {
+            "type": "signature_algorithms",
+            "parameters": {
+              "values": [
+                2052,
+                1027,
+                2055,
+                2053,
+                2054,
+                1025,
+                1281,
+                1537,
+                1283,
+                1539,
+                513,
+                515
+              ]
+            }
+          },
+          {
+            "type": "alpn",
+            "parameters": {
+              "protocols": [
+                "h3"
+              ]
+            }
+          },
+          {
+            "type": "supported_versions",
+            "parameters": {
+              "values": [
+                772
+              ]
+            }
+          },
+          {
+            "type": "key_share",
+            "parameters": {
+              "shares": [
+                {
+                  "group": 4588,
+                  "source": "fresh",
+                  "data": []
+                },
+                {
+                  "group": 29,
+                  "source": "fresh-mlkem768-component",
+                  "data": []
+                }
+              ]
+            }
+          },
+          {
+            "type": "psk_modes",
+            "parameters": {
+              "values": [
+                1
+              ]
+            }
+          },
+          {
+            "type": "pre_shared_key",
+            "parameters": {
+              "source": "session-cache",
+              "omit_empty": true
+            }
+          }
+        ]
+      },
+      "cipher_order": "hardware-aes",
+      "cipher_suites_without_aes": [
+        4867,
+        4865,
+        4866
+      ]
+    }
+  },
+  "adapter": {
+    "behavior": {
+      "quic.config": "explicit",
+      "quic.keep_alive_ms": 0,
+      "tls.session_cache_entries": 32,
+      "quic.session_cache_entries": 32,
+      "quic.parameter_order": [
+        "grease",
+        "5",
+        "6",
+        "7",
+        "4",
+        "8",
+        "9",
+        "1",
+        "3",
+        "11",
+        "10",
+        "12",
+        "14",
+        "15",
+        "17",
+        "32",
+        "6745883625174385",
+        "4278509083"
+      ],
+      "quic.grease_parameter_length_rule": "byte-modulo",
+      "quic.grease_parameter_length_min": 0,
+      "quic.grease_parameter_length_max": 15,
+      "quic.ack_initial_packets": 2,
+      "quic.ack_reordering_threshold": 1,
+      "quic.tls_source": "tcp-adapter"
+    },
+    "copies": [
+      {
+        "from": "quic.stream_receive_window",
+        "to": "quic.max_stream_receive_window"
+      },
+      {
+        "from": "quic.connection_receive_window",
+        "to": "quic.max_connection_receive_window"
+      }
+    ]
+  },
+  "ack_selection": {
+    "gap": {
+      "present": "bounded-gap",
+      "absent": "new-gap"
+    },
+    "decimation": {
+      "present": "threshold",
+      "absent": "none"
+    }
+  },
+  "cache_source": "tcp-utls-psk",
+  "raw_tcp_generation": {
+    "chromium": {
+      "extension_order": "moving",
+      "ech_payload_lengths": [
+        128,
+        160,
+        192,
+        224
+      ]
+    },
+    "generic": {
+      "extension_order": "fixed",
+      "ech_payload_lengths": []
+    }
+  }
+}

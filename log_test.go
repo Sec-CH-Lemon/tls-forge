@@ -736,8 +736,8 @@ func TestALogSaysWhatTheClientWears(t *testing.T) {
 	// A profile out of the catalogue, which knows a handshake and no headers.
 	book, log := newLogBook(slog.LevelDebug)
 	newTestClient(t, WithLogger(log), WithProfile("chrome_133"))
-	if made := book.one(t, "profile handshake"); made.get("from") != "tls-client's catalogue" ||
-		made.get("base") != "chrome_133" {
+	if made := book.one(t, "profile handshake"); made.get("from") != "declarative JSON" ||
+		made.get("extensions") != "18" || made.get("cipher_suites") != "16" {
 		t.Errorf("the handshake was said as %v", made)
 	}
 	if headers := book.one(t, "profile headers"); headers.get("order") != "[]" {
@@ -969,4 +969,21 @@ type statedConn struct{ nowhereConn }
 
 func (statedConn) ConnectionState() utls.ConnectionState {
 	return utls.ConnectionState{Version: utls.VersionTLS12}
+}
+
+func TestALogIdentifiesLegacyDataBackedBaseFacade(t *testing.T) {
+	p, err := profile.Get("chrome_133")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p = p.Clone()
+	p.TLSSpec = nil
+	p.Base = "chrome_133"
+	p.HTTP2 = profile.HTTP2{}
+	book, log := newLogBook(slog.LevelDebug)
+	newTestClient(t, WithLogger(log), WithProfileValue(p))
+	made := book.one(t, "profile handshake")
+	if made.get("from") != "tls-client's catalogue" || made.get("base") != "chrome_133" {
+		t.Fatalf("legacy base provenance: %v", made)
+	}
 }

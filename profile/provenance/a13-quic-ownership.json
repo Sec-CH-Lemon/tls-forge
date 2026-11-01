@@ -1,0 +1,1898 @@
+{
+  "engine_major": 1,
+  "profiles": {
+    "example/profiles/chrome_156_linux_close_notify.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "fb2a40f9053c75ee30a8cde7daae3f0888230aa77a3573e73cf7c3278750e06f",
+      "before_semantic_sha256": "1104cfb5919ebb629ba399605515e782ec641dd3cbd30d8d14234755e33f0e75",
+      "before_sha256": "68474c11e3b747dd0b0fc62f6f541ad2fafc9c35393512289a7bc53e1ea6faa5",
+      "scope": "existing close_notify variant; only declared shutdown delta vs updated source retained",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "example/profiles/chrome_156_macos_close_notify.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "3afd05d8c291dea0a06be24555e3a3449a2fa3f6b913c9d49b6fa8a94deeea60",
+      "before_semantic_sha256": "1be3c7c4b77dc7b70170945b7a35777e14bf0d0ca278b43632baa9e1cbc4d355",
+      "before_sha256": "2a2d4641f3cd64fb466f9fccc9e96151db0133caa7ec40d575490187826e71e4",
+      "scope": "existing close_notify variant; only declared shutdown delta vs updated source retained",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "example/profiles/chrome_156_windows_close_notify.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "9fe9900620fe7cec85cc5839a81ffc57424b215ef07cae8b25d4fabd48c311c5",
+      "before_semantic_sha256": "fca4a2a0d10f616f19acb1964baeaf7715e0b421c020184228ffee015d949b47",
+      "before_sha256": "87a29aa593f75874f1affba54cbbc0b2b2ea4138d64594de34093ba1189a8787",
+      "scope": "existing close_notify variant; only declared shutdown delta vs updated source retained",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_151/linux.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "9f316cfe8e48f194c9a0140765d67e5bd97133b1f229204a915b10c2c8027545",
+      "before_semantic_sha256": "e8133faa0c8be4d99ece7d2a5406fa97b519e91c3c700afb4d8819652766ed82",
+      "before_sha256": "b35ba20789a31a1cb91f0d63943a42b28593a4d357f7912964d335dbedb168ce",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_151/macos.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "272d550ebcbf662e6609f124f17b00dabd5c462ad9e2102bc24d352e47166481",
+      "before_semantic_sha256": "bd7eafcda2669b65a617f87408d3d10d1028012fc8e26ccce33d2feeac494444",
+      "before_sha256": "0f598842dbf952db34b79a67aea4dbb405d9c286e470ce295167cd8a5850d6b6",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_151/windows.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "4957574e170f24c9760ebb97ad3f0e8467c322858e925e52a71e9147a85d38e8",
+      "before_semantic_sha256": "0ac08768915f64169bda14b8b3798fde2d690fbea6550887b6d0023801822570",
+      "before_sha256": "34efd668ed09aab020168c86ee99a509de12b414790f13f234e0fb3dcc040a77",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_152/linux.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "825fc333b1c27d10c934cd3a3dd66605c0ec25fe2dc84c71272646ebed37b946",
+      "before_semantic_sha256": "24f0e82f4bc0ff526f07c307ee71b52bcd88261ebef8b8a49fd6aeb65c05a7d6",
+      "before_sha256": "ecc180167151a93b3e253a03d2b58ac728031a325174802dbd4c1a1f849e9320",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_152/macos.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "35399b4bd1bb18889427b0b78d13a11513e9235aa0e72c605b8bf740a870488c",
+      "before_semantic_sha256": "9e925cb08060258cb856e4952e25058dd66a81d8bc139b9f5039f5cc5d6e4990",
+      "before_sha256": "913a7ac47d720bc4dd35cd99aecb25b7bd1c4f32e1f897a942e1e18afdef5341",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_152/windows.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "c88dfa7fa20155abe9f8a8c34fcddad64a7981e4bb8058b25e55d7dc7c43e3bd",
+      "before_semantic_sha256": "dc5bdfea22325465c24fd130d4469efeaae49ddf8bcc7f36aac2a034341625ed",
+      "before_sha256": "f479b972393c6ca6e00775d4ff2cb3c292634835150e52d41046330331f60909",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_153/linux.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "72066e1849da0bf1bbc9720ab664d62767b0029a693fe648443a7c09bbec348a",
+      "before_semantic_sha256": "77feefedecee62a65c10b7d836e08513207dfab497394126c6ff40b922949f52",
+      "before_sha256": "ba267362404729b9ce6ab7cb251704dea8a03cc253b71a79ff2284712158aa3e",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_153/macos.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "d5d07328a71642f1a735dae626ea138a36909e2a29f15741a981dcb00ef946db",
+      "before_semantic_sha256": "b27cec02a5ba086bf1cee874c8c2f034d2e4e92dac0866497dbc5f3cbea94a23",
+      "before_sha256": "33640478f68ad4f7dee22b5ff6a95305b838b78db694f8a2da3219122ba83c81",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_153/windows.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "b62f521d4f6666eabac43b90367b32f47e701fb7f7083f2ef92a861fb07c8a09",
+      "before_semantic_sha256": "428c7e2483045fa686076f4de7bb9e39817f207612099f77149474fa2870ae4c",
+      "before_sha256": "f77f0c483054c4cb36371fe252a37a5d388b7c7737f483f698da360f0e4411cf",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_154/linux.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "62628cfdf9cbb2d01c6bdbfc1bdbe868c4b952975c5fdd5b2718a7cbc0aaf2a7",
+      "before_semantic_sha256": "8b7764fa5222c57daaaa6a6ac3c7457416532bdd90a452ee7d9149e389a976a8",
+      "before_sha256": "3229bf63e3e0eeeb7f473044581cc9f556b7b756d7aeffaa3a928f2a622e5f55",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_154/macos.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "19810da5e493b196ab81116e82b456168dc86c0297028344c85048da213f9d9e",
+      "before_semantic_sha256": "57769e544ebf08046d534e2bd12ea61c5b20ba339bffd7a788b3d3abf569cf91",
+      "before_sha256": "5035cabb5fc4854f466056b949072fe8639f3fe32097041fddba26ad75a869f5",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_154/windows.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "4cf5c75b13cd4a452d566d42dca834df6376233a00fc6f8d4b5e0a404bb78f13",
+      "before_semantic_sha256": "912c525da5b91eddaf60b836c3e39318736ebdffc6769141c4c5137456353edd",
+      "before_sha256": "801a823143076fc1861a9b6011d8e8172b169ed055e6922decd13f41b218110e",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_155/linux.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "103c851ec7d8045db60e2a5cdc1c2759d0e09ec44fcf66f2e31d1a65bf418d19",
+      "before_semantic_sha256": "0610422c34aef10b54514ee3827001e65af475613cc84b161006c349601a515c",
+      "before_sha256": "4f1d5420fee35bfd76ee2206050cc3d6d5b226b23190a925a9aa9ccbd2533623",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_155/macos.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "0a91084e4b932b27005afd46d3c05a4759a7af0737bd857b0b9521d4af1989f6",
+      "before_semantic_sha256": "49e226a7b4dcf36b3a5a257baae6e9c3c4a6b385edd9ea8903e7ad0680717d66",
+      "before_sha256": "1c44fb0b648b662c987b7a549056bcfaec6a0ee9d41417bace61613c04e99722",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_155/windows.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "730ed6decff866eb3e8e71e00348752ef078f024a4c4a93afbf781f6daf0dfe1",
+      "before_semantic_sha256": "62110008f301b2b31370a4231c231473c6cb1bda45d24f228959804d16f2bfac",
+      "before_sha256": "76dfff184fc2babafc2f74240605476f7f5b9cd032f6198b750015cd9e741c90",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_156/linux.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "1448ae44118a435037ecaa30a72c256bb173a398fbe15061e6378c720d0859ca",
+      "before_semantic_sha256": "4edb64734ccaaf024187500301da469140a1e1dc5456882dbc1721483ae46ba3",
+      "before_sha256": "dd612079c4b3de12ad2e7f17c7150ed99a82f18771ff41d6dccea1101543b7c3",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_156/macos.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "b2ec42446828b9b16b886ff7b8f863ec2b5b931d8ba02dc5741ad2aa87605989",
+      "before_semantic_sha256": "dd25dc1a8762ea5f7c76e1a99f3f93db4d2bb47c669819837239b42ecf5b0652",
+      "before_sha256": "8d098648c16145212ebe1239d572aed5e94f56e7df1cbfa8b12de99777ec9289",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    },
+    "profile/data/chrome_156/windows.json": {
+      "added_policy_keys": [
+        "quic.config",
+        "quic.tls_source",
+        "quic.max_stream_receive_window",
+        "quic.max_connection_receive_window",
+        "quic.keep_alive_ms",
+        "tls.session_cache_entries",
+        "quic.session_cache_entries",
+        "quic.session_cache",
+        "quic.parameter_order",
+        "quic.grease_parameter_length_rule",
+        "quic.grease_parameter_length_min",
+        "quic.grease_parameter_length_max",
+        "quic.ack_initial_packets",
+        "quic.ack_reordering_threshold",
+        "quic.ack_gap_policy",
+        "quic.ack_decimation"
+      ],
+      "after_sha256": "b8fa6bd9d06afed4dec8c071c3a37cb739805d6aac0a2b143bcbd69388cab3e2",
+      "before_semantic_sha256": "f08a2bb622aa27816607b31c7271a9dc3e24265d662d1e46ebb47d84235bc24d",
+      "before_sha256": "81e6ab0d1a5c265a23039a0ba3d653f4daa37439b4fab6016df5f1bfafd3d5b2",
+      "scope": "materialized implemented source choices; original capture/provenance preserved; new browser acceptance not implied",
+      "fields": {
+        "quic.config": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.tls_source": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_stream_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.max_connection_receive_window": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.keep_alive_ms": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "tls.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache_entries": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.session_cache": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.parameter_order": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_rule": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_min": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.grease_parameter_length_max": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_initial_packets": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_reordering_threshold": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_gap_policy": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        },
+        "quic.ack_decimation": {
+          "class": "source-derived",
+          "source": "Explicit engine policy export at uTLS8bfa7fe/QUIC0c35ebb0/tls-clientd22be14; not a browser observation"
+        }
+      }
+    }
+  },
+  "schema": 1,
+  "source_commit": "68f994d7",
+  "status": "technical migration candidate; no new browser verdict"
+}

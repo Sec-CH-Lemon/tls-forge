@@ -5,30 +5,57 @@ import (
 	"math"
 
 	"github.com/igor-lemon/fhttp/http2"
-	"github.com/igor-lemon/tls-client/profiles"
 )
 
 // Validate accepts an executable identity before any request-related I/O.
 // Inspect and Save preserve representable archives without this permission.
 // Engine compatibility remains an independent, mandatory first gate.
 func (p *Profile) Validate() error {
+	_, err := p.validate()
+	return err
+}
+
+// validate returns the same data-backed base that it checked. Adapter creation
+// must not independently resolve a second representation after validation.
+func (p *Profile) validate() (*Profile, error) {
 	if err := p.ValidateEngine(); err != nil {
-		return err
+		return nil, err
+	}
+	if p.Name == "" {
+		return nil, fmt.Errorf("profile: name is required")
 	}
 	if err := p.validateBehavior(); err != nil {
-		return err
+		return nil, err
+	}
+	if (p.RuntimeBehavior().Text("quic.tls_source") == "independent") != (p.QUICTLSSpec != nil) {
+		return nil, fmt.Errorf("profile %q: independent QUIC TLS source and quic_tls_spec must be selected together", p.Name)
+	}
+	if len(p.ClientHello) > 0 && p.TLSSpec == nil && p.PerConnection == nil {
+		return nil, fmt.Errorf("profile %q: raw client_hello requires explicit per_connection generation rules", p.Name)
 	}
 	if err := p.validateFields(); err != nil {
-		return err
+		return nil, err
 	}
-	return p.validateHTTP2()
+	var base *Profile
+	if p.BareBase() {
+		h := p.HTTP2
+		if h.ConnectionFlow != 0 || h.StreamID != 0 || len(h.Priorities) != 0 || h.HeaderPriority != nil || len(h.PseudoHeaderOrder) != 0 {
+			return nil, p.invalid("http2", h, "a full explicit HTTP2 profile to override a bare catalogue base")
+		}
+		var err error
+		base, err = catalogueProfile(p.Base)
+		if err != nil {
+			return nil, p.invalid("base", p.Base, "an available pinned catalogue identity: "+err.Error())
+		}
+	}
+	return base, p.validateHTTP2(base)
 }
 
 // RFC 9113 leaves SETTINGS_HEADER_TABLE_SIZE and SETTINGS_MAX_HEADER_LIST_SIZE
 // open, and the transport sizes its HPACK decoder by them: what a server may
 // make the client keep is bounded here, as HTTP/3's QPACK table is in the
-// registry. Every shipped and catalogue identity asks for 65536 and 262144 at
-// most.
+// registry. The unlimited advertised sentinel still uses the decoder's 16 MiB
+// default; it does not permit unbounded allocation.
 const (
 	maxHeaderTableBytes = 1 << 20
 	maxHeaderListBytes  = 16 << 20
@@ -38,28 +65,10 @@ func (p *Profile) invalid(path string, value any, requirement string) error {
 	return fmt.Errorf("profile %q: %s = %v: requires %s", p.Name, path, value, requirement)
 }
 
-func (p *Profile) validateHTTP2() error {
+func (p *Profile) validateHTTP2(base *Profile) error {
 	h := p.HTTP2
-	if p.BareBase() {
-		// Bare bases use the pinned catalogue identity, not an invented copy of
-		// its defaults. Refuse own fields that this representation would ignore.
-		if h.ConnectionFlow != 0 || h.StreamID != 0 || len(h.Priorities) != 0 || h.HeaderPriority != nil || len(h.PseudoHeaderOrder) != 0 {
-			return p.invalid("http2", h, "a full explicit HTTP2 profile to override a bare catalogue base")
-		}
-		base, ok := profiles.MappedTLSClients[p.Base]
-		if !ok {
-			return p.invalid("base", p.Base, "an available pinned catalogue identity")
-		}
-		h = HTTP2{ConnectionFlow: base.GetConnectionFlow(), StreamID: base.GetStreamID()}
-		for _, id := range base.GetSettingsOrder() {
-			h.Settings = append(h.Settings, Setting{uint16(id), base.GetSettings()[id]})
-		}
-		for _, pr := range base.GetPriorities() {
-			h.Priorities = append(h.Priorities, Priority{pr.StreamID, pr.PriorityParam.Exclusive, pr.PriorityParam.StreamDep, pr.PriorityParam.Weight})
-		}
-		if pr := base.GetHeaderPriority(); pr != nil {
-			h.HeaderPriority = &Priority{DependsOn: pr.StreamDep, Exclusive: pr.Exclusive, Weight: pr.Weight}
-		}
+	if base != nil {
+		h = base.HTTP2
 	}
 	// The peer's initial maximum frame payload is 16384 before its SETTINGS.
 	if len(h.Settings) > 16384/6 {
@@ -88,8 +97,9 @@ func (p *Profile) validateHTTP2() error {
 			return p.invalid(fmt.Sprintf("http2.settings[%d].value", i), s.Value, "0 or 1 (RFC9218)")
 		case s.ID == 1 && s.Value > maxHeaderTableBytes:
 			return p.invalid(fmt.Sprintf("http2.settings[%d].value", i), s.Value, "at most 1048576, the engine's bound on the HPACK table a server can fill")
-		// The all-ones advertised value maps to Framer's zero and its
-		// 16 MiB default. Other large values bypass that bound.
+		// fhttp maps its all-ones backend sentinel to Framer's zero, which
+		// enforces its 16 MiB default. Other large values bypass that
+		// safety bound and remain forbidden.
 		case s.ID == 6 && s.Value > maxHeaderListBytes && s.Value != math.MaxUint32:
 			return p.invalid(fmt.Sprintf("http2.settings[%d].value", i), s.Value, "at most 16777216, the engine's bound on a header list a server can send")
 		}

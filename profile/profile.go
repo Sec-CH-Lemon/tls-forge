@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Sec-CH-Lemon/tls-forge/engine"
 	"github.com/igor-lemon/utls/behavior"
 	rand "math/rand/v2"
 	"slices"
@@ -79,7 +80,8 @@ type Profile struct {
 
 	// TLSSpec describes a handshake without captured bytes. It is exclusive
 	// with ClientHello and Base, and always rebuilds live connection state.
-	TLSSpec *TLSSpec `json:"tls_spec,omitempty"`
+	TLSSpec     *TLSSpec     `json:"tls_spec,omitempty"`
+	QUICTLSSpec *QUICTLSSpec `json:"quic_tls_spec,omitempty"`
 
 	// Base names a profile from the tls-client catalogue, used when no captured
 	// ClientHello is present. It is also what a hand-written profile builds on.
@@ -109,12 +111,18 @@ type Profile struct {
 	// somebody which profile it is wearing. Unexported, so it can never reach
 	// the JSON and be mistaken for part of the profile: where a file is says
 	// nothing about the browser it records.
-	source string
+	source    string
+	catalogue bool
 }
 
 // Source is the file this profile was read from, or empty for one that ships
 // inside the binary or came from the catalogue.
 func (p *Profile) Source() string { return p.source }
+
+// Catalogue reports that this object was read from the embedded export/import
+// catalogue. It describes provenance, never selects transport behavior. File
+// Load does not invent that origin; Clone preserves it.
+func (p *Profile) Catalogue() bool { return p.catalogue }
 
 // Clone returns an independent copy of the profile.
 func (p *Profile) Clone() *Profile {
@@ -128,6 +136,7 @@ func (p *Profile) Clone() *Profile {
 	out.Behavior = p.Behavior.Clone()
 	out.ClientHello = append([]byte(nil), p.ClientHello...)
 	out.TLSSpec = p.TLSSpec.clone()
+	out.QUICTLSSpec = p.QUICTLSSpec.clone()
 	if p.PerConnection != nil {
 		perConnection := *p.PerConnection
 		perConnection.ECHPayloadLengths = slices.Clone(p.PerConnection.ECHPayloadLengths)
@@ -189,7 +198,11 @@ func (p *Profile) ShufflesExtensions() bool {
 	if p.PerConnection != nil {
 		return p.PerConnection.ShufflesExtensions
 	}
-	return p.Schema < 3 && p.chromium()
+	if p.BareBase() && p.RuntimeBehavior().Text("quic.config") == "explicit" {
+		base, err := catalogueProfile(p.Base)
+		return err == nil && base.ShufflesExtensions()
+	}
+	return p.Schema < 3 && (p.EngineMajor == nil || *p.EngineMajor != engine.Major()) && p.chromium()
 }
 
 // echPayloadLengths are what the GREASE ECH payload is drawn from, as
@@ -349,18 +362,12 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 		return settingsForALPN(*spec), nil
 	}
 	if p.Base != "" {
-		base, ok := profiles.MappedTLSClients[p.Base]
-		if !ok {
-			return tls.ClientHelloSpec{}, fmt.Errorf("profile %q: unknown base %q", p.Name, p.Base)
-		}
-		// A catalogue entry is a spec of its own or one of utls's presets,
-		// which utls reads the way it does when it opens a connection.
-		baseID := base.GetClientHelloId()
-		spec, err := baseID.ToSpec()
+		base, err := catalogueProfile(p.Base)
 		if err != nil {
-			return tls.UTLSIdToSpec(baseID)
+			return tls.ClientHelloSpec{}, fmt.Errorf("profile %q: unknown base %q: %w", p.Name, p.Base, err)
 		}
-		return spec, nil
+		return base.Spec()
+
 	}
 	return tls.ClientHelloSpec{}, fmt.Errorf("profile %q: %w", p.Name, ErrNoHandshake)
 }
@@ -437,17 +444,19 @@ func (p *Profile) ClientProfile() (profiles.ClientProfile, error) {
 // ClientProfileShuffled is ClientProfile with the order of the extensions of
 // every connection's ClientHello drawn for it when shuffle is true, every
 // order of those that move as likely as any other, as Chromium draws one
-// (shuffleExtensions), and the capture's when it is false. A bare base is the
-// transport's own, and so is drawing its order (BareBase).
+// (shuffleExtensions), and the declared order when false. A bare base resolves
+// the same materialized JSON descriptor as an ordinary catalogue lookup.
 func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, error) {
-	if err := p.Validate(); err != nil {
+	base, err := p.validate()
+	if err != nil {
 		return profiles.ClientProfile{}, err
 	}
-	// A profile that only names a base IS that base. Rebuilding it from parts
-	// would be a second, drifting copy of settings this library does not own.
-	if p.BareBase() {
-		// Validate resolved this exact pinned catalogue identity.
-		return p.applyTransportBehavior(profiles.MappedTLSClients[p.Base]), nil
+	if base != nil {
+		built, err := base.ClientProfileShuffled(shuffle)
+		if err != nil {
+			return profiles.ClientProfile{}, err
+		}
+		return p.applyTransportBehavior(built), nil
 	}
 
 	// Built once here so a broken profile is reported when the client is
@@ -512,6 +521,12 @@ func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, e
 }
 
 func (p *Profile) applyTransportBehavior(built profiles.ClientProfile) profiles.ClientProfile {
+	// The selected profile owns the mechanism even when it borrows TCP data.
+	built = built.WithQUICClientHelloSpec(nil)
+	if p.QUICTLSSpec != nil {
+		q := p.QUICTLSSpec.clone()
+		built = built.WithQUICClientHelloSpec(q.spec)
+	}
 	pol := p.RuntimeBehavior()
 	if pol.Has("h3.settings") {
 		settings := map[uint64]uint64{}
@@ -683,6 +698,12 @@ func decodeProfile(data []byte, execute bool) (*Profile, error) {
 // validateFields is shared by execution and offline format inspection.
 // It does not retag an archive or grant permission to execute its HTTP policy.
 func (p *Profile) validateFields() error {
+
+	if p.QUICTLSSpec != nil {
+		if err := p.QUICTLSSpec.validate(); err != nil {
+			return fmt.Errorf("profile %q: %w", p.Name, err)
+		}
+	}
 	if p.Name == "" {
 		return fmt.Errorf("profile: name is required")
 	}
@@ -778,7 +799,7 @@ func defaultHints() *hintDefaults {
 // written in the current schema, whichever it was read in.
 func (p *Profile) Save() ([]byte, error) {
 	current := *p
-	if current.PerConnection == nil && current.TLSSpec == nil {
+	if current.PerConnection == nil && current.TLSSpec == nil && (p.EngineMajor == nil || *p.EngineMajor != engine.Major()) {
 		current.PerConnection = &PerConnection{ShufflesExtensions: p.ShufflesExtensions(), ECHPayloadLengths: slices.Clone(p.echPayloadLengths())}
 	}
 	current.Behavior = p.savedBehavior()

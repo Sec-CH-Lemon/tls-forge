@@ -44,8 +44,8 @@ func TestGetFallsBackToTheCatalogue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	if p.Base != "chrome_133" {
-		t.Errorf("Base = %q, want chrome_133", p.Base)
+	if p.Base != "" || p.TLSSpec == nil || len(p.HTTP2.Settings) == 0 {
+		t.Fatal("catalogue entry is not explicit JSON data", p)
 	}
 	if len(p.ClientHello) != 0 {
 		t.Error("a catalogue entry should not claim a captured hello")
@@ -71,7 +71,7 @@ func TestRegisterTakesPrecedence(t *testing.T) {
 	// get theirs, not the one shipped here.
 	registry := NewRegistry()
 	mine := &Profile{EngineMajor: Major(1), Name: "chrome_151", UserAgent: "mine", Base: "chrome_133"}
-	if err := registry.Register(mine); err != nil {
+	if err := registry.Register(capabilityFixture(t, mine)); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
@@ -105,7 +105,7 @@ func TestRegisterRejectsUnnamedProfiles(t *testing.T) {
 
 func TestNames(t *testing.T) {
 	registry := NewRegistry()
-	if err := registry.Register(&Profile{EngineMajor: Major(1), Name: "my_browser", Base: "chrome_133"}); err != nil {
+	if err := registry.Register(capabilityFixture(t, &Profile{EngineMajor: Major(1), Name: "my_browser", Base: "chrome_133"})); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
@@ -156,7 +156,7 @@ func TestNewestInFamilyPrefersMeasuredOverNewer(t *testing.T) {
 	if err := registry.Register(executableRegistryFixture(t, "acme_10")); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
-	if err := registry.Register(&Profile{EngineMajor: Major(1), Name: "acme_99", Base: "chrome_133"}); err != nil {
+	if err := registry.Register(capabilityFixture(t, &Profile{EngineMajor: Major(1), Name: "acme_99", Base: "chrome_133"})); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
@@ -203,7 +203,7 @@ func TestNewestInFamilyFallsBackToTheCatalogue(t *testing.T) {
 }
 
 func TestPackageLevelHelpersUseTheDefaultRegistry(t *testing.T) {
-	if err := Register(&Profile{EngineMajor: Major(1), Name: "package_level_test", Base: "chrome_133"}); err != nil {
+	if err := Register(capabilityFixture(t, &Profile{EngineMajor: Major(1), Name: "package_level_test", Base: "chrome_133"})); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 	if _, err := Get("package_level_test"); err != nil {

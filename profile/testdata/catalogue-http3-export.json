@@ -1,0 +1,1740 @@
+{
+  "provenance": "offline getter export and pre-materialization root explicit policies; not a browser capture",
+  "tls_client_source": "7b5e8ee614f865a78700c00c9efaaab6dbe071b9",
+  "original_getter_receipt_sha256": "220d97e98a851bad2d5d00a53f75c770cf7d472cd439c0e864e94c266c4c595f",
+  "entries": {
+    "brave_146": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "brave_146_PSK": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_103": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_104": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_105": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_106": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_107": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_108": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_109": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_110": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_111": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_112": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_116_PSK": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_116_PSK_PQ": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_117": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_120": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_124": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_130_PSK": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_131": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_131_PSK": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_133": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_133_PSK": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_144": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_144_PSK": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_146": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_146_PSK": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_150": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_150_PSK": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_152": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "chrome_152_PSK": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "cloudscraper": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "confirmed_android": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "confirmed_ios": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_102": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_104": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_105": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_106": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_108": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_110": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_117": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_120": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_123": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_132": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_133": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_135": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_146_PSK": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "firefox_147": {
+      "settings": {
+        "1": 65536,
+        "16765559": 1,
+        "51": 1,
+        "7": 20,
+        "727725890": 0,
+        "8": 1
+      },
+      "order": [
+        1,
+        7,
+        727725890,
+        16765559,
+        51,
+        8
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":scheme",
+        ":authority",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": true
+    },
+    "firefox_147_PSK": {
+      "settings": {
+        "1": 65536,
+        "16765559": 1,
+        "51": 1,
+        "7": 20,
+        "727725890": 0,
+        "8": 1
+      },
+      "order": [
+        1,
+        7,
+        727725890,
+        16765559,
+        51,
+        8
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":scheme",
+        ":authority",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": true
+    },
+    "firefox_148": {
+      "settings": {
+        "1": 65536,
+        "16765559": 1,
+        "51": 1,
+        "7": 20,
+        "727725890": 0,
+        "8": 1
+      },
+      "order": [
+        1,
+        7,
+        727725890,
+        16765559,
+        51,
+        8
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":scheme",
+        ":authority",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": true
+    },
+    "mesh_android": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "mesh_android_1": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "mesh_android_2": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "mesh_ios": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "mesh_ios_1": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "mesh_ios_2": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "mms_ios": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "mms_ios_1": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "mms_ios_2": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "mms_ios_3": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "nike_android_mobile": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "nike_ios_mobile": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "okhttp4_android_10": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "okhttp4_android_11": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "okhttp4_android_12": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "okhttp4_android_13": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "okhttp4_android_7": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "okhttp4_android_8": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "okhttp4_android_9": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "opera_89": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "opera_90": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "opera_91": {
+      "settings": {
+        "1": 0,
+        "6": 262144,
+        "7": 0,
+        "51": 1
+      },
+      "order": [
+        1,
+        6,
+        7,
+        51
+      ],
+      "order_origin": "declared",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 984832,
+      "grease": true
+    },
+    "safari_15_6_1": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "safari_16_0": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "safari_ios_15_5": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "safari_ios_15_6": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "safari_ios_16_0": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "safari_ios_17_0": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "safari_ios_18_0": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "safari_ios_18_5": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "safari_ios_26_0": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "safari_ipad_15_6": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "zalando_android_mobile": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    },
+    "zalando_ios_mobile": {
+      "settings": {
+        "6": 10485760,
+        "51": 1
+      },
+      "order": [
+        6,
+        51
+      ],
+      "order_origin": "backend-map-default; newly declared6,51",
+      "pseudo": [
+        ":method",
+        ":authority",
+        ":scheme",
+        ":path"
+      ],
+      "priority": 0,
+      "grease": false
+    }
+  }
+}

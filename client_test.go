@@ -172,22 +172,6 @@ func TestExtensionOrderIsShuffledLikeChrome(t *testing.T) {
 }
 
 func TestTheTransportDrawsTheOrderOfABareBaseAlone(t *testing.T) {
-	// A profile with a handshake of its own draws its order itself, every
-	// order as likely as any other; a second draw by the transport would
-	// leave it so, but is no part of it.
-	captured, err := profile.Get("chrome_155_macos")
-	if err != nil {
-		t.Fatalf("Get: %v", err)
-	}
-	bare := &profile.Profile{EngineMajor: profile.Major(1), Name: "firefox_148", Base: "firefox_148"}
-	for _, tc := range []struct {
-		p              *profile.Profile
-		shuffle, wants bool
-	}{{captured, true, false}, {captured, false, false}, {bare, true, true}, {bare, false, false}} {
-		if got := transportShuffles(tc.p, tc.shuffle); got != tc.wants {
-			t.Errorf("%s, shuffle %v: the transport draws %v", tc.p.Name, tc.shuffle, got)
-		}
-	}
 	// A bare base of a browser that keeps its order draws one when told to.
 	server := startEcho(t)
 	for _, tc := range []struct {

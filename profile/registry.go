@@ -15,8 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/igor-lemon/tls-client/profiles"
 )
 
 // Profiles measured against a real browser and committed. Each one was produced
@@ -367,8 +365,10 @@ func (r *Registry) Get(name string) (*Profile, error) {
 		return Load(data)
 	}
 
-	if _, ok := profiles.MappedTLSClients[name]; ok {
-		// A bare reference to the catalogue. It carries a handshake and HTTP/2
+	if entries, err := catalogueEntries(); err != nil {
+		return nil, err
+	} else if _, ok := entries[name]; ok {
+		// A complete JSON descriptor from the catalogue. It carries TLS and HTTP/2
 		// settings but no headers — tls-client has never claimed to know what
 		// headers a browser sends, only how it connects.
 		return catalogueProfile(name)
@@ -558,7 +558,8 @@ func (r *Registry) Names() []string {
 			measured = append(measured, name)
 		}
 	}
-	for name := range profiles.MappedTLSClients {
+	entries, _ := catalogueEntries()
+	for name := range entries {
 		if !seen[name] {
 			seen[name] = true
 			stock = append(stock, name)

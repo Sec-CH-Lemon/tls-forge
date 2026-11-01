@@ -96,18 +96,22 @@ func TestNoProfileRunsWithoutItsCodingAndCookieRulesWhateverItsSchema(t *testing
 			t.Errorf("schema %d with every rule: %v", schema, err)
 		}
 	}
-	// An older schema with no behavior of its own runs with the frozen
-	// legacy data and this engine's additions to it, which hold every rule.
+	// Frozen older-schema defaults lack new capabilities. Only explicit migration
+	// may add them; neither the old schema nor the absence of behavior bypasses it.
 	for _, name := range []string{"chrome_155_windows", "firefox_148"} {
 		old := mustGet(t, name).Clone()
 		old.Schema, old.Behavior = 2, nil
-		for _, key := range requiredRules {
-			if !old.RuntimeBehavior().Has(key) {
-				t.Errorf("%s of schema 2 runs without %s", name, key)
-			}
+		if err := old.Validate(); err == nil {
+			t.Errorf("%s bypassed explicit capability requirements", name)
 		}
-		if err := old.Validate(); err != nil {
-			t.Errorf("%s of schema 2 with the legacy behavior: %v", name, err)
+		migrated, err := old.Migrate(name + "-candidate")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, key := range requiredRules {
+			if !migrated.Behavior.Has(key) {
+				t.Errorf("%s migration missing%s", name, key)
+			}
 		}
 	}
 }
@@ -170,13 +174,17 @@ func TestSavingAnOldArchiveAddsNoRuleOfThisEngine(t *testing.T) {
 		}
 		runs := mustGet(t, name).Clone()
 		runs.Schema, runs.Behavior = 2, nil
-		loaded, err := Load(mustSave(t, runs))
+		archivedRuns, err := Inspect(mustSave(t, runs))
 		if err != nil {
-			t.Fatalf("%s of schema 2 this engine runs, saved, does not run: %v", name, err)
+			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(loaded.Behavior, savedOf(runs.RuntimeBehavior())) {
-			t.Errorf("%s of schema 2 this engine runs saved with other data than it runs with", name)
+		if !reflect.DeepEqual(archivedRuns.Behavior, savedOf(runs.RuntimeBehavior())) {
+			t.Fatal("saving archive changed frozen choices")
 		}
+		if _, err := Load(mustSave(t, runs)); err == nil {
+			t.Fatal("saving silently completed capability metadata")
+		}
+
 	}
 }
 
@@ -193,6 +201,7 @@ func TestAMigrationGivesAnArchiveTheRulesOfItsOwnKind(t *testing.T) {
 		{"safari_ios_18_5", behavior.Generic()},
 	} {
 		archive := mustGet(t, tc.name).Clone()
+		currentRules := archive.Behavior.Clone()
 		archive.EngineMajor = Major(0)
 		for _, key := range requiredRules {
 			delete(archive.Behavior, key)
@@ -202,7 +211,11 @@ func TestAMigrationGivesAnArchiveTheRulesOfItsOwnKind(t *testing.T) {
 			t.Fatalf("%s: %v", tc.name, err)
 		}
 		for _, key := range requiredRules {
-			if got, want := string(migrated.Behavior[key]), string(tc.want[key]); !jsonEqual(t, got, want) {
+			wantValue := tc.want[key]
+			if !tc.want.Has(key) {
+				wantValue = currentRules[key]
+			}
+			if got, want := string(migrated.Behavior[key]), string(wantValue); !jsonEqual(t, got, want) {
 				t.Errorf("%s migrated with %s %s, want %s", tc.name, key, got, want)
 			}
 		}

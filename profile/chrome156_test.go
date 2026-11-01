@@ -2,8 +2,6 @@ package profile
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"os"
 	"reflect"
@@ -40,8 +38,8 @@ func TestChrome156DefaultsRetainNativeCaptureProvenance(t *testing.T) {
 		if err := json.Unmarshal(metadata, &provenance); err != nil {
 			t.Fatal(err)
 		}
-		sum := sha256.Sum256(raw)
-		if provenance.ProfileSHA256 != hex.EncodeToString(sum[:]) || provenance.BasisName != "chrome_155_"+platform {
+		assertA13Derivation(t, "profile/data/chrome_156/"+platform+".json", raw, provenance.ProfileSHA256)
+		if provenance.BasisName != "chrome_155_"+platform {
 			t.Fatal("native data/provenance identity differs")
 		}
 		basis, err := registry.Get(provenance.BasisName)
@@ -73,12 +71,21 @@ func TestChrome156DefaultsRetainNativeCaptureProvenance(t *testing.T) {
 		if len(current) != 8 {
 			t.Fatal("incomplete A10 origins")
 		}
+		derived := a13DerivationOf(t, "profile/data/chrome_156/"+platform+".json")
 		for key := range basis.Behavior {
 			want := "inherited"
 			if origin, ok := current[key]; ok {
 				want = origin.Class
 			}
-			if provenance.Fields["behavior."+key].Class != want {
+			origin := provenance.Fields["behavior."+key]
+			if added, ok := derived.Fields[key]; ok {
+				origin = added
+				want = "source-derived"
+				if added.Source == "" {
+					t.Fatal("missing source derivation", key)
+				}
+			}
+			if origin.Class != want {
 				t.Fatalf("unmeasured field %s lost its origin", key)
 			}
 		}

@@ -51,8 +51,11 @@ func (p *Profile) Migrate(name string) (*Profile, error) {
 	// Inspect/Save and ordinary Load never complete or retag archived profiles.
 	// An older schema without a behavior of its own gets them as it runs with
 	// them, when it is saved below as a profile of this engine.
+	if out.Behavior == nil {
+		out.Behavior = p.RuntimeBehavior().Clone()
+	}
 	if out.Behavior != nil {
-		for key, value := range out.rulesOfItsKind() {
+		for key, value := range p.rulesOfItsKind() {
 			if !out.Behavior.Has(key) {
 				out.Behavior[key] = append(json.RawMessage(nil), value...)
 			}
@@ -72,6 +75,9 @@ func (p *Profile) Migrate(name string) (*Profile, error) {
 				out.Behavior[key] = append(json.RawMessage(nil), value...)
 			}
 		}
+	}
+	if err := out.migrateQUICData(p.chromium()); err != nil {
+		return nil, err
 	}
 	out.Notes += fmt.Sprintf("\nExplicit engine migration to %s (major %d) from profile %q; capture provenance retained; browser acceptance must be rechecked.", engine.Version(), engine.Major(), p.Name)
 	data, err := out.Save()

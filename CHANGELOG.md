@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Materialize all83 catalogue aliases in JSON, including50 independent QUIC TLS
+  descriptors and explicit transport/cache/ordering/ACK policies. Remove runtime
+  Go-preset fallback and raw-hello metadata inference. Require capability choices
+  before I/O; preserve archived files and make migration explicit. Retain source
+  provenance and full before/after controls; pending engine remains1.
+
 - Pin tls-client30e2710 so its standalone graph also selects the implemented
   QUIC6f runtime. Preserve the SCID8→4 before evidence and permanent shared
   UDP wire control; both full source-pinned graphs pass469 runs.

@@ -414,6 +414,7 @@ func TestHowALongDownloadIsAcknowledgedIsTheProfilesToSay(t *testing.T) {
 		"quic.ack_decimation_rtt_percent", "quic.ack_decimation_min_ms"} {
 		off[k] = ""
 	}
+	off["quic.ack_decimation"] = `"none"`
 	s := loneDownload(t, quicProfile(t, off))
 	if before, after, _ := s.mostFresh(10); before != 2 || after != 2 {
 		t.Errorf("without decimation, ACKs of at most %d and %d packets, want 2 throughout", before, after)
@@ -448,7 +449,7 @@ func TestHowALongDownloadIsAcknowledgedIsTheProfilesToSay(t *testing.T) {
 	}
 	// quic-go's rule of a gap: at once when it is new, not each packet
 	// after it
-	if download(t, quicProfile(t, map[string]string{"quic.ack_gap_packets": ""})).eachAfterTheGap(t) {
+	if download(t, quicProfile(t, map[string]string{"quic.ack_gap_packets": "", "quic.ack_gap_policy": `"new-gap"`})).eachAfterTheGap(t) {
 		t.Error("quic-go's rule of a gap: each of the four packets after it acknowledged at once")
 	}
 }

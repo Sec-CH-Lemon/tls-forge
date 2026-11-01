@@ -1,0 +1,82 @@
+{
+  "scope": "accepted local catalogue runtime component; not full A13, SDK capability closure or native/historical browser parity",
+  "aliases": 83,
+  "independent_quic_tls_entries": 50,
+  "shipped_profiles": 18,
+  "derived_close_notify_variants": 3,
+  "normal_packages": 23,
+  "race_packages": 23,
+  "normal_seconds": 209.34134912490845,
+  "race_seconds": 897.1136078834534,
+  "covered_statements": 17225,
+  "uncovered_statements": 0,
+  "source_drift": [],
+  "lint_issues": 0,
+  "fuzz_executions": 106548,
+  "fuzz_seconds": 31.1,
+  "native_source_pairs": 24,
+  "native_source_negative_controls": 6,
+  "native_psk_authenticated_lifecycle_requests": 12,
+  "raw_order_before": "current-major raw hello missing generation accepted or Save inferred generation by metadata",
+  "raw_order_after": "explicit generation required; Save preserves absence; explicit migration uses source identity/data",
+  "metadata_followup": "R15 full graph uses public tls-client30e and coordinated public QUIC6f/uTLSbfb pins",
+  "original_provenance_preserved": true,
+  "data_addition_class": "source-derived, not fresh browser measurement",
+  "new_browser_processes_for_this_component": 0,
+  "limitations": [
+    "Original timeout causes remain bounded as documented in earlier immutable capsules",
+    "Catalogue original handshake-only scope retained, without invented full browser headers",
+    "Old/new same-major daemon capability negotiation will be completed with A13 SDK work",
+    "F03 estimator and physical network reset plus native/historical matrix remain open"
+  ],
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/CATALOGUE-RUNTIME-R15",
+    "files": 1588,
+    "bytes": 70385837,
+    "manifest_sha256": "01fab13b768b6e793e5bac848a3cf3709fb35da3ddfc71d605ae1a5443592298",
+    "verified": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  },
+  "checks": [
+    {
+      "check": "normal",
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-timeout",
+        "20m",
+        "-covermode=set",
+        "-coverprofile=/private/tmp/tls-forge-a13-20261031/r11/native-catalogue-r15.cover",
+        "./..."
+      ],
+      "returncode": 0,
+      "source_drift": [],
+      "seconds": 209.34134912490845
+    },
+    {
+      "check": "race",
+      "command": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-timeout",
+        "20m",
+        "./..."
+      ],
+      "returncode": 0,
+      "source_drift": [],
+      "seconds": 897.1136078834534
+    }
+  ],
+  "inherited_quic_factory": {
+    "before": "bare-base native factory survived selected tcp-adapter policy",
+    "after": "selected profile always clears inherited factory before installing its own",
+    "targeted_race_repetitions": 32
+  }
+}

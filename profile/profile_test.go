@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"github.com/igor-lemon/tls-client/profiles"
 	"math"
 	"os"
 	"reflect"
@@ -228,7 +229,7 @@ func TestClientProfileFromCapturedHello(t *testing.T) {
 		},
 	}
 
-	built, err := p.ClientProfile()
+	built, err := capabilityFixture(t, p).ClientProfile()
 	if err != nil {
 		t.Fatalf("ClientProfile: %v", err)
 	}
@@ -283,13 +284,15 @@ func TestCloneIsIndependent(t *testing.T) {
 func TestClientProfileUsesTheBaseVerbatim(t *testing.T) {
 	// A profile that only names a base IS that base. Rebuilding it from parts
 	// would be a second, drifting copy of settings this library does not own.
-	built, err := (&Profile{EngineMajor: Major(1), Name: "chrome_133", Base: "chrome_133"}).ClientProfile()
+	built, err := capabilityFixture(t, &Profile{EngineMajor: Major(1), Name: "chrome_133", Base: "chrome_133"}).ClientProfile()
 	if err != nil {
 		t.Fatalf("ClientProfile: %v", err)
 	}
-	if got := built.GetClientHelloStr(); !strings.Contains(strings.ToLower(got), "chrome") {
-		t.Errorf("client hello id = %q, want the base's", got)
+	source := profiles.MappedTLSClients["chrome_133"]
+	if !reflect.DeepEqual(built.GetSettings(), source.GetSettings()) || built.GetConnectionFlow() != source.GetConnectionFlow() {
+		t.Fatal("base HTTP2 values changed")
 	}
+
 }
 
 func TestClientProfileErrors(t *testing.T) {
@@ -307,7 +310,7 @@ func TestClientProfileErrors(t *testing.T) {
 	// bare base, so it takes the assembly path — which must still fail rather
 	// than build a client profile around a handshake it could not resolve.
 	broken := &Profile{EngineMajor: Major(1), Name: "x", Base: "nope", HTTP2: HTTP2{Settings: []Setting{{ID: 1}}}}
-	if _, err := broken.ClientProfile(); err == nil {
+	if _, err := capabilityFixture(t, broken).ClientProfile(); err == nil {
 		t.Error("an unknown base should be reported from the assembly path too")
 	}
 	for _, order := range [][]string{
@@ -317,7 +320,7 @@ func TestClientProfileErrors(t *testing.T) {
 		{":method", ":authority", ":scheme", ":unknown"},
 	} {
 		p := &Profile{EngineMajor: Major(1), Name: "x", ClientHello: chromeHelloBytes(t), HTTP2: HTTP2{PseudoHeaderOrder: order}}
-		if _, err := p.ClientProfile(); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
+		if _, err := capabilityFixture(t, p).ClientProfile(); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
 			t.Errorf("ClientProfile accepted pseudo header order %v: %v", order, err)
 		}
 	}
@@ -330,7 +333,7 @@ func TestStreamIDIsHonouredWhenSet(t *testing.T) {
 		HTTP2: HTTP2{Settings: []Setting{{ID: 1, Value: 1}}, StreamID: 7,
 			PseudoHeaderOrder: []string{":method", ":authority", ":scheme", ":path"}},
 	}
-	built, err := p.ClientProfile()
+	built, err := capabilityFixture(t, p).ClientProfile()
 	if err != nil {
 		t.Fatalf("ClientProfile: %v", err)
 	}
@@ -376,9 +379,12 @@ func TestLoadAndSave(t *testing.T) {
 		t.Error("saved profile should end with a newline")
 	}
 
-	loaded, err := Load(saved)
+	loaded, err := Inspect(saved)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
+	}
+	if _, err := Load(saved); err == nil {
+		t.Fatal("archive without new choices became executable")
 	}
 	// Saved in the current schema, whatever it was in; nothing else changes,
 	// and the profile saved is not touched.
@@ -386,17 +392,16 @@ func TestLoadAndSave(t *testing.T) {
 	want.Schema = Schema
 	want.Behavior = original.RuntimeBehavior().Clone()
 	delete(want.Behavior, "tls.ech_payload_lengths")
-	if original.PerConnection == nil {
-		want.PerConnection = &PerConnection{ShufflesExtensions: original.ShufflesExtensions(), ECHPayloadLengths: original.echPayloadLengths()}
-	}
+
 	if !reflect.DeepEqual(loaded, &want) || original.Schema != 0 {
 		t.Errorf("round trip changed the profile:\n got %+v\nwant %+v", loaded, &want)
 	}
 }
 
 func TestAProfileIsReadAsItsSchemaSays(t *testing.T) {
-	read := func(document string) (*Profile, error) { return Load([]byte(document)) }
-	// Written before there was a schema: read as it always was, what the
+	read := func(document string) (*Profile, error) { return Inspect([]byte(document)) }
+	// Offline inspection preserves old format rules; execution separately requires
+	// current explicit capabilities. Written before there was a schema: what the
 	// format does not have passed over.
 	legacy, err := read(`{"engine_major":1,"name":"old","base":"chrome_133","heders":[{"name":"a","value":"b"}]}`)
 	if err != nil || legacy.Name != "old" || legacy.Schema != 0 || legacy.Headers != nil {
@@ -416,7 +421,7 @@ func TestAProfileIsReadAsItsSchemaSays(t *testing.T) {
 		{"schema 0", `{"engine_major":1,"schema":0,"name":"x"}`, "schema 0 is not one"},
 		{"a schema below it", `{"engine_major":1,"schema":-3,"name":"x"}`, "schema -3 is not one"},
 		{"a schema that is no number", `{"engine_major":1,"schema":"1","name":"x"}`, "cannot unmarshal string"},
-		{"more after the profile", `{"engine_major":1,"schema":1,"name":"x","base":"chrome_133"} {}`, "extra data"},
+		{"more after the profile", `{"engine_major":1,"schema":1,"name":"x","base":"chrome_133"} {}`, "after top-level value"},
 	} {
 		if _, err := read(tc.document); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: %v, want %q", tc.name, err, tc.want)
@@ -425,13 +430,16 @@ func TestAProfileIsReadAsItsSchemaSays(t *testing.T) {
 }
 
 func TestLoadErrors(t *testing.T) {
+	if _, err := Load([]byte(`{"engine_major":1,"schema":1,"name":"x","base":"chrome_133"} {}`)); err == nil || !strings.Contains(err.Error(), "extra data") {
+		t.Fatal("execution accepted trailing JSON", err)
+	}
 	if _, err := Load([]byte("{")); err == nil {
 		t.Error("malformed JSON should be reported")
 	}
 	if _, err := Load([]byte(`{"engine_major":1,"user_agent":"x"}`)); err == nil {
 		t.Error("a profile without a name should be reported")
 	}
-	if _, err := Load([]byte(`{"engine_major":1,"name":"x","base":"chrome_133","http2":{"settings":[{"id":1,"value":65536}]}}`)); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
+	if _, err := Inspect([]byte(`{"engine_major":1,"name":"x","base":"chrome_133","http2":{"settings":[{"id":1,"value":65536}]}}`)); err == nil || !strings.Contains(err.Error(), "pseudo_header_order") {
 		t.Errorf("a profile without pseudo headers was accepted: %v", err)
 	}
 	for _, section := range []string{
@@ -442,12 +450,12 @@ func TestLoadErrors(t *testing.T) {
 		`{"header_order":["Host"],"headers":[{"name":"Host","value":"x"}]}`,
 		`{"header_order":["Host"],"headers":[{"name":"Connection","value":"close"}]}`,
 	} {
-		_, err := Load([]byte(`{"engine_major":1,"name":"x","base":"chrome_133","http1":` + section + `}`))
+		_, err := Inspect([]byte(`{"engine_major":1,"name":"x","base":"chrome_133","http1":` + section + `}`))
 		if err == nil || !strings.Contains(err.Error(), "http1") {
 			t.Errorf("invalid HTTP/1 section %s was accepted: %v", section, err)
 		}
 	}
-	legacy, err := Load([]byte(`{"engine_major":1,"name":"old","base":"chrome_133"}`))
+	legacy, err := Inspect([]byte(`{"engine_major":1,"name":"old","base":"chrome_133"}`))
 	if err != nil || legacy.HTTP1 != nil {
 		t.Errorf("legacy profile no longer loads: %+v, %v", legacy, err)
 	}
@@ -455,7 +463,7 @@ func TestLoadErrors(t *testing.T) {
 
 func TestAProfilesClientHintsAreOnesAServerAsksFor(t *testing.T) {
 	load := func(hints string) error {
-		_, err := Load([]byte(`{"engine_major":1,"schema":2,"name":"x","base":"chrome_133","client_hints":[` + hints + `]}`))
+		_, err := Inspect([]byte(`{"engine_major":1,"schema":2,"name":"x","base":"chrome_133","client_hints":[` + hints + `]}`))
 		return err
 	}
 	if err := load(`{"name":"sec-ch-ua-arch","value":"\"arm\""},{"name":"rtt","value":"100"},` +
@@ -491,20 +499,20 @@ func TestShufflesExtensionsByBrowserFamily(t *testing.T) {
 		profile Profile
 		want    bool
 	}{
-		{profile: Profile{EngineMajor: Major(1), Name: "chrome_151"}, want: true},
-		{profile: Profile{EngineMajor: Major(1), Name: "brave_146"}, want: true},
-		{profile: Profile{EngineMajor: Major(1), Name: "opera_91"}, want: true},
-		{profile: Profile{EngineMajor: Major(1), Name: "custom", Base: "chrome_133"}, want: true},
-		{profile: Profile{EngineMajor: Major(1), Name: "custom", UserAgent: "Mozilla/5.0 Chrome/151.0"}, want: true},
-		{profile: Profile{EngineMajor: Major(1), Name: "firefox_148"}, want: false},
-		{profile: Profile{EngineMajor: Major(1), Name: "safari_18_5"}, want: false},
+		{profile: Profile{EngineMajor: Major(0), Name: "chrome_151"}, want: true},
+		{profile: Profile{EngineMajor: Major(0), Name: "brave_146"}, want: true},
+		{profile: Profile{EngineMajor: Major(0), Name: "opera_91"}, want: true},
+		{profile: Profile{EngineMajor: Major(0), Name: "custom", Base: "chrome_133"}, want: true},
+		{profile: Profile{EngineMajor: Major(0), Name: "custom", UserAgent: "Mozilla/5.0 Chrome/151.0"}, want: true},
+		{profile: Profile{EngineMajor: Major(0), Name: "firefox_148"}, want: false},
+		{profile: Profile{EngineMajor: Major(0), Name: "safari_18_5"}, want: false},
 		// Chrome on Android is Chrome; on iOS it is Apple's stack under another
 		// name, said by the platform in its name or by its user agent.
-		{profile: Profile{EngineMajor: Major(1), Name: "chrome_138_android"}, want: true},
-		{profile: Profile{EngineMajor: Major(1), Name: "chrome_138_ios"}, want: false},
-		{profile: Profile{EngineMajor: Major(1), Name: "chrome_138", UserAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) CriOS/138.0"}, want: false},
-		{profile: Profile{EngineMajor: Major(1), Name: "chrome_138", UserAgent: "Mozilla/5.0 (iPad; CPU OS 18_5 like Mac OS X) CriOS/138.0"}, want: false},
-		{profile: Profile{EngineMajor: Major(1), Name: "custom", Base: "safari_ios_18_5"}, want: false},
+		{profile: Profile{EngineMajor: Major(0), Name: "chrome_138_android"}, want: true},
+		{profile: Profile{EngineMajor: Major(0), Name: "chrome_138_ios"}, want: false},
+		{profile: Profile{EngineMajor: Major(0), Name: "chrome_138", UserAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) CriOS/138.0"}, want: false},
+		{profile: Profile{EngineMajor: Major(0), Name: "chrome_138", UserAgent: "Mozilla/5.0 (iPad; CPU OS 18_5 like Mac OS X) CriOS/138.0"}, want: false},
+		{profile: Profile{EngineMajor: Major(0), Name: "custom", Base: "safari_ios_18_5"}, want: false},
 	} {
 		if got := tc.profile.ShufflesExtensions(); got != tc.want {
 			t.Errorf("%q ShufflesExtensions = %v, want %v", tc.profile.Name, got, tc.want)
@@ -881,7 +889,7 @@ func TestAChromiumProfileWritesHeadersAndWindowsAsChromeDoes(t *testing.T) {
 		"Chrome on an iPhone":          {&Profile{EngineMajor: Major(1), Name: "chrome_ios", Base: "safari_ios_18_0", UserAgent: "CriOS iPhone"}, false},
 	} {
 		t.Run(name, func(t *testing.T) {
-			built, err := tc.p.ClientProfile()
+			built, err := capabilityFixture(t, tc.p).ClientProfile()
 			if err != nil {
 				t.Fatalf("ClientProfile: %v", err)
 			}

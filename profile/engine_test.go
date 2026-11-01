@@ -150,15 +150,17 @@ func TestCatalogueMetadataIsCheckedBeforeTemplateExpansion(t *testing.T) {
 	original := append([]byte(nil), catalogueTemplate...)
 	defer func() { catalogueTemplate = original }()
 	var inventory struct {
-		Entries   map[string]string          `json:"entries"`
-		Templates map[string]json.RawMessage `json:"templates"`
+		Entries map[string]json.RawMessage `json:"entries"`
 	}
-	json.Unmarshal(original, &inventory)
-	key := inventory.Entries["firefox_148"]
-	template := string(inventory.Templates[key])
+	if err := json.Unmarshal(original, &inventory); err != nil {
+		t.Fatal(err)
+	}
+	key := "firefox_148"
+
+	template := string(inventory.Entries[key])
 	for _, replacement := range []string{`"engine_major":0,`, `"engine_major":8,`, `"engine_major":null,`, ``, `"engine_major":1,"engine_major":1,`, `"engine_major":0,"Engine_Major":1,`} {
 		compact := strings.ReplaceAll(strings.ReplaceAll(template, " ", ""), "\n", "")
-		inventory.Templates[key] = json.RawMessage(strings.Replace(compact, `"engine_major":1,`, replacement, 1))
+		inventory.Entries[key] = json.RawMessage(strings.Replace(compact, `"engine_major":1,`, replacement, 1))
 		catalogueTemplate, _ = json.Marshal(inventory)
 		if _, err := catalogueProfile("firefox_148"); err == nil || !strings.Contains(err.Error(), "firefox_148") || !strings.Contains(err.Error(), "engine_major") {
 			t.Fatal(replacement, err)
@@ -257,10 +259,10 @@ func TestACatalogueEntryIsItsPinnedTemplateOrNone(t *testing.T) {
 		t.Errorf("an entry the inventory lacks: %v", err)
 	}
 	for _, tc := range []struct{ data, want string }{
-		{`{`, "unexpected EOF"},
+		{`{`, "EOF"},
 		{`{"entries":{},"templates":{},"more":1}`, "unknown field"},
-		{`{"entries":{"firefox_148":"t"},"templates":{}}`, `profile "firefox_148"`},
-		{`{"entries":{"firefox_148":"t"},"templates":{"t":{"engine_major":2}}}`, "engine_major 2 is incompatible"},
+		{`{"entries":{"firefox_148":{"engine_major":1}}}`, `name is required`},
+		{`{"entries":{"firefox_148":{"engine_major":2}}}`, "engine_major 2 is incompatible"},
 	} {
 		catalogueTemplate = []byte(tc.data)
 		if _, err := catalogueProfile("firefox_148"); err == nil || !strings.Contains(err.Error(), tc.want) {

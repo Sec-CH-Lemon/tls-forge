@@ -146,7 +146,16 @@ func TestTheReportSaysWhoseTCPIPARunHas(t *testing.T) {
 
 func TestNetworkNote(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "mine.json")
-	if err := os.WriteFile(file, []byte(`{"engine_major":1,"name":"mine_windows","base":"chrome_133"}`), 0o644); err != nil {
+	custom, err := profile.Get("chrome_155_windows")
+	if err != nil {
+		t.Fatal(err)
+	}
+	custom.Name = "mine_windows"
+	data, err := custom.Save()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	fromFile, err := profile.Get(file)

@@ -15,7 +15,11 @@ import (
 
 func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) {
 	old := &Profile{EngineMajor: Major(1), Name: "chrome_custom", Base: "chrome_133"}
-	saved, err := old.Save()
+	prepared, err := old.Migrate("chrome_custom_current")
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, err := prepared.Save()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,12 +27,11 @@ func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if migrated.Schema != Schema || migrated.Behavior == nil || migrated.PerConnection == nil {
+	if migrated.Schema != Schema || migrated.Behavior == nil || migrated.PerConnection == nil && !migrated.BareBase() {
 		t.Fatal("migration did not materialize policy")
 	}
 	before := migrated.RuntimeBehavior().Clone()
 	migrated.Name = "unrelated_200"
-	migrated.Base = "firefox_148"
 	migrated.UserAgent = "Metadata only"
 	if !reflect.DeepEqual(before, migrated.RuntimeBehavior()) || !migrated.ShufflesExtensions() {
 		t.Fatal("identity changed explicit policy")

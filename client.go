@@ -371,9 +371,7 @@ func New(opts ...Option) (*Client, error) {
 		// transport-options value replaces these options in client scope.
 		tls_client.WithTransportOptions(transportOptions),
 	}
-	if transportShuffles(prof, shuffleExtensions) {
-		options = append(options, tls_client.WithRandomTLSExtensionOrder())
-	}
+
 	if !cfg.followRedirects {
 		options = append(options, tls_client.WithNotFollowRedirects())
 	}
@@ -911,15 +909,6 @@ func (c *Client) resolveBrowser(req *Request, method string, target *url.URL) (*
 		c.asProfile(r)
 	}
 	return r, err
-}
-
-// transportShuffles reports whether the transport draws the order of a
-// client's TLS extensions: for a bare base of its catalogue, whose handshake
-// is its own, when shuffle says. A profile with a handshake of its own draws
-// it itself (profile.ClientProfileShuffled), and the transport's draw, which
-// passes over a swap with GREASE, would be a second one.
-func transportShuffles(prof *profile.Profile, shuffle bool) bool {
-	return shuffle && prof.BareBase()
 }
 
 // followRedirect is the policy for every redirect: where the chain stops, who

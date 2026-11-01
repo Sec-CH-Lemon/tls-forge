@@ -573,7 +573,9 @@ func (c *Client) describe(cfg config, shuffles bool, sends profiles.ClientProfil
 	}
 	c.log.Info("client", attrs...)
 
-	if len(p.ClientHello) == 0 {
+	if p.TLSSpec != nil {
+		c.log.Debug("profile handshake", "from", "declarative JSON", "extensions", len(p.TLSSpec.Extensions), "cipher_suites", len(p.TLSSpec.CipherSuites), "notes", p.Notes)
+	} else if len(p.ClientHello) == 0 {
 		c.log.Debug("profile handshake", "from", "tls-client's catalogue", "base", p.Base)
 	} else if hello, err := fingerprint.ParseClientHello(p.ClientHello); err == nil {
 		c.log.Debug("profile handshake", "from", "captured", "ja4", hello.JA4(), "alpn", hello.ALPN(),

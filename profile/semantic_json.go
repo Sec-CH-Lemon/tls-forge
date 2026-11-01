@@ -25,8 +25,8 @@ func validateProfileJSON(data []byte) error {
 		if err != nil {
 			return err
 		}
-		if path == "tls_spec" && token != json.Delim('{') {
-			return fmt.Errorf("tls_spec = %v: requires a non-null descriptor object", token)
+		if (path == "tls_spec" || path == "quic_tls_spec") && token != json.Delim('{') {
+			return fmt.Errorf("%s = %v: requires a non-null descriptor object", path, token)
 		}
 		if strings.HasPrefix(path, "http2.") {
 			field := path[strings.LastIndexByte(path, '.')+1:]

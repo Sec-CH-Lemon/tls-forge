@@ -37,7 +37,7 @@ migratedJSON, err := candidate.Save() // save to a separate destination
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit engine-1
+The 18 shipped profiles and all backend catalogue policies have explicit engine-1
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -145,11 +145,44 @@ the pending release retains engine major1.
 | `grease_ech` | Nonempty `cipher_suites` of `{kdf,aead}` (implemented1/1..3), `config_id: "random-byte"`, `encapsulated_key: "hpke-x25519-sha256-aes128gcm"`, nonempty `payload_lengths` before the AEAD tag. Actual keys, config IDs and payloads are generated per connection and retained where HRR requires. |
 | `trust_anchors` | `data` contains the encoded ID set; `order` selects `captured`, `sorted` or `process-shuffle`. Lengths and every ID are validated; the process-shuffle cache is keyed by the ID set. |
 
-The TLS exporter fixture covers83 aliases from pinned backend sources. Its
-technical adapter checks use one explicit common HTTP/session policy, cold,
-reused and new connections. They do not establish full catalogue transport
-materialization or fresh acceptance of historical browsers. Those remain
-separate A13 obligations.
+All83 executable catalogue aliases are complete JSON descriptors. Their original
+handshake-only scope is retained: they do not acquire invented browser headers
+or a new browser-capture verdict. The registry and bare-base compatibility API
+read these descriptors; neither executes a second Go preset representation.
+Cold, reused and new/resumed production controls and exact before/after data are
+recorded in the A13 catalogue acceptance report. Historical-browser acceptance
+remains distinct from source-export equivalence.
+
+### Independent QUIC TLS and explicit transport choices
+
+`quic_tls_spec` independently describes QUIC TLS when behavior selects
+`quic.tls_source: "independent"`. The object requires `hello`, `cipher_order`
+and `cipher_suites_without_aes`. `hello` has the complete `tls_spec` shape,
+exact TLS1.3 bounds, `session_id: "empty"`, TLS1.3 supported-versions and
+`h3` ALPN. `cipher_order` is `fixed` or `hardware-aes`; the latter supplies
+two explicit permutations of the same supported TLS1.3 cipher set. The fixed
+choice requires an explicit empty alternate vector. CPU capability selects
+data; it does not supply cipher values from a browser-name branch.
+
+The `quic_transport_parameters` extension requires
+`{"source":"quic-connection"}` and receives this connection's live parameters.
+For native hybrid key shares, group29 can select
+`source: "fresh-mlkem768-component"` with empty data, only beside a fresh
+MLKEM768/X25519 share. Both use the same freshly generated X25519 component.
+Captured keys, connection IDs, sessions and binders are never replayed.
+
+`quic.tls_source: "tcp-adapter"` uses the explicit TCP descriptor and must
+not carry `quic_tls_spec`. Every executable profile supplies the new transport,
+cache, ordering and ACK choices in the field reference below. Their absence
+fails before I/O on every schema. A current-major raw `client_hello` also needs
+explicit `per_connection`; `Save` cannot invent this rule from its name.
+
+`Inspect`, `Save` and `Clone` preserve archived compatibility and missing data.
+Only explicit `Migrate` materializes a separately named candidate from pinned
+migration JSON; its source family is the archived source, not the destination
+name. Migration is neither automatic execution permission nor browser acceptance.
+The pending engine stays1; older major1 executables reject these unsupported
+capabilities, and the updated engine rejects missing required choices.
 
 `client_hello` is a real ClientHello, base64'd, recorded off the wire. It is the
 authoritative TLS field; the HTTP fields are measurements from the same browser
