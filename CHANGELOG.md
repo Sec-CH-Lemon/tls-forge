@@ -11,6 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Add bounded weighted observation buffers and explicit libc++ host-hash
+  primitives for the pending A13 network estimator, with independent C++
+  oracles and LLVM attribution. Network-hint generation is not yet activated.
+
+
 - Materialize all83 catalogue aliases in JSON, including50 independent QUIC TLS
   descriptors and explicit transport/cache/ordering/ACK policies. Remove runtime
   Go-preset fallback and raw-hello metadata inference. Require capability choices

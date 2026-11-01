@@ -1,0 +1,43 @@
+{
+  "scope": "independent primitive acceptance; not production F03",
+  "weighted_oracle_cases": 128,
+  "libcxx_hash_oracle_cases": 188,
+  "variant_selection": "explicit; neither variant is selected as a browser default",
+  "source_revision": "Chromium156.0.8078.76 / pinned libc++ source in original capsule",
+  "sources": [
+    {
+      "file": "networkquality/testdata/libcxx-hosthash-oracle.cc",
+      "sha256": "583697d4f132c2e2c7bceb996b049f1280796f3c4c1ffb2872d150da808f675e"
+    },
+    {
+      "file": "networkquality/testdata/libcxx-hosthash-oracle.json",
+      "sha256": "6065c2630edaabcc8860159684089dd5606164149ae4abe367e9948f61bb5aa8"
+    },
+    {
+      "file": "networkquality/testdata/verify_oracles.py",
+      "sha256": "5fdcd004fe222c8fd30c5d52695809829dae540d9bb4e21c2e7f8e760423ae53"
+    },
+    {
+      "file": "networkquality/testdata/weighted-buffer-oracle.cc",
+      "sha256": "07f841fe23089cc5d7276b3b0a594264ddf07419122f3567a085abfabee441ab"
+    },
+    {
+      "file": "networkquality/testdata/weighted-buffer-oracle.json",
+      "sha256": "7727abe35e1d331653474c1f164c1c82e3a2721ebe8277d3e9c2acf6fc81ee73"
+    }
+  ],
+  "covered_statements": 134,
+  "uncovered_statements": 0,
+  "lint_issues": 0,
+  "cpp_oracles_replayed": true,
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/NQE-PRIMITIVES-R16",
+    "files": 14,
+    "bytes": 371475,
+    "manifest_sha256": "1e79b2387e27c2da98fe749abb2f54d2abd17089ca91d83e2f988885edf5fb3c",
+    "verified": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  }
+}

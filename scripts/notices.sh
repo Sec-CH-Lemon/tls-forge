@@ -62,3 +62,10 @@ printf '\n%s\n%s\n%s\n\n' \
   "rapidhash header-name hashing (internal/chromehash)" \
   "--------------------------------------------------------------------------------"
 cat internal/chromehash/LICENSE
+
+# The host hash primitive is ported from libc++, outside the Go module cache.
+printf '\n%s\n%s\n%s\n\n' \
+  "--------------------------------------------------------------------------------" \
+  "LLVM libc++ host hashing (networkquality)" \
+  "--------------------------------------------------------------------------------"
+cat networkquality/LICENSE.libcxx.txt

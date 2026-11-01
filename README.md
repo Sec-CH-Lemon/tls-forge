@@ -3195,3 +3195,8 @@ not establish historical browser parity. Raw profiles require explicit generatio
 rules; only explicit migration fills archived capabilities. See the
 [A13 catalogue acceptance](docs/remediation/2026-10-31/A13-catalogue-runtime.ru.md)
 and [profile format](docs/profiles.md#independent-quic-tls-and-explicit-transport-choices).
+
+The `networkquality` package supplies bounded weighted observation buffers and
+explicit libc++ host-hash primitives for the A13 estimator. Their independent
+oracles and provenance live in `networkquality/testdata`; this component alone
+does not activate network-hint generation.
