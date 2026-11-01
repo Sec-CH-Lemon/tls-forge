@@ -10,12 +10,16 @@ import (
 )
 
 func systemNetworkRoute(families []string) (networkRoute, error) {
+	return linuxNetworkRoute(families, os.ReadFile, os.Stat, net.InterfaceByName)
+}
+
+func linuxNetworkRoute(families []string, readFile func(string) ([]byte, error), stat func(string) (os.FileInfo, error), interfaceOf func(string) (*net.Interface, error)) (networkRoute, error) {
 	for _, family := range families {
 		path := "/proc/net/route"
 		if family == "ipv6" {
 			path = "/proc/net/ipv6_route"
 		}
-		raw, err := os.ReadFile(path)
+		raw, err := readFile(path)
 		if err != nil {
 			continue
 		}
@@ -23,14 +27,14 @@ func systemNetworkRoute(families []string) (networkRoute, error) {
 		if !ok {
 			continue
 		}
-		iface, err := net.InterfaceByName(name)
+		iface, err := interfaceOf(name)
 		if err != nil {
 			return networkRoute{}, err
 		}
 		kind := "unknown"
-		if _, err := os.Stat(filepath.Join("/sys/class/net", name, "wireless")); err == nil {
+		if _, err := stat(filepath.Join("/sys/class/net", name, "wireless")); err == nil {
 			kind = "wifi"
-		} else if raw, err := os.ReadFile(filepath.Join("/sys/class/net", name, "type")); err == nil && strings.TrimSpace(string(raw)) == "1" {
+		} else if raw, err := readFile(filepath.Join("/sys/class/net", name, "type")); err == nil && strings.TrimSpace(string(raw)) == "1" {
 			kind = "ethernet"
 		}
 		return networkRoute{index: iface.Index, gateway: gateway, kind: kind}, nil

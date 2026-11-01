@@ -8,6 +8,10 @@ import (
 )
 
 func networkTCPRTT(conn net.Conn) (time.Duration, bool) {
+	return networkTCPRTTFrom(conn, unix.GetsockoptTCPInfo)
+}
+
+func networkTCPRTTFrom(conn net.Conn, readInfo func(int, int, int) (*unix.TCPInfo, error)) (time.Duration, bool) {
 	c, ok := conn.(syscall.Conn)
 	if !ok {
 		return 0, false
@@ -18,7 +22,7 @@ func networkTCPRTT(conn net.Conn) (time.Duration, bool) {
 	}
 	var info *unix.TCPInfo
 	var inner error
-	err = raw.Control(func(fd uintptr) { info, inner = unix.GetsockoptTCPInfo(int(fd), unix.IPPROTO_TCP, unix.TCP_INFO) })
+	err = raw.Control(func(fd uintptr) { info, inner = readInfo(int(fd), unix.IPPROTO_TCP, unix.TCP_INFO) })
 	if err != nil || inner != nil || info == nil || info.Rtt == 0 {
 		return 0, false
 	}

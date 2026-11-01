@@ -3226,3 +3226,5 @@ The [native CI follow-up](docs/remediation/2026-11-01/Network-hints-native.ru.md
 The standalone Go example pins the same published transport dependencies as the engine and is checked with `GOWORK=off`.
 
 `make notices` uses Node to read the release builder's existing `TARGETS`, then Go to collect their actual linked dependencies. The shared notice inventory is reproducible across hosts and includes platform-specific dependencies.
+
+Native Linux network metadata checks cover both kernel route formats and TCP_INFO failure/measurement paths; production still uses the original OS calls, with parameter-based I/O seams for deterministic controls.
