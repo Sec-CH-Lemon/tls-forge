@@ -1,0 +1,59 @@
+{
+  "scope": "generic fhttp observation primitives; not browser or full F03 acceptance",
+  "commit": "fc7146a720798c99a89253fd9e8df5d99e18c2f5",
+  "before": "24c1c55ecaf2be8355ea9b1c0ee3b39801882f61; complete source retained",
+  "hooks": [
+    "ClientTrace.WriteHeadersStart(method)",
+    "ClientTrace.GotResponseHeaders(method,status)",
+    "ClientTrace.GotResponseBodyBytes(method,n)",
+    "HTTP2.Transport.PingRTT(peer,rtt)"
+  ],
+  "checks": {
+    "standalone": {
+      "source_commit": "fc7146a720798c99a89253fd9e8df5d99e18c2f5",
+      "source_sha256": "aa5f574eefd7ef531a43b135c30545ec265edb60ef2e67d1f8e895fe8cc63dcf",
+      "test_runs": 1891,
+      "returncodes": [
+        0,
+        0,
+        0
+      ],
+      "accepted": true,
+      "unexpected": [],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict."
+    },
+    "production": {
+      "source_commit": "fc7146a720798c99a89253fd9e8df5d99e18c2f5",
+      "source_sha256": "aa5f574eefd7ef531a43b135c30545ec265edb60ef2e67d1f8e895fe8cc63dcf",
+      "test_runs": 1891,
+      "returncodes": [
+        0,
+        0,
+        0
+      ],
+      "accepted": true,
+      "unexpected": [],
+      "network": "loopback only; external TestWeb cannot issue its POST",
+      "meaning": "Known-debt regression gate only; not a green fork suite, F09 stage2, or browser verdict."
+    }
+  },
+  "body_wrappers_added": false,
+  "browser_values_added_in_code": false,
+  "targeted_race_repetitions": 32,
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/FHTTP-OBSERVER-R18",
+    "files": 25,
+    "bytes": 15796043,
+    "manifest_sha256": "ededec3bf095db24b39efde4bba10fb1fca7813004bf0a377d0d2650de529fdb",
+    "verified": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  },
+  "limitations": [
+    "Root still pins prior public fhttp; new commit is local only",
+    "QUIC/H3/tls-client observer adapters remain private candidates awaiting coordinated published dependency",
+    "Full F03 state/profile/SDK and browser acceptance remain open"
+  ]
+}
