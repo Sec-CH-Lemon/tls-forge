@@ -13,7 +13,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 - Loosen landing headline tracking, use a self-hosted Inter Variable subset,
   and increase feature, workflow and FAQ reading text while retaining mobile
-  and desktop Lighthouse 100.
+  and desktop Lighthouse 100. Use optional font display to avoid late swaps
+  on slower connections.
 
 - Redesign the landing with a frosted-glass visual system, an illustrative
   animated request path, decorative scroll parallax, reduced-motion support

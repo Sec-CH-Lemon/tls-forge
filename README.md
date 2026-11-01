@@ -65,6 +65,8 @@ The page self-hosts a Latin subset of Inter Variable in
 [`web/landing/fonts/`](web/landing/fonts/) under the SIL Open Font License;
 system monospace remains reserved for code and request data. The type scale
 uses restrained headline tracking and 16px feature, workflow and FAQ copy.
+The font uses optional display so slow font loading leaves readable system
+text in place instead of replacing it after first paint.
 
 `.github/workflows/landing.yml` checks all four Lighthouse categories at 100
 on mobile and desktop, then publishes only `web/landing/` through GitHub Pages
