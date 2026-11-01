@@ -70,6 +70,51 @@ tls-forge fetch https://example.com/ > page.html
 runs](#cookies-across-runs), [keeping every request](#keeping-every-request)
 and the [Go, Node.js and Python libraries](#language-libraries) come after.
 
+The project's static landing page is in [`web/landing/`](web/landing/). Its
+source needs no build step or external assets; the website workflow combines
+it with generated documentation under `/docs/`. Its
+canonical, social-image and sitemap URLs target `https://tls-forge.com/`.
+Lighthouse scores depend on the final host, headers and network path, so run
+its mobile and desktop audits after deployment.
+The hero network flow is illustrative and makes no requests. The local
+motion.js moves only decorative layers on scroll and respects reduced-motion
+preferences; the frosted panels and social image share the same visual style.
+The page self-hosts a Latin subset of Inter Variable in
+[`web/landing/fonts/`](web/landing/fonts/) under the SIL Open Font License;
+system monospace remains reserved for code and request data. The type scale
+uses restrained headline tracking and 16px feature, workflow and FAQ copy.
+The font uses optional display so slow font loading leaves readable system
+text in place instead of replacing it after first paint.
+The landing leads with `fetch` for collecting HTML/JSON in scraping workflows
+and `proxy` for routing an existing HTTP(S) client through a selected network
+profile. Its proxy example mentions the generated CA required by HTTPS clients;
+the page also explains SDKs, capture/compare and request diagnostics without
+claiming that tls-forge renders pages or solves challenges.
+Prominent repository links use GitHub's Primer Octicons. The header shows the
+last known star count (initially baked into the HTML) and `github-stars.js`
+refreshes it in the background from GitHub's public stargazer-count endpoint,
+with a 30-minute browser cache and a five-second timeout. If the API fails or
+rate-limits the visitor, the visible count remains; no GitHub request blocks
+the landing's initial render.
+The responsive layout switches to the compact header before desktop navigation
+crowds the GitHub badge, keeps feature cards and footer links on complete rows,
+and wraps terminal commands without hiding their ends. Check the whole page at
+320, 390, 600, 768, 900, 1024 and 1440px, including the open mobile menu and
+FAQ, when changing its layout.
+
+`.github/workflows/landing.yml` generates CLI/SDK references from source, builds
+the documentation with strict links, checks all four landing Lighthouse
+categories at 100 on mobile and desktop, then publishes one GitHub Pages
+artifact with the approved static landing and `/docs/`. A `landing-v*` tag on
+`development` approves new landing source. Documentation/source changes on
+`development` republish the latest tagged landing source with fresh docs;
+the landing source itself does not change on that branch push. Configure the
+repository's Pages source as **GitHub Actions** and custom domain as
+`tls-forge.com` before changing the apex DNS
+to [GitHub Pages](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site).
+Keep `fp.tls-forge.com` on its direct measurement server; its TLS endpoint must
+not be put behind the website's proxy or CDN.
+
 ## Install
 
 A Chromium-based browser is required only for `capture` and `compare`. Fetching,

@@ -11,6 +11,32 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Correct the landing at phone and tablet widths: contain the GitHub badge in
+  the header, complete feature and footer rows, wrap terminal commands, and
+  tighten the limits heading. Verify screenshots and open-menu/FAQ states.
+
+- Add GitHub icons to the landing's repository links and a cached, background
+  star counter in the header with a visible fallback when the API is unavailable.
+
+
+- Rework the landing around its primary workflows: `fetch` for HTML/API
+  collection and `proxy` for browser-profiled outbound requests from existing
+  clients, with SDKs, capture/compare, request diagnostics and clear limits.
+
+- Loosen landing headline tracking, use a self-hosted Inter Variable subset,
+  and increase feature, workflow and FAQ reading text while retaining mobile
+  and desktop Lighthouse 100. Use optional font display to avoid late swaps
+  on slower connections.
+
+- Redesign the landing with a frosted-glass visual system, an illustrative
+  animated request path, decorative scroll parallax, reduced-motion support
+  and a matching Open Graph image.
+
+- Add a static open-source project landing page in `web/landing` with responsive
+  layout, semantic content, quick start, project scope, social metadata and
+  sitemap; add a tag-triggered GitHub Pages workflow gated by mobile/desktop
+  Lighthouse 100.
+
 ## [1.0.0] - Unreleased
 
 Prepared release; no release tag or publication has been made. The publication

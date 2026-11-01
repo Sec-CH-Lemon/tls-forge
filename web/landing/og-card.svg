@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-labelledby="title description">
+  <title id="title">TLS Forge</title>
+  <desc id="description">A browser's network fingerprint in your code, with a profile moving through TLS and HTTP.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07121c"/><stop offset=".55" stop-color="#0d2330"/><stop offset="1" stop-color="#111328"/></linearGradient>
+    <radialGradient id="teal"><stop stop-color="#2caeaa" stop-opacity=".33"/><stop offset="1" stop-color="#2caeaa" stop-opacity="0"/></radialGradient>
+    <radialGradient id="violet"><stop stop-color="#7865cd" stop-opacity=".32"/><stop offset="1" stop-color="#7865cd" stop-opacity="0"/></radialGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#789ba3" stop-opacity=".25"/><stop offset=".55" stop-color="#294761" stop-opacity=".36"/><stop offset="1" stop-color="#3a3261" stop-opacity=".42"/></linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#b1fff0"/><stop offset=".55" stop-color="#a3cfff"/><stop offset="1" stop-color="#c5b6ff"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#background)"/>
+  <ellipse cx="545" cy="40" rx="500" ry="420" fill="url(#teal)"/>
+  <ellipse cx="1080" cy="500" rx="450" ry="380" fill="url(#violet)"/>
+  <g stroke="#c8eaff" stroke-opacity=".055" stroke-width="1">
+    <path d="M0 90H1200M0 146H1200M0 202H1200M0 258H1200M0 314H1200M0 370H1200M0 426H1200M0 482H1200M0 538H1200"/>
+    <path d="M56 0V630M112 0V630M168 0V630M224 0V630M280 0V630M336 0V630M392 0V630M448 0V630M504 0V630M560 0V630M616 0V630M672 0V630M728 0V630M784 0V630M840 0V630M896 0V630M952 0V630M1008 0V630M1064 0V630M1120 0V630M1176 0V630"/>
+  </g>
+  <path d="M73 64 99 90 73 116 47 90 73 64Z" fill="none" stroke="#a9f5e8" stroke-width="2"/><path d="M60 90h26" stroke="#a9f5e8" stroke-width="2"/>
+  <text x="116" y="101" fill="#f4f9ff" font-family="Arial, sans-serif" font-size="35" font-weight="700">TLS<tspan fill="#c0cedc" font-weight="400">FORGE</tspan></text>
+  <text x="73" y="250" fill="#f4f9ff" font-family="Arial, sans-serif" font-size="59" font-weight="700">A browser's network</text>
+  <text x="73" y="322" fill="#f4f9ff" font-family="Arial, sans-serif" font-size="59" font-weight="700">fingerprint.</text>
+  <text x="73" y="395" fill="url(#accent)" font-family="Arial, sans-serif" font-size="59" font-weight="700">In your code.</text>
+  <text x="75" y="530" fill="#bdd1dc" font-family="Arial, sans-serif" font-size="24">Open source · CLI · Proxy · Go · Node.js · Python</text>
+  <rect x="737" y="117" width="428" height="404" rx="32" fill="#b6cde2" fill-opacity=".075" stroke="#c6e6f2" stroke-opacity=".15" transform="rotate(-3 951 319)"/>
+  <rect x="751" y="129" width="425" height="396" rx="29" fill="url(#glass)" stroke="#daf7ff" stroke-opacity=".36" stroke-width="1.5"/>
+  <path d="M751 193H1176M751 396H1176" stroke="#d5f0fb" stroke-opacity=".18"/>
+  <circle cx="783" cy="160" r="4" fill="#a5f5df"/>
+  <text x="800" y="165" fill="#d6edf4" font-family="Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="2">REQUEST FLOW</text>
+  <text x="1112" y="165" fill="#a4bbce" font-family="Arial, sans-serif" font-size="12" text-anchor="end">JSON</text>
+  <path d="M800 293 C865 293 866 266 929 293 S1029 320 1091 293" fill="none" stroke="#9dece2" stroke-opacity=".35" stroke-width="20" filter="url(#glow)"/>
+  <path d="M800 293 C865 293 866 266 929 293 S1029 320 1091 293" fill="none" stroke="#a8efe3" stroke-opacity=".72" stroke-width="2"/>
+  <path d="M800 293 C865 293 866 266 929 293 S1029 320 1091 293" fill="none" stroke="#d5fff2" stroke-width="2" stroke-dasharray="2 15"/>
+  <g fill="#2c5662" fill-opacity=".84" stroke="#c4f5ed" stroke-opacity=".58">
+    <rect x="776" y="268" width="48" height="48" rx="14"/><rect x="905" y="268" width="48" height="48" rx="14"/><rect x="1029" y="268" width="48" height="48" rx="14"/><rect x="1090" y="268" width="48" height="48" rx="14"/>
+  </g>
+  <g fill="#e0f7f2" font-family="Arial, sans-serif" font-size="25" text-anchor="middle">
+    <text x="800" y="300">⌘</text><text x="929" y="300">◇</text><text x="1053" y="300">≡</text><text x="1114" y="300">◎</text>
+  </g>
+  <g fill="#c2d7e0" font-family="Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="1.5" text-anchor="middle">
+    <text x="800" y="336">CLIENT</text><text x="929" y="336">TLS</text><text x="1053" y="336">HTTP</text><text x="1114" y="336">ORIGIN</text>
+  </g>
+  <g fill="#c7dce6" font-family="Arial, sans-serif" font-size="13">
+    <text x="782" y="434">01</text><text x="823" y="434">ClientHello</text><text x="1146" y="434" text-anchor="end" fill="#b2f0e5">profile values</text>
+    <text x="782" y="465">02</text><text x="823" y="465">ALPN</text><text x="1146" y="465" text-anchor="end" fill="#b2f0e5">h2</text>
+    <text x="782" y="496">03</text><text x="823" y="496">HTTP headers</text><text x="1146" y="496" text-anchor="end" fill="#b2f0e5">ordered</text>
+  </g>
+</svg>
