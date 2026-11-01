@@ -2,7 +2,7 @@
 
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
-```text
+```text title="Go package daemon"
 package daemon // import "github.com/Sec-CH-Lemon/tls-forge/daemon"
 
 Package daemon speaks JSON lines on a pipe, so a program in any language can

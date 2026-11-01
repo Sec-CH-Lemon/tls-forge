@@ -2,11 +2,11 @@
 
 Go **1.26.10** or newer is required. Add the unsuffixed module path (engine 1 has no `/v1` suffix):
 
-```bash
+```bash title="Terminal"
 go get github.com/Sec-CH-Lemon/tls-forge
 ```
 
-```go
+```go title="Go"
 package main
 
 import (

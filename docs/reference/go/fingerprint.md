@@ -2,7 +2,7 @@
 
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
-```text
+```text title="Go package fingerprint"
 package fingerprint // import "github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 
 Package fingerprint turns the bytes a TLS client actually put on the wire into

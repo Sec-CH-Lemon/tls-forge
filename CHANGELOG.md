@@ -96,9 +96,17 @@ packages use1.0.0; the latest published stable release remains0.2.2.
   historical reports and evidence to `research/` without including them in the public MkDocs site.
 - Style the documentation with the landing page's glass panels, colors and
   local Inter font. Use Stripe-inspired UX with sticky section tabs, a
-  contextual desktop sidebar, centered reading column and search, aligned
-  tables and code examples, compact mobile drawer and tabbed examples. Keep
-  both themes readable across desktop and mobile,
+  contextual desktop sidebar and a three-column grid with equal side rails,
+  centered reading column and search, aligned tables and code examples,
+  compact mobile drawer and tabbed examples. Match
+  Stripe's measured reading and code scale: 16px/26px body copy, 32px/40px
+  page headings, 14px table cells and 13px/19px Menlo/Consolas code. Add
+  numbered code lines, a distinct code header and aligned mobile table and
+  example edges; short tables become labeled cards on phones, while wider
+  matrices scroll horizontally. Frame tables and code with symmetric corners;
+  center search, repository and copy icons in their controls. The home terminal
+  command wraps at spaces, and copy controls sit in code headers so they do not
+  cover code. Keep both themes readable across desktop and mobile,
   including full-screen mobile search. Keep the theme override in `docs-theme/`
   and the styles in `docs/assets/extra.css`; check rendered HTML-card links
   before deployment.

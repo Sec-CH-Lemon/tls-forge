@@ -4,7 +4,7 @@ A profile is JSON describing a selected browser build and its network behaviour.
 
 ## Select a profile
 
-```bash
+```bash title="Terminal"
 tls-forge profiles
 tls-forge fetch --profile chrome_156_macos https://example.com/
 tls-forge fetch --profile /absolute/path/custom.json https://example.com/
@@ -16,7 +16,7 @@ tls-forge fetch --profile /absolute/path/custom.json https://example.com/
 
 The development source is **engine 1.0.0**, profile **schema 4**, daemon protocol **3**. Every executable profile needs a top-level integer `engine_major: 1`. The engine rejects older, newer, missing or invalid majors **before request-related network I/O**. A schema number, filename, User-Agent or browser alias does not imply compatibility. SDKs also check the daemon engine major.
 
-```json
+```json title="JSON"
 {
   "schema": 4,
   "engine_major": 1,

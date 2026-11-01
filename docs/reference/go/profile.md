@@ -2,7 +2,7 @@
 
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
-```text
+```text title="Go package profile"
 package profile // import "github.com/Sec-CH-Lemon/tls-forge/profile"
 
 Package profile reads and validates JSON for a selected browser build's network

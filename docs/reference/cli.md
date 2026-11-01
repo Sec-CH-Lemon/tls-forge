@@ -2,7 +2,7 @@
 
 Generated from the current CLI executable. Every command's `--help` output is included below.
 
-```text
+```text title="tls-forge --help"
 tls-forge — an HTTP client that sends a real browser's TLS fingerprint.
 
 usage: tls-forge <command> [flags]
@@ -24,7 +24,7 @@ this library, and prints the differences. There should not be any.
 
 ## `fetch`
 
-```text
+```text title="tls-forge fetch --help"
 usage: tls-forge fetch [flags] [url...]
 
 what to fetch:
@@ -93,7 +93,7 @@ report, trace and log:
 
 ## `capture`
 
-```text
+```text title="tls-forge capture --help"
 usage: tls-forge capture [flags]
 
 flags:
@@ -115,7 +115,7 @@ flags:
 
 ## `compare`
 
-```text
+```text title="tls-forge compare --help"
 usage: tls-forge compare [flags]
 
 flags:
@@ -134,7 +134,7 @@ flags:
 
 ## `profiles`
 
-```text
+```text title="tls-forge profiles --help"
 usage: tls-forge profiles [flags]
 
 This command takes no flags.
@@ -142,7 +142,7 @@ This command takes no flags.
 
 ## `proxy`
 
-```text
+```text title="tls-forge proxy --help"
 usage: tls-forge proxy [flags]
 
 flags:
@@ -161,7 +161,7 @@ flags:
 
 ## `serve`
 
-```text
+```text title="tls-forge serve --help"
 usage: tls-forge serve [flags]
 
 flags:
@@ -172,7 +172,7 @@ flags:
 
 ## `daemon`
 
-```text
+```text title="tls-forge daemon --help"
 usage: tls-forge daemon [flags]
 
 flags:
@@ -190,7 +190,7 @@ flags:
 
 ## `version`
 
-```text
+```text title="tls-forge version --help"
 usage: tls-forge version [flags]
 
 This command takes no flags.

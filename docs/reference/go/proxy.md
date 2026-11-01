@@ -2,7 +2,7 @@
 
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
-```text
+```text title="Go package proxy"
 package proxy // import "github.com/Sec-CH-Lemon/tls-forge/proxy"
 
 Package proxy is an HTTP proxy that re-originates every request with a browser's

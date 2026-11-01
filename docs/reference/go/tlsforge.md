@@ -2,7 +2,7 @@
 
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
-```text
+```text title="Go package tlsforge"
 package tlsforge // import "github.com/Sec-CH-Lemon/tls-forge"
 
 Package tlsforge is an HTTP client whose TLS and HTTP/2 fingerprints are a real

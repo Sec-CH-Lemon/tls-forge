@@ -2,7 +2,7 @@
 
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
-```text
+```text title="Go package cookie"
 package cookie // import "github.com/Sec-CH-Lemon/tls-forge/cookie"
 
 Package cookie is the file a warmed session is kept in.

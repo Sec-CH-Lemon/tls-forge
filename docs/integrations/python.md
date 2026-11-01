@@ -2,7 +2,7 @@
 
 The typed package starts a matching Go daemon lazily. Its `Client` serializes calls and is a context manager; create separate clients for parallel work.
 
-```python
+```python title="Python"
 import tlsforge
 
 with tlsforge.Client(profile="chrome", timeout=45.0) as client:

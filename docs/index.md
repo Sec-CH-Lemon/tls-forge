@@ -15,8 +15,10 @@
   </div>
   <div class="tf-feature-code">
     <div class="tf-feature-code__head">Terminal</div>
-    <pre><code>tls-forge fetch --profile chrome \
-  --print-body https://example.com/</code></pre>
+    <pre><code>tls-forge fetch \
+  --profile chrome \
+  --print-body \
+  https://example.com/</code></pre>
   </div>
 </div>
 

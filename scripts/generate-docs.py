@@ -56,7 +56,7 @@ def cli_page(binary: Path) -> str:
     commands = re.findall(r"^  ([a-z]+)\s{2,}", intro, re.MULTILINE)
     if not commands or len(commands) != len(set(commands)):
         raise RuntimeError("could not parse the command list from tls-forge --help")
-    page = ["# CLI commands and flags", "", "Generated from the current CLI executable. Every command's `--help` output is included below.", "", "```text", intro.rstrip(), "```", ""]
+    page = ["# CLI commands and flags", "", "Generated from the current CLI executable. Every command's `--help` output is included below.", "", '```text title="tls-forge --help"', intro.rstrip(), "```", ""]
     for command in commands:
         help_result = subprocess.run([str(binary), command, "--help"], cwd=ROOT, text=True, capture_output=True, check=False)
         if help_result.returncode not in (0, 2):
@@ -64,7 +64,7 @@ def cli_page(binary: Path) -> str:
         help_text = (help_result.stdout + help_result.stderr).strip()
         if not help_text.startswith(f"usage: tls-forge {command}"):
             raise RuntimeError(f"unexpected help output for {command}: {help_text[:100]}")
-        page += [f"## `{command}`", "", "```text", help_text, "```", ""]
+        page += [f"## `{command}`", "", f'```text title="tls-forge {command} --help"', help_text, "```", ""]
     return "\n".join(page)
 
 
@@ -75,7 +75,7 @@ def go_pages(env: dict[str, str]) -> dict[str, str]:
         label = "tlsforge" if package == "." else package[2:]
         output = run(["go", "doc", "-all", package], env).strip()
         overview += [f"| [`{label}`](go/{label}.md) | {GO_DESCRIPTIONS[label]} |"]
-        pages[f"go/{label}.md"] = "\n".join((f"# Go package `{label}`", "", "Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).", "", "```text", output, "```", ""))
+        pages[f"go/{label}.md"] = "\n".join((f"# Go package `{label}`", "", "Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).", "", f'```text title="Go package {label}"', output, "```", ""))
     overview.append("")
     pages["go-api.md"] = "\n".join(overview)
     return pages
@@ -83,7 +83,7 @@ def go_pages(env: dict[str, str]) -> dict[str, str]:
 
 def node_page() -> str:
     types = (ROOT / "node" / "index.d.ts").read_text()
-    return "\n".join(("# Node.js API", "", "Generated from the package's public TypeScript declarations. See the [Node.js integration guide](../integrations/node.md) for examples.", "", "```typescript", types.rstrip(), "```", ""))
+    return "\n".join(("# Node.js API", "", "Generated from the package's public TypeScript declarations. See the [Node.js integration guide](../integrations/node.md) for examples.", "", '```typescript title="index.d.ts"', types.rstrip(), "```", ""))
 
 
 class SourceDefault:

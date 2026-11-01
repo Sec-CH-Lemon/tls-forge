@@ -13,7 +13,7 @@ The CLI has several output modes. Choose the least data needed for your run.
 | Detailed log | `--log FILE`, `--log-level` | Text or JSON Lines |
 | Wire inspection | `--pcap` with `--output`, `--keylog FILE` | PCAPNG and/or TLS secrets |
 
-```bash
+```bash title="Terminal"
 tls-forge fetch --output pages --report=pages/run.html --json \
   https://example.com/
 tls-forge fetch --trace trace.json --log run.jsonl --log-level debug \

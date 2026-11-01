@@ -31,12 +31,18 @@ describe the unreleased 1.0.0 development candidate; the published release
 anchor in `engine/version.json` is 0.2.2. Historical measurements and review
 receipts are preserved outside the public site in [`research/`](research/).
 The site uses the landing page's glass panels, colors and local Inter font.
-Its Stripe-inspired UX has sticky section tabs, a contextual desktop sidebar,
-a centered reading column and search, aligned tables and code examples,
-a compact mobile drawer and tabbed language examples. Guides
-and API reference both support light and dark themes. The
-local theme override is in `docs-theme/main.html` and its styles are in
-`docs/assets/extra.css`.
+Its Stripe-inspired UX has sticky section tabs, a three-column desktop grid
+with equal side rails around the reading column, centered search, and aligned
+tables and code examples. Short tables become labeled cards on phones; the
+mobile drawer and language tabs stay compact. Guides and API reference both
+support light and dark themes. The reading scale uses 16px/26px body copy,
+32px/40px page headings, 14px table cells and 13px/19px Menlo/Consolas code
+with line numbers. The local Inter
+font preserves the landing page identity while the sizing follows Stripe's
+documentation rhythm. Tables and code panels have matching rounded edges;
+search, repository and copy icons are centered in their controls. The local
+theme override is in `docs-theme/main.html`, with styles in
+`docs/assets/extra.css` and copy controls in code headers.
 `make docs-site-check` checks the references against source, builds the site strictly and
 checks internal links in its rendered HTML cards before publication. Python
 reference defaults retain their source expressions, such as `sys.platform`,

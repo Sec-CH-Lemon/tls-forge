@@ -8,7 +8,7 @@ The release binary supports macOS and Linux on arm64 and x86-64, and Windows on 
 2. When the selected release provides them, check its checksum and attestation before extracting the archive.
 3. Extract `tls-forge` (or `tls-forge.exe`) onto `PATH`.
 
-```bash
+```bash title="Terminal"
 sha256sum --check --ignore-missing SHA256SUMS
 gh attestation verify tls-forge_X.Y.Z_linux_amd64.tar.gz --repo Sec-CH-Lemon/tls-forge
 mkdir -p ~/.local/bin
@@ -20,7 +20,7 @@ On macOS, use `shasum -a 256` if `sha256sum` is unavailable. Replace the example
 
 On Windows, the release archive is also a `.tar.gz`. Extract it in PowerShell, then place `tls-forge.exe` in a directory on your `PATH`:
 
-```powershell
+```powershell title="PowerShell"
 tar -xzf .\tls-forge_X.Y.Z_windows_amd64.tar.gz
 $destination = Join-Path $env:LOCALAPPDATA 'tls-forge'
 New-Item -ItemType Directory -Force $destination | Out-Null
@@ -30,7 +30,7 @@ Copy-Item .\tls-forge.exe $destination
 
 ## Homebrew
 
-```bash
+```bash title="Terminal"
 brew tap Sec-CH-Lemon/tap
 brew trust --formula Sec-CH-Lemon/tap/tls-forge
 brew install tls-forge
@@ -43,7 +43,7 @@ Review the third-party tap before granting trust. This installs the published fo
 
 With Go **1.26.10** or newer:
 
-```bash
+```bash title="Terminal"
 go install github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge@latest
 ```
 
@@ -51,7 +51,7 @@ Go writes the binary to `GOBIN` or `$(go env GOPATH)/bin`. `@latest` selects the
 
 ## Build from source
 
-```bash
+```bash title="Terminal"
 git clone https://github.com/Sec-CH-Lemon/tls-forge.git
 cd tls-forge
 git checkout development
@@ -61,7 +61,7 @@ make build
 
 `make build` uses the version declared in `engine/version.json`. To build without Make:
 
-```bash
+```bash title="Terminal"
 go build -o tls-forge ./cmd/tls-forge
 ./tls-forge version
 ```

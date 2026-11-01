@@ -2,7 +2,7 @@
 
 The release image is published for `linux/amd64` and `linux/arm64`:
 
-```bash
+```bash title="Terminal"
 docker pull ghcr.io/sec-ch-lemon/tls-forge
 docker run --rm ghcr.io/sec-ch-lemon/tls-forge \
   fetch --print-body https://example.com/
@@ -10,7 +10,7 @@ docker run --rm ghcr.io/sec-ch-lemon/tls-forge \
 
 To build the current checkout instead:
 
-```bash
+```bash title="Terminal"
 docker build -t tls-forge:dev .
 docker run --rm tls-forge:dev version
 ```
@@ -21,7 +21,7 @@ The image's entry point is the CLI, so `fetch`, `proxy`, `profiles`, `serve`, `d
 
 Mount one working directory and refer to paths inside the container:
 
-```bash
+```bash title="Terminal"
 docker run --rm -v "$PWD:/work" ghcr.io/sec-ch-lemon/tls-forge \
   fetch --input /work/urls.csv --output /work/out --json
 ```
@@ -30,7 +30,7 @@ The image runs as `tlsforge` in `/work`. The mounted directory must be writable 
 
 ## Use the local proxy from the host
 
-```bash
+```bash title="Terminal"
 docker run --rm -p 127.0.0.1:8080:8080 \
   -v "$PWD/proxy-state:/work" ghcr.io/sec-ch-lemon/tls-forge \
   proxy --addr 0.0.0.0:8080 --ca-cert /work/ca.pem --ca-key /work/ca.key

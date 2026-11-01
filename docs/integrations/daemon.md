@@ -6,7 +6,7 @@
 
 An offline `hello` line can omit `engine_major` and has no URL:
 
-```json
+```json title="JSON"
 {"id":1,"control":"hello"}
 ```
 
@@ -14,11 +14,11 @@ The answer includes `id`, `protocol`, `capabilities`, `engine_major`, and `versi
 
 ## Request and response
 
-```json
+```json title="JSON"
 {"id":2,"engine_major":1,"url":"https://example.com/","method":"GET"}
 ```
 
-```json
+```json title="JSON"
 {"id":2,"status":200,"url":"https://example.com/","body":"...","headers":{"content-type":["text/html"]},"cookies":[]}
 ```
 
@@ -30,7 +30,7 @@ The daemon accepts at most **16 MiB per input line**, newline included. Exceedin
 
 With `--proxy-stdin`, the first nonblank input line must initialize the upstream proxy:
 
-```json
+```json title="JSON"
 {"id":1,"engine_major":1,"control":"init","proxy":"http://user:password@proxy.example:8080"}
 ```
 

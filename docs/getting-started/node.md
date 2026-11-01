@@ -2,17 +2,17 @@
 
 Node.js **20.12** or newer is required:
 
-```bash
+```bash title="Terminal"
 npm install tls-forge
 ```
 
 The package is ESM and uses an included platform transport binary through optional dependencies. Avoid `--no-optional` unless you provide your own matching executable. For a development build:
 
-```bash
+```bash title="Terminal"
 export TLSFORGE_BIN=/absolute/path/to/tls-forge
 ```
 
-```js
+```js title="Node.js"
 import { Client } from 'tls-forge';
 
 const client = new Client({ profile: 'chrome' });

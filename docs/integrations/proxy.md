@@ -2,7 +2,7 @@
 
 `tls-forge proxy` accepts HTTP(S) requests from another program, terminates incoming HTTPS, and opens a **new outbound connection** with the selected profile. It does not create a browser process, browser context or page behaviour for the caller.
 
-```bash
+```bash title="Terminal"
 tls-forge proxy --profile chrome --addr 127.0.0.1:8080
 ```
 

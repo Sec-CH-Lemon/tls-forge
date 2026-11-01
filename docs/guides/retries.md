@@ -2,7 +2,7 @@
 
 ## Retry a CLI fetch
 
-```bash
+```bash title="Terminal"
 tls-forge fetch --retry 3 --wait-for-element '#price' \
   https://example.com/product
 tls-forge fetch --retry 3 --wait-for '/in stock/i' \

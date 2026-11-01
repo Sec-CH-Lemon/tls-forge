@@ -2,7 +2,7 @@
 
 The ESM package starts a matching Go daemon lazily and exposes one `Client` per process. It serializes a client's requests. For parallel work, create separate clients and close each one.
 
-```js
+```js title="Node.js"
 import { Client } from 'tls-forge';
 
 const client = new Client({ profile: 'chrome', timeout: 45_000 });

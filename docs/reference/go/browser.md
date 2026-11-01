@@ -2,7 +2,7 @@
 
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
-```text
+```text title="Go package browser"
 package browser // import "github.com/Sec-CH-Lemon/tls-forge/browser"
 
 Package browser finds and launches a locally installed Chromium browser.

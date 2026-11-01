@@ -2,7 +2,7 @@
 
 ## Check the executable and profiles
 
-```bash
+```bash title="Terminal"
 tls-forge version
 tls-forge profiles
 ```
@@ -11,7 +11,7 @@ The development source currently reports `v1.0.0`; that number is **unreleased**
 
 ## Make one request
 
-```bash
+```bash title="Terminal"
 tls-forge fetch --profile chrome --print-body https://example.com/
 ```
 
@@ -21,7 +21,7 @@ The response body says that a request completed. It does not prove a browser fin
 
 With an installed Chromium-based browser:
 
-```bash
+```bash title="Terminal"
 tls-forge compare --profile chrome
 ```
 

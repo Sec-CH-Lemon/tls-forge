@@ -2,7 +2,7 @@
 
 The CLI accepts URLs as arguments, comma-separated text, a file, or standard input. Supply **one** input source per invocation.
 
-```bash
+```bash title="Terminal"
 tls-forge fetch https://example.com/ https://example.org/
 tls-forge fetch --urls 'https://example.com/,https://example.org/' --json
 tls-forge fetch --input urls.csv --format csv --concurrency 8 --json

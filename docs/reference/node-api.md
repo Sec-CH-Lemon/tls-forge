@@ -2,7 +2,7 @@
 
 Generated from the package's public TypeScript declarations. See the [Node.js integration guide](../integrations/node.md) for examples.
 
-```typescript
+```typescript title="index.d.ts"
 // Types for the tls-forge package: what index.js, binary.js and errors.js do
 // at run time, and no more. node/test/types.test.js holds the names here to
 // what the package exports, and example/typescript type-checks a program

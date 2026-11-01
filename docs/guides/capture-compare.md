@@ -2,7 +2,7 @@
 
 `capture` measures an installed browser through the local measurement server. `compare` measures that browser and the selected profile against the same local fixture and reports differences within its scope.
 
-```bash
+```bash title="Terminal"
 tls-forge capture --browser chrome --save profile.json
 tls-forge compare --browser chrome --profile profile.json
 tls-forge compare --profile chrome --json

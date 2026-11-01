@@ -17,7 +17,7 @@
 
 After installing the CLI, confirm its compiled version and available profiles:
 
-```bash
+```bash title="Terminal"
 tls-forge version
 tls-forge profiles
 tls-forge fetch --profile chrome --print-body https://example.com/
