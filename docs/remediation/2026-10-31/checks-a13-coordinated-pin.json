@@ -1,0 +1,59 @@
+{
+  "status": "accepted published standalone dependency correction; A13 remains open",
+  "fork_head": "30e27100cadec429508f9a74dfec781d1dd42162",
+  "capsule": {
+    "path": "/Users/ihar/Personal/net-fp-server/captures/tls-forge-a13-20261031/COORDINATED-TLS-CLIENT-R15",
+    "files": 46,
+    "bytes": 24934005,
+    "manifest_sha256": "f985aa049e7ad4aff33a7b6c9eb1543fa6fc181fada14699260bac0145ff10d6",
+    "verified": true,
+    "ignored": true,
+    "dir_mode": "0700",
+    "file_mode": "0600"
+  },
+  "standalone_runs": 469,
+  "production_runs": 469,
+  "race_wire_repetitions": 32,
+  "root_final_checks": [
+    {
+      "check": "tidy",
+      "returncode": 0
+    },
+    {
+      "check": "verify",
+      "returncode": 0
+    },
+    {
+      "check": "modules",
+      "returncode": 0
+    },
+    {
+      "check": "build",
+      "returncode": 0
+    },
+    {
+      "check": "notices",
+      "returncode": 0
+    },
+    {
+      "check": "lint",
+      "returncode": 0
+    }
+  ],
+  "root_mvs_delta": [
+    {
+      "before": [
+        "github.com/igor-lemon/tls-client",
+        "v1.15.2-0.20261031232038-48691d443162",
+        "1.24.1"
+      ],
+      "after": [
+        "github.com/igor-lemon/tls-client",
+        "v1.15.2-0.20261101001830-30e27100cade",
+        "1.24.1"
+      ]
+    }
+  ],
+  "root_runtime_source_same": true,
+  "original_before": "JSON SCID8 sends4 with standalone QUIC248; before actual transport and Client.Do retained"
+}

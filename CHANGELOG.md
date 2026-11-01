@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Pin tls-client30e2710 so its standalone graph also selects the implemented
+  QUIC6f runtime. Preserve the SCID8→4 before evidence and permanent shared
+  UDP wire control; both full source-pinned graphs pass469 runs.
+
 - Pin approved uTLS bfb5cb3, QUIC 6f655a61 and tls-client 48691d4 for explicit
   independent QUIC factories, transport/layout and ACK policies. Preserve the
   original timing failures and accept the corrected test peer with unchanged

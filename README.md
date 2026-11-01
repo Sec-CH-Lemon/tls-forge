@@ -3182,3 +3182,7 @@ The [published QUIC runtime foundation](docs/remediation/2026-10-31/A13-public-f
 pins independent QUIC factories, explicit transport/layout and ACK choices.
 Its dependency and root checks retain the original timing failures and their
 limits. Catalogue materialization and production network estimation continue.
+
+The [coordinated tls-client pin](docs/remediation/2026-10-31/A13-coordinated-pin.ru.md)
+also selects the implemented QUIC runtime in the fork's standalone graph.
+Its raw-wire regression rejects a configured source CID length that is ignored.

@@ -16,7 +16,7 @@
     "tls-client": {
       "module": "github.com/igor-lemon/tls-client",
       "repository": "https://github.com/igor-lemon/tls-client",
-      "commit": "48691d443162c7637223be2907bf466564bb9bf5"
+      "commit": "30e27100cadec429508f9a74dfec781d1dd42162"
     },
     "quic-go-utls": {
       "module": "github.com/igor-lemon/quic-go-utls",
