@@ -3,6 +3,12 @@ name: release-oracle-evidence
 # Diagnostic calibration only. Raw local-peer request evidence stays encrypted;
 # no fixture is promoted automatically and no package or release is published.
 on:
+  workflow_call:
+    inputs:
+      evidence-certificate:
+        description: Base64 PEM public recipient certificate for private evidence
+        type: string
+        required: true
   workflow_dispatch:
     inputs:
       evidence-certificate:

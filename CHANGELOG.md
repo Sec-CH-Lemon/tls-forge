@@ -40,6 +40,8 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 
 ### Added and changed
 
+- Allow the registered capture workflow to call the same release-auth oracle
+  explicitly; default capture and every strict release gate remain unchanged.
 - Calibrate Windows release-browser auth fixtures in two native cohorts,
   retaining every scenario, exact SSPI bytes and the original15s observation.
   Add an encrypted, manual-only evidence workflow and explicit fixture

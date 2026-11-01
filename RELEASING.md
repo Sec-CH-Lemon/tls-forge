@@ -115,6 +115,9 @@ a fixed `observation_ms` window of15–60s instead of an end page Chrome never
 requests; it cannot shorten the original window and starts only after the page
 actually opens. Calibration is manual-only in `release-oracle.yml`, two native
 cohorts with encrypted raw evidence; it never promotes a fixture automatically.
+While this new workflow is absent from the default branch, dispatch the
+registered `capture.yml` on `development` with `release-auth-oracle=true` and
+`evidence-certificate`; it calls the same workflow and skips profile capture.
 NTLM/Negotiate product support remains an explicit unsupported capability,
 separate from this browser-versus-fixture check.
 

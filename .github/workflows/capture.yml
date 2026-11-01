@@ -49,6 +49,10 @@ on:
         description: Base64 PEM public certificate for private raw evidence (required for pinned156)
         type: string
         default: ''
+      release-auth-oracle:
+        description: Only record the two Windows release-auth oracle cohorts; no profile capture or fixture promotion
+        type: boolean
+        default: false
   # Callable, so the drift check can measure without a second copy of all this.
   # Artifacts belong to the run rather than to the workflow, so whatever calls
   # this can download what it produced.
@@ -82,6 +86,10 @@ on:
         description: Base64 PEM public certificate for private raw evidence
         type: string
         default: ''
+      release-auth-oracle:
+        description: Only record the two Windows release-auth oracle cohorts
+        type: boolean
+        default: false
     outputs:
       profile:
         description: the name the capture was filed under, e.g. chrome_152_linux
@@ -91,7 +99,14 @@ permissions:
   contents: read
 
 jobs:
+  release-auth-oracle:
+    if: inputs.release-auth-oracle
+    uses: ./.github/workflows/release-oracle.yml
+    with:
+      evidence-certificate: ${{ inputs.evidence-certificate }}
+
   capture:
+    if: ${{ !inputs.release-auth-oracle }}
     timeout-minutes: 180
     outputs:
       profile: ${{ steps.captured.outputs.name }}
