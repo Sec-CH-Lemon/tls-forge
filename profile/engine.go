@@ -61,8 +61,12 @@ func (p *Profile) Migrate(name string) (*Profile, error) {
 			}
 		}
 		var defaults struct {
-			EngineMajor *int                       `json:"engine_major"`
-			Behavior    map[string]json.RawMessage `json:"behavior"`
+			EngineMajor  *int                       `json:"engine_major"`
+			Behavior     map[string]json.RawMessage `json:"behavior"`
+			NetworkHints struct {
+				WithLiterals    *NetworkHintsPolicy `json:"with_literals"`
+				WithoutLiterals string              `json:"without_literals"`
+			} `json:"network_hints"`
 		}
 		if err := json.Unmarshal(migrationData, &defaults); err != nil {
 			return nil, err
@@ -75,6 +79,33 @@ func (p *Profile) Migrate(name string) (*Profile, error) {
 				out.Behavior[key] = append(json.RawMessage(nil), value...)
 			}
 		}
+		if !out.Behavior.Has("headers.network_hints") {
+			selected := defaults.NetworkHints.WithoutLiterals
+			if out.NetworkHints == nil {
+				for _, fields := range out.networkHintFields() {
+					for _, field := range fields {
+						if networkHintName(field.Name) {
+							out.NetworkHints = defaults.NetworkHints.WithLiterals.clone()
+							break
+						}
+					}
+					if out.NetworkHints != nil {
+						break
+					}
+				}
+			}
+			if out.NetworkHints != nil {
+				if err := out.validateNetworkHints(); err != nil {
+					return nil, err
+				}
+				selected = out.NetworkHints.Mode
+				if selected == "estimated" {
+					selected = out.NetworkHints.Policy.Algorithm
+				}
+			}
+			out.Behavior["headers.network_hints"], _ = json.Marshal(selected)
+		}
+
 	}
 	if err := out.migrateQUICData(p.chromium()); err != nil {
 		return nil, err

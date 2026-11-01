@@ -11,6 +11,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Replace existing Chrome155/156 network-hint literals with a complete JSON-owned
+  estimator policy: actual HTTP/transport observations, browser-instance salt,
+  host-dependent rounding and isolated state across Do/Fresh. Preserve origin
+  opt-in and Critical-CH restart behavior. Historical151–154 profiles keep their
+  prior absence of network hints; no historical browser acceptance is added.
+- Correct macOS network metadata classification: `Hardware=AirPort` identifies
+  Wi-Fi even when the service entity says `Type=Ethernet`. Preserve the original
+  mismatching hints and verify the correction against Chrome156.
+- Add strict explicit network-hint modes and typed actual-network metadata in
+  Go, daemon, Node and Python, with same-major capability rejection, clone
+  isolation, preserved capture provenance and explicit-only archive migration.
+
 - Add explicit network-quality metadata identity and deferred observation delivery
   policy choices; standalone race/coverage737/737 and lint pass. Runtime profile
   activation and physical-network/browser acceptance remain separate.

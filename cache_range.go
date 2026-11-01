@@ -78,7 +78,7 @@ func (e *cachedResponse) rangeResponse(req *fhttp.Request) *fhttp.Response {
 	res.Header.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", first, last, len(e.body)))
 	res.Header.Set("Content-Length", strconv.FormatInt(res.ContentLength, 10))
 	if req.Method != "HEAD" {
-		res.Body = io.NopCloser(bytes.NewReader(e.body[first : last+1]))
+		res.Body = observedCacheBody(req, io.NopCloser(bytes.NewReader(e.body[first:last+1])))
 	}
 	return res
 }

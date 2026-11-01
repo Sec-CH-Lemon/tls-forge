@@ -305,7 +305,7 @@ test('the real Go daemon applies a browser context, CORS and all', { skip: !bina
   try {
     const base = `http://127.0.0.1:${page.server.address().port}`;
     const elsewhere = `http://127.0.0.1:${other.server.address().port}`;
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major'], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' });
     const from = `${base}/page`;
     const response = await client.get(`${base}/api`, { browserContext: { kind: 'fetch', initiator: from } });
     assert.equal(response.status, 200);
@@ -411,4 +411,25 @@ test('each Node request through the real daemon owns a cold browser', { skip: !b
     client.close();
     await new Promise((resolve) => origin.close(resolve));
   }
+});
+
+test('typed network metadata selects JSON estimator seeds in the real daemon', {skip:!binary}, async()=>{
+ const p=JSON.parse(readFileSync(new URL('../../profile/data/chrome_156/macos.json',import.meta.url),'utf8'));
+ const policy=JSON.parse(readFileSync(new URL('../../networkquality/testdata/chromium156-nqe-source-candidate.json',import.meta.url),'utf8'));
+ p.client_hints=p.client_hints.filter((h)=>!['rtt','downlink','ect'].includes(h.name));p.headers=p.headers.filter((h)=>!['rtt','downlink','ect'].includes(h.name));
+ policy.cache.enabled=false;policy.cache.read_after_bootstrap=false;policy.compute.sparse_rtt_cap_ms=0;policy.compute.use_end=false;policy.compute.transport_lower=0;
+ policy.noise.salt_min=1;policy.noise.salt_max=1;policy.noise.buckets=1;policy.noise.base=1;policy.noise.step=0;policy.noise.rtt_quantum_ms=10;
+ for(const seed of policy.seeds){seed.http_ms={value:seed.type==='wifi'?1110:2220,available:true};seed.transport_ms={value:0,available:false};seed.downlink_kbps={value:0,available:false}}
+ p.network_hints={mode:'estimated',policy};
+ const dir=mkdtempSync(join(tmpdir(),'tls-forge-nqe-'));const path=join(dir,'profile.json');writeFileSync(path,JSON.stringify(p));
+ let requests=0;
+ const server=http.createServer((request,response)=>{requests++;response.setHeader('Accept-CH','rtt');response.setHeader('Critical-CH','rtt');response.setHeader('Cache-Control','no-store');response.end(request.headers.rtt??'');});
+ await new Promise((resolve)=>server.listen(0,'127.0.0.1',resolve));
+ const c=new Client({binary,profile:path});
+ try{
+  const url=`http://127.0.0.1:${server.address().port}/`;
+  const wifi=await c.get(url,{networkContext:{type:'wifi',id:'wifi-a',generation:1,signal:0}});
+  const unknown=await c.get(url,{networkContext:{type:'unknown',id:'unknown-b',generation:2,signal:null}});
+  assert.equal(wifi.body,'1110');assert.equal(unknown.body,'2220');assert.equal(requests,4);
+ }finally{c.close();await new Promise((resolve)=>server.close(resolve));rmSync(dir,{recursive:true,force:true});}
 });

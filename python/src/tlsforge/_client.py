@@ -25,7 +25,7 @@ import time
 import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Iterable, Literal, Mapping, Sequence, TypedDict
+from typing import Any, Callable, Iterable, Literal, Mapping, Optional, Sequence, TypedDict
 
 from . import __version__
 ENGINE_MAJOR = int(__version__.split(".")[0])
@@ -123,6 +123,28 @@ def _wire_context(context: Mapping[str, Any]) -> dict[str, Any]:
                 f"tlsforge: browser_context has no key {key!r}; it takes {', '.join(_CONTEXT_FIELDS)}"
             )
     return {_CONTEXT_FIELDS[key]: value for key, value in context.items()}
+
+
+class NetworkContext(TypedDict):
+    """Actual network metadata, with no precomputed RTT or downlink values."""
+    type: Literal["unknown", "ethernet", "wifi", "2g", "3g", "4g", "5g", "none", "bluetooth"]
+    id: str
+    generation: int
+    signal: Optional[int]
+
+
+def _wire_network(context: Mapping[str, Any]) -> dict[str, Any]:
+    if not isinstance(context, Mapping) or set(context) != {"type", "id", "generation", "signal"}:
+        raise TypeError("tlsforge: network_context requires exactly type, id, generation and signal")
+    value = dict(context)
+    network_type, identity, generation, signal = (value[k] for k in ("type", "id", "generation", "signal"))
+    try:
+        valid_id = isinstance(identity, str) and len(identity.encode("utf-8", "strict")) <= 4096
+    except UnicodeEncodeError:
+        valid_id = False
+    if network_type not in ("unknown", "ethernet", "wifi", "2g", "3g", "4g", "5g", "none", "bluetooth") or not valid_id or type(generation) is not int or not 0 <= generation <= 2**53 - 1 or (signal is not None and (type(signal) is not int or not 0 <= signal <= 4)):
+        raise TypeError("tlsforge: invalid network_context metadata")
+    return value
 
 
 @dataclass(frozen=True)
@@ -273,11 +295,12 @@ class Client:
         order: Sequence[str] | None = None,
         cookies: Iterable[str] | None = None,
         browser_context: BrowserContext | None = None,
+        network_context: NetworkContext | None = None,
     ) -> Response:
         """GET a URL."""
         return self.request(
             url, method="GET", headers=headers, order=order, cookies=cookies,
-            browser_context=browser_context,
+            browser_context=browser_context, network_context=network_context,
         )
 
     def post(
@@ -289,13 +312,14 @@ class Client:
         order: Sequence[str] | None = None,
         cookies: Iterable[str] | None = None,
         browser_context: BrowserContext | None = None,
+        network_context: NetworkContext | None = None,
     ) -> Response:
         """POST a body, in the browser context of the form or script that
         posts it: a request without one is a navigation typed into the address
         bar, which posts nothing, and is refused."""
         return self.request(
             url, method="POST", body=body, headers=headers, order=order, cookies=cookies,
-            browser_context=browser_context,
+            browser_context=browser_context, network_context=network_context,
         )
 
     def hello(self) -> Hello:
@@ -339,6 +363,7 @@ class Client:
         body: str | bytes | None = None,
         cookies: Iterable[str] | None = None,
         browser_context: BrowserContext | None = None,
+        network_context: NetworkContext | None = None,
     ) -> Response:
         """Make a request.
 
@@ -365,14 +390,9 @@ class Client:
         if not url:
             raise ValueError("tlsforge: request needs a url")
         context = None if browser_context is None else _wire_context(browser_context)
+        network = None if network_context is None else _wire_network(network_context)
         hello = self.hello()
-        _check_engine(hello)
-        if context is not None:
-            if "browser_context" not in hello.capabilities:
-                raise Unsupported(
-                    f"tlsforge: the tls-forge at {self._binary} speaks protocol {hello.protocol} "
-                    "and does not apply browser contexts; the request was not sent"
-                )
+        _check_request_capabilities(hello, context is not None, network is not None, self._binary)
 
         # The call's deadline, from now: the time a request waits for the one
         # before it is part of it.
@@ -385,7 +405,7 @@ class Client:
             )
         try:
             return self._request(
-                made_in, deadline, url, method, headers, order, body, cookies, context
+                made_in, deadline, url, method, headers, order, body, cookies, context, network
             )
         finally:
             self._lock.release()
@@ -416,6 +436,7 @@ class Client:
         body: str | bytes | None,
         cookies: Iterable[str] | None,
         context: dict[str, Any] | None,
+        network: dict[str, Any] | None,
     ) -> Response:
         """The request, made with the lock held: its browser context, if any, as
         the daemon names its fields."""
@@ -439,6 +460,8 @@ class Client:
             payload["setCookie"] = list(cookies)
         if context is not None:
             payload["browser"] = context
+        if network is not None:
+            payload["network"] = network
         line = _encode_request(payload)
         if self._untold or made_in != self._losses:
             # Told, and not sent: made in a session that has gone, it would
@@ -453,7 +476,7 @@ class Client:
             self._sequence += 1
             identity = self._sequence
             self._hello = _hello_of(self._exchange(identity, _encode_request({"id": identity, "control": "hello"}), deadline))
-        _check_engine(self._hello)
+        _check_request_capabilities(self._hello, context is not None, network is not None, self._binary)
         return _to_response(self._exchange(payload["id"], line, deadline))
 
     def close(self) -> None:
@@ -845,6 +868,18 @@ def _check_engine(hello: Hello) -> None:
         or len(parts) != 3 or not all(p.isascii() and p.isdigit() for p in parts) or int(parts[0]) != major):
         raise Unsupported(f"tlsforge: daemon engine_major {major!r} (version {version!r}, protocol {hello.protocol}) "
                           f"is incompatible with SDK engine major {ENGINE_MAJOR}; request was not sent")
+
+    missing = [name for name in ("catalogue_json_v1", "network_hints_estimator_v1") if name not in hello.capabilities]
+    if missing:
+        raise Unsupported(f"tlsforge: daemon lacks required capabilities {', '.join(missing)}; request was not sent")
+
+
+def _check_request_capabilities(hello: Hello, browser: bool, network: bool, binary: str) -> None:
+    _check_engine(hello)
+    if browser and "browser_context" not in hello.capabilities:
+        raise Unsupported(f"tlsforge: the tls-forge at {binary} speaks protocol {hello.protocol} and does not apply browser contexts; the request was not sent")
+    if network and "network_context_v1" not in hello.capabilities:
+        raise Unsupported("tlsforge: daemon does not apply network contexts; request was not sent")
 
 
 def _encode_request(payload: dict[str, Any]) -> str:

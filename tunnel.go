@@ -116,6 +116,9 @@ func dialOptions(proxyURL string, own bool, keys io.Writer, ka keepAlive, res *r
 				d := newDirectDialer(timeout, local)
 				ka.on(&d.dialer)
 				d.resolving = res
+				if len(identity) > 0 {
+					d.network = identity[0].network
+				}
 				return d, nil
 			}),
 			tls_client.WithConnectionCoalescing(res.lookupNames),
@@ -219,6 +222,7 @@ func (k keepAlive) transport() []tls_client.HttpClientOption {
 // profile asks for them, offers the ECH the site's HTTPS records give (an
 // echConn).
 type directDialer struct {
+	network   *networkObserver
 	dialer    net.Dialer
 	resolving *resolving
 }
@@ -266,6 +270,9 @@ func (d *directDialer) DialContext(ctx context.Context, network, address string)
 	conn, err := dialer.DialContext(ctx, network, address)
 	if err != nil {
 		return nil, err
+	}
+	if d.network != nil {
+		conn = d.network.wrapTCP(conn)
 	}
 	conn = tapped(ctx, conn, began)
 	if https != nil && len(https.taken) > 0 {
@@ -365,6 +372,9 @@ func (d *connectDialer) dial(ctx context.Context, network string) (net.Conn, err
 	raw, err := d.dialer.DialContext(ctx, network, d.address)
 	if err != nil {
 		return nil, err
+	}
+	if d.identity.network != nil {
+		raw = d.identity.network.wrapTCP(raw)
 	}
 	return tapped(ctx, raw, began), nil
 }

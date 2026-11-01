@@ -13,6 +13,7 @@ import (
 )
 
 type proxyIdentity struct {
+	network *networkObserver
 	profile *profile.Profile
 	pool    *proxyH2Pool
 }

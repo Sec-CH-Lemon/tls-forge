@@ -94,6 +94,7 @@ type Request struct {
 	// predates the field sends the request as though it had none, so a client
 	// asks first, with hello, for browser_context.
 	Browser json.RawMessage `json:"browser,omitempty"`
+	Network json.RawMessage `json:"network,omitempty"`
 
 	// Proxy is the proxy an init line names: see ReadInit.
 	Proxy string `json:"proxy,omitempty"`
@@ -137,7 +138,7 @@ const Protocol = 3
 // before it relies on it: browser_context, a request's browser field applied.
 // A client that needs one a daemon does not say finds it missing, and says so
 // instead of being ignored.
-var capabilities = []string{"browser_context", "engine_major"}
+var capabilities = []string{"browser_context", "engine_major", "catalogue_json_v1", "network_hints_estimator_v1", "network_context_v1"}
 
 // Response is one line of output.
 type Response struct {
@@ -463,6 +464,10 @@ func handle(ctx context.Context, line string, client Client) Response {
 		return failed(req.ID, fmt.Errorf("bad request: %w", err))
 	}
 
+	network, err := requestNetworkContext([]byte(line))
+	if err != nil {
+		return failed(req.ID, fmt.Errorf("bad request: %w", err))
+	}
 	requestHeaders, err := orderedHeaders(req, client)
 	if err != nil {
 		return failed(req.ID, fmt.Errorf("bad request: %w", err))
@@ -495,6 +500,7 @@ func handle(ctx context.Context, line string, client Client) Response {
 		Cookies: cookies,
 		Context: ctx,
 		Browser: browser,
+		Network: network,
 	})
 	if err != nil {
 		return failed(req.ID, err)

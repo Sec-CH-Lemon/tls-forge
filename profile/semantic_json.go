@@ -25,7 +25,7 @@ func validateProfileJSON(data []byte) error {
 		if err != nil {
 			return err
 		}
-		if (path == "tls_spec" || path == "quic_tls_spec") && token != json.Delim('{') {
+		if (path == "tls_spec" || path == "quic_tls_spec" || path == "network_hints") && token != json.Delim('{') {
 			return fmt.Errorf("%s = %v: requires a non-null descriptor object", path, token)
 		}
 		if strings.HasPrefix(path, "http2.") {
@@ -77,6 +77,9 @@ func validateProfileJSON(data []byte) error {
 				key, err := d.Token()
 				if err != nil {
 					return err
+				}
+				if path == "" && strings.EqualFold(key.(string), "network_hints") && key.(string) != "network_hints" {
+					return fmt.Errorf("network_hints requires exact field spelling")
 				}
 				name := strings.ToLower(strings.Map(func(r rune) rune {
 					for {

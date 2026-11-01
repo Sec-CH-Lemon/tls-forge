@@ -85,6 +85,12 @@ func TestChrome156DefaultsRetainNativeCaptureProvenance(t *testing.T) {
 					t.Fatal("missing source derivation", key)
 				}
 			}
+			if key == "headers.network_hints" {
+				// A13 is an explicit later source-derived policy, not part of
+				// the immutable A12 capture provenance.
+				origin = FieldOrigin{"source-derived", "provenance/a13-network-hints.json"}
+				want = "source-derived"
+			}
 			if origin.Class != want {
 				t.Fatalf("unmeasured field %s lost its origin", key)
 			}

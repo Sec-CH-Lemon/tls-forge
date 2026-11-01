@@ -46,7 +46,15 @@ func checkA13Derivation(raw []byte, row a13Derivation, originalSHA string) error
 	if err := validateProfileJSON(raw); err != nil {
 		return err
 	}
-	if row.BeforeSHA != originalSHA || row.AfterSHA != a13SHA(raw) {
+	actualSHA := a13SHA(raw)
+	if bytes.Contains(raw, []byte(`"headers.network_hints"`)) {
+		var err error
+		raw, actualSHA, err = unwindA13NetworkDerivation(raw, row.AfterSHA)
+		if err != nil {
+			return err
+		}
+	}
+	if row.BeforeSHA != originalSHA || row.AfterSHA != actualSHA {
 		return fmt.Errorf("profile byte/source digest mismatch")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))

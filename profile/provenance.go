@@ -73,12 +73,18 @@ func ProvenanceForCapture(candidate, basis *Profile, c *capture.Capture, mode st
 	for _, field := range basis.ClientHints {
 		result.Fields["client_hints."+field.Name] = FieldOrigin{"inherited", "policy basis; context/persona values not remeasured"}
 	}
+	if basis.NetworkHints != nil {
+		result.Fields["network_hints"] = FieldOrigin{"inherited", "explicit basis network policy; capture does not measure selection or lifecycle rules"}
+		if basis.NetworkHints.Mode == "estimated" {
+			result.Fields["network_hints.values"] = FieldOrigin{"generated/stateful/environment-dependent", "actual browser-instance observations, network context and fresh salt; captured values are provenance only"}
+		}
+	}
 	result.Fields["client_hello.template"] = FieldOrigin{"measured", "capture raw ClientHello; public changing bytes retained as provenance only"}
 	result.Fields["client_hello.generated_fields"] = FieldOrigin{"generated/stateful", "basis generation rules and live engine connection/session state; never replay captured keys, randoms or tickets"}
 	result.Fields["per_connection"] = FieldOrigin{"inherited", "basis generation constraints; finite draw observations are not a complete distribution"}
 	result.Fields["headers"] = FieldOrigin{"inherited", "policy basis"}
 	if c.HTTP2 != nil && len(c.HTTP2.Headers) > 0 {
-		result.Fields["headers"] = FieldOrigin{"measured", "capture HTTP/2 fields; request-specific fields excluded"}
+		result.Fields["headers"] = FieldOrigin{"measured", "capture HTTP/2 fields; request-specific and network-estimate values excluded"}
 	}
 	result.Fields["http2"] = FieldOrigin{"inherited", "policy basis; no complete H2 prelude observed"}
 	if c.HTTP2 != nil && len(c.HTTP2.PseudoHeaderOrder) > 0 {

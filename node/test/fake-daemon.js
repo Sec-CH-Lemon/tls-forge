@@ -95,6 +95,7 @@ function answer(request, extra = {}) {
       cookies: request.setCookie ?? [],
       // The browser context, as the transport was given it.
       browser: request.browser ?? null,
+      network: request.network ?? null,
       sent: Object.keys(request).sort(),
       controls,
       requests,
@@ -205,7 +206,7 @@ const scenarios = {
 const blank = (request, extra) => ({ id: request.id, status: 0, url: '', body: '', headers: null, cookies: null, ...extra });
 const protocols = {
   '': (request) => {
-    const capabilities = (process.env.TLSFORGE_TEST_CAPABILITIES ?? '').split(',').filter(Boolean);
+    const capabilities = (process.env.TLSFORGE_TEST_CAPABILITIES ?? 'browser_context,engine_major,catalogue_json_v1,network_hints_estimator_v1,network_context_v1').split(',').filter(Boolean);
     const engine_major = process.env.TLSFORGE_TEST_ENGINE_MAJOR;
     const identity = { protocol: 3, version: process.env.TLSFORGE_TEST_ENGINE_VERSION ?? '1.0.0', ...(capabilities.length ? { capabilities } : {}) };
     if (engine_major !== 'missing') identity.engine_major = engine_major === undefined ? 1 : JSON.parse(engine_major);
@@ -219,7 +220,7 @@ const protocols = {
   'bad-capabilities': (request) => write(blank(request, { protocol: 2, capabilities: [7] })),
   'no-capabilities': (request) => write(blank(request, { protocol: 2, capabilities: 'all' })),
   low: (request) => write(blank(request, { protocol: 1 })),
-  newer: (request) => write(blank(request, { protocol: 7, engine_major: 1, version: '1.0.0', capabilities: ['browser_context', 'teleport'] })),
+  newer: (request) => write(blank(request, { protocol: 7, engine_major: 1, version: '1.0.0', capabilities: ['browser_context', 'teleport', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'] })),
   silent: () => {},
   exit: () => process.exit(3),
 };

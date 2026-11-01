@@ -86,7 +86,7 @@ test('the declared request is the wire request a caller sets, by its own names',
   // for the transport, and the proxy of an init line. Renamed: cookies go as
   // setCookie, a browser context as browser.
   const kept = ['id', 'bodyEncoding', 'control', 'proxy', 'engine_major'];
-  const renamed = { setCookie: 'cookies', browser: 'browserContext' };
+  const renamed = { setCookie: 'cookies', browser: 'browserContext', network: 'networkContext' };
   const wire = goTags(read('..', 'daemon', 'daemon.go'), 'Request')
     .filter((tag) => !kept.includes(tag))
     .map((tag) => renamed[tag] ?? tag);
@@ -116,4 +116,12 @@ test('the declared browser context is the one the daemon reads, value for value'
   assert.deepEqual(union('BrowserContext', 'mode'), listed(browser, /\[\]string\{([^}]*)\}, r\.mode\)/));
   assert.deepEqual(union('BrowserContext', 'credentials'),
     listed(browser, /\[\]string\{([^}]*)\}, r\.credentials\)/));
+});
+
+test('network metadata declaration matches the shared typed decoder', () => {
+ assert.deepEqual(fields('NetworkContext'), goTags(read('..','networkquality','context.go'), 'Context'));
+ const source=read('..','networkquality','context.go');
+ const names=/var connectionTypes = \[\]string\{([^}]+)\}/.exec(source);
+ assert.ok(names);
+ assert.deepEqual(union('NetworkContext','type'), [...names[1].matchAll(/"([^"]+)"/g)].map(([,name])=>name).sort());
 });

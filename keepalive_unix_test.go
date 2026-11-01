@@ -16,9 +16,9 @@ type probing struct{ on, idle, interval, count int }
 
 func probingOf(t *testing.T, conn net.Conn) probing {
 	t.Helper()
-	tcp, ok := conn.(*net.TCPConn)
+	tcp, ok := conn.(syscall.Conn)
 	if !ok {
-		t.Fatalf("a %T is no TCP connection", conn)
+		t.Fatalf("a %T exposes no physical socket", conn)
 	}
 	raw, err := tcp.SyscallConn()
 	if err != nil {

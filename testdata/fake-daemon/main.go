@@ -35,6 +35,7 @@ type request struct {
 	Control      *string           `json:"control"`
 	Proxy        *string           `json:"proxy"`
 	Browser      json.RawMessage   `json:"browser"`
+	Network      json.RawMessage   `json:"network"`
 
 	// sent are the names of the fields the line had.
 	sent []string
@@ -343,7 +344,11 @@ var protocols = map[string]func(request){
 		if version, ok := os.LookupEnv("TLSFORGE_TEST_ENGINE_VERSION"); ok {
 			extra["version"] = version
 		}
-		if names := strings.Split(os.Getenv("TLSFORGE_TEST_CAPABILITIES"), ","); names[0] != "" {
+		caps, present := os.LookupEnv("TLSFORGE_TEST_CAPABILITIES")
+		if !present {
+			caps = "browser_context,engine_major,catalogue_json_v1,network_hints_estimator_v1,network_context_v1"
+		}
+		if names := strings.Split(caps, ","); names[0] != "" {
 			extra["capabilities"] = slices.DeleteFunc(names, func(name string) bool { return name == "" })
 		}
 		emit(blank(req, extra))
@@ -362,7 +367,7 @@ var protocols = map[string]func(request){
 	},
 	"low": func(req request) { emit(blank(req, map[string]any{"protocol": 1})) },
 	"newer": func(req request) {
-		emit(blank(req, map[string]any{"protocol": 7, "engine_major": 1, "version": "1.0.0", "capabilities": []string{"browser_context", "teleport"}}))
+		emit(blank(req, map[string]any{"protocol": 7, "engine_major": 1, "version": "1.0.0", "capabilities": []string{"browser_context", "teleport", "catalogue_json_v1", "network_hints_estimator_v1", "network_context_v1"}}))
 	},
 	"silent": func(request) {},
 	"exit":   func(request) { os.Exit(3) },
@@ -418,11 +423,13 @@ func answer(req request) map[string]any {
 	}
 	var browser any
 	_ = json.Unmarshal(req.Browser, &browser)
+	var network any
+	_ = json.Unmarshal(req.Network, &network)
 	body, _ := json.Marshal(map[string]any{
 		"argv": os.Args[1:], "env": env, "proxy": proxy, "pid": os.Getpid(), "bodyLength": bodyLength,
 		"method": req.Method, "headers": headers,
 		"order": order, "cookies": cookies, "body": req.Body,
-		"browser": browser, "sent": req.sent, "controls": controls, "requests": requests,
+		"browser": browser, "network": network, "sent": req.sent, "controls": controls, "requests": requests,
 	})
 	return map[string]any{
 		"id": req.ID, "status": 200, "url": req.URL, "body": string(body),

@@ -103,6 +103,9 @@ type Profile struct {
 	// the profile has no value for is not sent, asked for or not.
 	ClientHints []Field `json:"client_hints,omitempty"`
 
+	// NetworkHints explicitly selects literal persona or a data-owned estimator.
+	NetworkHints *NetworkHintsPolicy `json:"network_hints,omitempty"`
+
 	// Notes is free text carried into the JSON so a committed profile can say
 	// where it came from — which browser build, measured when, on what OS.
 	Notes string `json:"notes,omitempty"`
@@ -144,6 +147,7 @@ func (p *Profile) Clone() *Profile {
 	}
 	out.Headers = append([]Field(nil), p.Headers...)
 	out.ClientHints = append([]Field(nil), p.ClientHints...)
+	out.NetworkHints = p.NetworkHints.clone()
 	out.HTTP2.Settings = append([]Setting(nil), p.HTTP2.Settings...)
 	out.HTTP2.PseudoHeaderOrder = append([]string(nil), p.HTTP2.PseudoHeaderOrder...)
 	out.HTTP2.Priorities = append([]Priority(nil), p.HTTP2.Priorities...)
@@ -698,6 +702,9 @@ func decodeProfile(data []byte, execute bool) (*Profile, error) {
 // validateFields is shared by execution and offline format inspection.
 // It does not retag an archive or grant permission to execute its HTTP policy.
 func (p *Profile) validateFields() error {
+	if err := p.validateNetworkHints(); err != nil {
+		return fmt.Errorf("profile %q: %w", p.Name, err)
+	}
 
 	if p.QUICTLSSpec != nil {
 		if err := p.QUICTLSSpec.validate(); err != nil {

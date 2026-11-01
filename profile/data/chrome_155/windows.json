@@ -439,6 +439,7 @@
       "if-modified-since",
       "priority"
     ],
+    "headers.network_hints": "weighted-observations",
     "headers.preflight_order": [
       "accept",
       "access-control-request-method",
@@ -1111,18 +1112,6 @@
       "value": "720"
     },
     {
-      "name": "rtt",
-      "value": "100"
-    },
-    {
-      "name": "downlink",
-      "value": "1.45"
-    },
-    {
-      "name": "ect",
-      "value": "4g"
-    },
-    {
       "name": "sec-ch-ua-full-version",
       "value": "\"155.0.8059.85\""
     },
@@ -1167,5 +1156,475 @@
       "value": "no-preference"
     }
   ],
+  "network_hints": {
+    "mode": "estimated",
+    "policy": {
+      "addresses": {
+        "rules": [
+          {
+            "prefix": "0.0.0.0/8",
+            "public": false
+          },
+          {
+            "prefix": "10.0.0.0/8",
+            "public": false
+          },
+          {
+            "prefix": "100.64.0.0/10",
+            "public": false
+          },
+          {
+            "prefix": "127.0.0.0/8",
+            "public": false
+          },
+          {
+            "prefix": "169.254.0.0/16",
+            "public": false
+          },
+          {
+            "prefix": "172.16.0.0/12",
+            "public": false
+          },
+          {
+            "prefix": "192.0.0.0/24",
+            "public": false
+          },
+          {
+            "prefix": "192.0.2.0/24",
+            "public": false
+          },
+          {
+            "prefix": "192.88.99.0/24",
+            "public": false
+          },
+          {
+            "prefix": "192.168.0.0/16",
+            "public": false
+          },
+          {
+            "prefix": "198.18.0.0/15",
+            "public": false
+          },
+          {
+            "prefix": "198.51.100.0/24",
+            "public": false
+          },
+          {
+            "prefix": "203.0.113.0/24",
+            "public": false
+          },
+          {
+            "prefix": "224.0.0.0/3",
+            "public": false
+          },
+          {
+            "prefix": "0.0.0.0/0",
+            "public": true
+          },
+          {
+            "prefix": "2000::/3",
+            "public": true
+          },
+          {
+            "prefix": "ff00::/8",
+            "public": true
+          },
+          {
+            "prefix": "::/0",
+            "public": false
+          }
+        ],
+        "unmap_ipv4": true,
+        "default_public": false,
+        "missing_resolution_public": true,
+        "localhost_public": false
+      },
+      "environment": {
+        "source": "system",
+        "missing": "fallback",
+        "fallback": {
+          "type": "unknown",
+          "id": "",
+          "generation": 0,
+          "signal": null
+        },
+        "families": [
+          "ipv4",
+          "ipv6"
+        ],
+        "identity": "connection-type"
+      },
+      "algorithm": "weighted-observations",
+      "metrics": [
+        {
+          "name": "http",
+          "buffer": {
+            "capacity": 300,
+            "half_life_seconds": 60,
+            "signal_weight": 1
+          },
+          "recent_ms": 0,
+          "fallback_all": true,
+          "percentile": 50
+        },
+        {
+          "name": "transport",
+          "buffer": {
+            "capacity": 300,
+            "half_life_seconds": 60,
+            "signal_weight": 1
+          },
+          "recent_ms": 0,
+          "fallback_all": true,
+          "percentile": 50
+        },
+        {
+          "name": "end",
+          "buffer": {
+            "capacity": 300,
+            "half_life_seconds": 60,
+            "signal_weight": 1
+          },
+          "recent_ms": 0,
+          "fallback_all": true,
+          "percentile": 50
+        },
+        {
+          "name": "downlink",
+          "buffer": {
+            "capacity": 300,
+            "half_life_seconds": 60,
+            "signal_weight": 1
+          },
+          "recent_ms": 0,
+          "fallback_all": true,
+          "percentile": 50
+        }
+      ],
+      "sources": [
+        {
+          "name": "http",
+          "categories": [
+            "http"
+          ],
+          "default": false,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "tcp",
+          "categories": [
+            "transport"
+          ],
+          "default": false,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "quic",
+          "categories": [
+            "transport",
+            "end"
+          ],
+          "default": false,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "h2-ping",
+          "categories": [
+            "http",
+            "end"
+          ],
+          "default": false,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "seed-http",
+          "categories": [
+            "http"
+          ],
+          "default": true,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "seed-transport",
+          "categories": [
+            "transport"
+          ],
+          "default": true,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "cache-http",
+          "categories": [
+            "http"
+          ],
+          "default": false,
+          "cached": true,
+          "recompute": false
+        },
+        {
+          "name": "cache-transport",
+          "categories": [
+            "transport"
+          ],
+          "default": false,
+          "cached": true,
+          "recompute": false
+        }
+      ],
+      "seeds": [
+        {
+          "type": "unknown",
+          "http_ms": {
+            "value": 115,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 55,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 1961,
+            "available": true
+          }
+        },
+        {
+          "type": "ethernet",
+          "http_ms": {
+            "value": 90,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 33,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 1456,
+            "available": true
+          }
+        },
+        {
+          "type": "wifi",
+          "http_ms": {
+            "value": 116,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 66,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 2658,
+            "available": true
+          }
+        },
+        {
+          "type": "2g",
+          "http_ms": {
+            "value": 1726,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 1531,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 74,
+            "available": true
+          }
+        },
+        {
+          "type": "3g",
+          "http_ms": {
+            "value": 273,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 209,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 749,
+            "available": true
+          }
+        },
+        {
+          "type": "4g",
+          "http_ms": {
+            "value": 137,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 80,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 1708,
+            "available": true
+          }
+        },
+        {
+          "type": "none",
+          "http_ms": {
+            "value": 163,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 83,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 575,
+            "available": true
+          }
+        },
+        {
+          "type": "bluetooth",
+          "http_ms": {
+            "value": 385,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 318,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 476,
+            "available": true
+          }
+        },
+        {
+          "type": "5g",
+          "http_ms": {
+            "value": 0,
+            "available": false
+          },
+          "transport_ms": {
+            "value": 0,
+            "available": false
+          },
+          "downlink_kbps": {
+            "value": 0,
+            "available": false
+          }
+        }
+      ],
+      "ect": [
+        {
+          "label": "slow-2g",
+          "min_http_ms": 2010,
+          "typical_http_ms": 3600,
+          "typical_transport_ms": 3000,
+          "typical_kbps": 40,
+          "clamp_downlink": true
+        },
+        {
+          "label": "2g",
+          "min_http_ms": 1420,
+          "typical_http_ms": 1800,
+          "typical_transport_ms": 1500,
+          "typical_kbps": 75,
+          "clamp_downlink": true
+        },
+        {
+          "label": "3g",
+          "min_http_ms": 270,
+          "typical_http_ms": 450,
+          "typical_transport_ms": 400,
+          "typical_kbps": 400,
+          "clamp_downlink": true
+        },
+        {
+          "label": "4g",
+          "min_http_ms": 0,
+          "typical_http_ms": 175,
+          "typical_transport_ms": 125,
+          "typical_kbps": 1600,
+          "clamp_downlink": false
+        }
+      ],
+      "compute": {
+        "headers_delivery": "headers",
+        "transaction_start": "headers",
+        "use_end": true,
+        "interval_ms": 10000,
+        "growth_ratio": 1.5,
+        "new_samples": 50,
+        "navigation": true,
+        "min_transport_samples": 5,
+        "min_end_samples": 5,
+        "transport_lower": 1,
+        "end_lower": 1,
+        "end_upper": 3,
+        "sparse_rtt_cap_ms": 175,
+        "cache_grace_ms": 60000,
+        "downlink_typical_cap": 3.5,
+        "hanging_http": 6,
+        "hanging_transport": 8,
+        "hanging_min_ms": 500,
+        "missing_rtt_ms": 10000
+      },
+      "throughput": {
+        "min_inflight": 5,
+        "min_transfer_bytes": 32768,
+        "max_requests": 300,
+        "hanging_cwnd_bytes": 15000,
+        "hanging_cwnd_multiplier": 1,
+        "hanging_rtt_multiplier": 5,
+        "hanging_min_ms": 3000,
+        "missing_http_ms": 60000,
+        "sweep_ms": 1000
+      },
+      "socket": {
+        "tcp_source": "none",
+        "capacity": 300,
+        "per_socket_ms": 1000,
+        "global_ms": 200,
+        "min_rtt_us": 1,
+        "allow_private": false,
+        "skip_first_quic": true
+      },
+      "publication": {
+        "latency_difference": 20,
+        "bandwidth_difference": 100,
+        "ratio": 1.2
+      },
+      "cache": {
+        "capacity": 20,
+        "key": "connection-type",
+        "enabled": true,
+        "read_after_bootstrap": true
+      },
+      "noise": {
+        "scope": "browser-instance",
+        "hash": "libcxx-city64-le-abi2",
+        "sum_bits": 32,
+        "salt_min": 1,
+        "salt_max": 21,
+        "buckets": 21,
+        "base": 0.9,
+        "step": 0.01,
+        "rtt_cap_ms": 3000,
+        "rtt_quantum_ms": 50,
+        "missing_rtt_ms": 0,
+        "downlink_cap_kbps": 10000,
+        "downlink_quantum_kbps": 50,
+        "missing_downlink_kbps": 10000,
+        "missing_ect": "4g"
+      },
+      "methods": [
+        "GET"
+      ],
+      "exclude_private": true,
+      "exclude_cached": true,
+      "offline_ect": "offline",
+      "unknown_ect": "unknown"
+    }
+  },
   "notes": "captured 2026-10-19T23:43:00Z from Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36; client hints sent when asked, by Chrome 155.0.8059.85 on GitHub's windows-2025 runner (Windows Server 2025, image 20261007.264.1), headed: the device's, the network's and the preferences' are what that machine, its window and its network gave Behavior schema 3 materializes the pre-existing compatibility policy from the maintained runtime; additional behavior fields are not a new capture of this browser build.\nExplicit migration to engine 1.0.0 (major 1); original capture and wire policy preserved. Engine compatibility is revalidated separately; historical browser acceptance is not a fresh measurement. Explicit engine-2 migration (2026-10-22): QPACK literal coding is now profile-owned; original engine-1 bytes preserved in tls-client-cache-20261022-r16 source archive. Other browser values and capture provenance retained. Explicit engine-3 migration (2026-10-22): dynamic QPACK mechanism; original engine-2 bytes preserved in qpack-20261022-r17 source archive. Other browser values retained unless separately measured. Explicit engine-4 migration (2026-10-23): QPACK draining, critical-stream close and H3 retry mechanisms. Original engine-3 bytes preserved in dynamic-qpack-20261022-r18 source archive. Wire acceptance is scenario scoped. Explicit engine-5 migration (2026-10-23): typed QPACK diagnostics and JSON-owned error text/templates. Original engine-4 bytes preserved in qpack-edges-20261023-r19 source archive. Browser/wire acceptance remains scenario scoped. Explicit engine-6 candidate (2026-10-23): deferred QPACK stream identity reservation with demand-driven wire output. Original engine-5 bytes preserved in dynamic-series-20261023-r21 pre-fix source archive; browser acceptance remains per profile and scenario. Explicit engine-7 candidate (2026-10-23): profile-owned initial H2 reader launch. Original engine-6 bytes preserved in hpack-20261023-r22 before-build archive; other profiles retain prior scheduling pending their own browser acceptance.\nRelease policy correction (2026-10-23): this is the single unreleased engine1.0.0 candidate after latest published major0. Earlier engine2 through engine7 labels above identify internal development snapshots, not published releases. Only engine_major metadata and this provenance note changed;captured browser/network values are retained.\nA8 GREASE generator correction: uint32 N and value (zero allowed), per connection, from Chrome156 quiche a1628192cf32ba40d21e0dd80f485d68c24ff87a. Earlier browser builds inherit this selection; no fresh historical-browser acceptance.\nA8 shared network policy:30 keys explicitly inherited from chrome_155_macos; OS-specific timer, TCP keepalive and negotiate-auth choices preserved. Native Chrome156 windows SETTINGS/QPACK acceptance pending; this is not a new Chrome155 measurement.\nA8 QPACK first-section correction: no artificial skipped section; dynamic encoding follows actual peer SETTINGS/ALPS capacity and blocked credit. Source Chrome156 quiche a1628192; two headed macOS156 cohorts observe both first-section states. Chrome155 files explicitly inherit this rule; no fresh155 verdict.\nA12 DNS query choices are explicit: inherited product RD=true, EDNS4096, per-server2000ms; these transferred values do not establish historical-browser DNS parity.\nA12 persona selection: virtual8GiB desktop,1280x720 CSS viewport,light theme,no reduced-motion/transparency preference;DPR2macOS/DPR1Linux-Windows. These are explicit configuration values, not measurements of every machine or a headless capture replay. Original capture bytes remain in pre-change archives."
 }

@@ -85,7 +85,7 @@ func (c *Client) alpsHints(conn net.Conn, h hop) Header {
 		return nil
 	}
 	var out Header
-	for _, hint := range hintValues(askedHints([]string{value}, c.behavior()), Header(c.profile.ClientHints)) {
+	for _, hint := range hintValues(askedHints([]string{value}, c.behavior()), c.networkHintValues(h.to.host)) {
 		if !h.hints.Has(hint.Name) && !h.alps.Has(hint.Name) {
 			out = append(out, hint)
 		}

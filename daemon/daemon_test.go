@@ -721,7 +721,7 @@ func TestServeContextCancelsTheRequestInFlightAndAnswersIt(t *testing.T) {
 func TestHelloSaysWhatTheDaemonIsWithoutAConnection(t *testing.T) {
 	client := &fakeClient{}
 	got := handle(context.Background(), `{"engine_major":1,"id":3,"control":"hello"}`, client)
-	if got.ID != 3 || got.Error != "" || got.Protocol != Protocol || !slices.Equal(got.Capabilities, []string{"browser_context", "engine_major"}) ||
+	if got.ID != 3 || got.Error != "" || got.Protocol != Protocol || !slices.Equal(got.Capabilities, []string{"browser_context", "engine_major", "catalogue_json_v1", "network_hints_estimator_v1", "network_context_v1"}) ||
 		client.got != nil {
 		t.Errorf("hello: %+v, a request %v", got, client.got)
 	}

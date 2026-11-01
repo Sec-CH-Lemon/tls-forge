@@ -41,6 +41,14 @@ The 18 shipped profiles and all backend catalogue policies have explicit engine-
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
+Executable profiles also select `behavior.headers.network_hints` explicitly.
+`none` preserves absence, `literal` keeps deliberately configured values, and
+`weighted-observations` requires a complete top-level typed estimator policy.
+See [network hint policy](profile-behavior.md#network-hints-from-current-observations-unreleased-engine-1).
+Saving or inspecting an archive never adds this choice; explicit migration is
+required. Existing capture provenance is preserved separately from derivations.
+
+
 For a new programmatically created Go profile, explicitly set
 `EngineMajor: profile.Major(tlsforge.EngineMajor())`. Never use this assignment to
 silently accept an imported file. `tlsforge.Version()` and `tlsforge.EngineMajor()`

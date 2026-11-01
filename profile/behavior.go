@@ -31,7 +31,7 @@ func (p *Profile) RuntimeBehavior() behavior.Policy {
 }
 
 // requiredRules are what no executable profile of this engine runs without.
-var requiredRules = []string{"quic.config", "quic.tls_source", "quic.max_stream_receive_window", "quic.max_connection_receive_window", "quic.keep_alive_ms", "tls.session_cache_entries", "quic.session_cache_entries", "quic.session_cache", "quic.parameter_order", "quic.grease_parameter_length_rule", "quic.grease_parameter_length_min", "quic.grease_parameter_length_max", "quic.ack_initial_packets", "quic.ack_reordering_threshold", "quic.ack_gap_policy", "quic.ack_decimation", "dns.https_query_recursion_desired", "dns.https_query_udp_payload_bytes", "dns.https_query_timeout_ms", "cache.generated_header_order", "http.instance_scope", "http.cache_scope", "http.cache_validators", "cache.duplicate_freshness_policy", "cache.invalid_freshness_policy", "cache.freshness_quoted_values", "cache.delta_seconds_limit", "http.max_content_codings", "http.content_coding_overflow", "http.ignored_content_codings", "cookie.prefixes", "h3.grease_setting_placement"}
+var requiredRules = []string{"headers.network_hints", "quic.config", "quic.tls_source", "quic.max_stream_receive_window", "quic.max_connection_receive_window", "quic.keep_alive_ms", "tls.session_cache_entries", "quic.session_cache_entries", "quic.session_cache", "quic.parameter_order", "quic.grease_parameter_length_rule", "quic.grease_parameter_length_min", "quic.grease_parameter_length_max", "quic.ack_initial_packets", "quic.ack_reordering_threshold", "quic.ack_gap_policy", "quic.ack_decimation", "dns.https_query_recursion_desired", "dns.https_query_udp_payload_bytes", "dns.https_query_timeout_ms", "cache.generated_header_order", "http.instance_scope", "http.cache_scope", "http.cache_validators", "cache.duplicate_freshness_policy", "cache.invalid_freshness_policy", "cache.freshness_quoted_values", "cache.delta_seconds_limit", "http.max_content_codings", "http.content_coding_overflow", "http.ignored_content_codings", "cookie.prefixes", "h3.grease_setting_placement"}
 
 // savedBehavior is the behavior Save writes: the profile's own, or what an
 // older schema without one runs with. An archive of such a schema that this
@@ -86,11 +86,17 @@ func (p *Profile) validateBehaviorFor(execution bool) error {
 		// with is its own or an older format's data, execution needs this
 		// engine's resource/cookie rules and generated-setting placement.
 		// Offline archives keep their original absent choices.
+		if err := p.validateNetworkHints(); err != nil {
+			return fmt.Errorf("profile %q: %w", p.Name, err)
+		}
 		pol := p.RuntimeBehavior()
 		for _, key := range requiredRules {
 			if !pol.Has(key) {
 				return fmt.Errorf("profile %q: behavior is incomplete; requires %s", p.Name, key)
 			}
+		}
+		if err := p.validateNetworkHintCapability(); err != nil {
+			return fmt.Errorf("profile %q: %w", p.Name, err)
 		}
 	}
 	if p.Schema >= 3 {

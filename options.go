@@ -16,6 +16,7 @@ import (
 const DefaultProfile = "chrome"
 
 type config struct {
+	network            *NetworkContext
 	profile            *profile.Profile
 	profileValueSet    bool
 	profileName        string
@@ -244,4 +245,11 @@ func WithDNSServer(address string) Option {
 // apart from a request go unlogged. GO.md, «Transport options», says it all.
 func WithTransportOption(opts ...tls_client.HttpClientOption) Option {
 	return func(c *config) { c.extra = append(c.extra, opts...) }
+}
+
+// WithNetworkContext supplies actual network metadata to an estimated profile.
+// It never supplies precomputed RTT or throughput, and snapshots the optional signal.
+func WithNetworkContext(network NetworkContext) Option {
+	value := network.Clone()
+	return func(c *config) { v := value.Clone(); c.network = &v }
 }

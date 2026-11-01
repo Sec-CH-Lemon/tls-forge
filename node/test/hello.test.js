@@ -76,12 +76,12 @@ function pastDeadline(t, ask) {
 }
 
 test('a transport says the protocol it speaks and what it can do, once', async () => {
-  await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'one,two' }, async (client) => {
+  await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'one,two,catalogue_json_v1,network_hints_estimator_v1' }, async (client) => {
     const first = await client.hello();
-    assert.deepEqual(first, { protocol: 3, capabilities: ['one', 'two'], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(first, { protocol: 3, capabilities: ['one', 'two', 'catalogue_json_v1', 'network_hints_estimator_v1'], engine_major: 1, version: '1.0.0' });
     // A copy each time: what one caller does with it is not the next's.
     first.capabilities.push('three');
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['one', 'two'], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['one', 'two', 'catalogue_json_v1', 'network_hints_estimator_v1'], engine_major: 1, version: '1.0.0' });
     const { controls, requests } = await seen(client);
     assert.equal(controls, 1);
     assert.equal(requests, 1);
@@ -95,7 +95,7 @@ test('a transport newer than this package is read for what it says it can do', a
   // A protocol after 2, and a capability no package knows yet, are no reason
   // to refuse what both know.
   await withTransport({ TLSFORGE_TEST_PROTOCOL: 'newer' }, async (client) => {
-    assert.deepEqual(await client.hello(), { protocol: 7, capabilities: ['browser_context', 'teleport'], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 7, capabilities: ['browser_context', 'teleport', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' });
     const context = { kind: 'fetch', initiator: 'https://example.com/' };
     const answer = JSON.parse((await client.get('https://ok/', { browserContext: context })).body);
     assert.deepEqual(answer.browser, context);
@@ -110,7 +110,7 @@ test('a transport older than the question speaks protocol 1', async () => {
 
 test('the committed answers to hello read as they say', async () => {
   for (const [mode, want] of [
-    ['fixture', { protocol: 3, capabilities: ['browser_context', 'engine_major'], engine_major: 1, version: '1.0.0' }],
+    ['fixture', { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' }],
     ['fixture-old', { protocol: 1, capabilities: [] }],
   ]) {
     await withTransport({ TLSFORGE_TEST_PROTOCOL: mode }, async (client) => {
@@ -145,7 +145,7 @@ test('a transport that does not answer hello has said nothing, and is asked agai
 test('a question asked after a session went leaves the next request to be told', async (t) => {
   await withTransport({}, async (client) => {
     await assert.rejects(pastDeadline(t, () => client.get('https://silent/')), /request timed out/);
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: [], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' });
     await assert.rejects(client.get('https://ok/'), (err) => err.name === 'SessionReset');
     assert.equal((await seen(client)).requests, 1);
   }, { timeout: COLD_START });
@@ -159,7 +159,7 @@ test('a closed client asks nothing', async () => {
 
 test('a browser context goes to a transport that applies one, and to no other', async () => {
   const context = { kind: 'fetch', initiator: 'https://example.com/' };
-  for (const [env, protocol] of [[{ TLSFORGE_TEST_CAPABILITIES: 'other' }, 3]]) {
+  for (const [env, protocol] of [[{ TLSFORGE_TEST_CAPABILITIES: 'other,catalogue_json_v1,network_hints_estimator_v1' }, 3]]) {
     await withTransport(env, async (client) => {
       const refused = await client.get('https://ok/', { browserContext: context }).then(
         () => assert.fail('sent'),
@@ -176,7 +176,7 @@ test('a browser context goes to a transport that applies one, and to no other', 
       assert.equal((await seen(client)).requests, 1);
     });
   }
-  await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'browser_context' }, async (client) => {
+  await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'browser_context,catalogue_json_v1,network_hints_estimator_v1' }, async (client) => {
     const answer = JSON.parse((await client.post('https://ok/', 'x', { browserContext: context })).body);
     // Sent as the protocol names it, and under no other name.
     assert.deepEqual(answer.browser, context);
@@ -194,7 +194,7 @@ test('a browser context goes to a transport that applies one, and to no other', 
 });
 
 test('a browser context goes with every key as the protocol names it', async () => {
-  await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'browser_context' }, async (client) => {
+  await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'browser_context,catalogue_json_v1,network_hints_estimator_v1' }, async (client) => {
     const context = {
       kind: 'fetch',
       initiator: 'https://shop.example/item/7',
@@ -208,7 +208,7 @@ test('a browser context goes with every key as the protocol names it', async () 
 });
 
 test('a browser context that is no object, or has a key the protocol does not, is a mistake in the call', async () => {
-  await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'browser_context' }, async (client) => {
+  await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'browser_context,catalogue_json_v1,network_hints_estimator_v1' }, async (client) => {
     for (const [context, says] of [
       ['fetch', /^tlsforge: browserContext must be an object$/],
       [['kind', 'fetch'], /^tlsforge: browserContext must be an object$/],
@@ -299,4 +299,42 @@ test('only ambient TLS key logging is removed on every daemon start', async () =
    }
   }
  },{timeout:1000});
+});
+
+test('network metadata is snapshotted, typed and sent by its protocol name', async () => {
+ await withTransport({}, async (client) => {
+  const input={type:'wifi',id:'network-😀',generation:7,signal:0};
+  const answer=client.get('https://ok/',{networkContext:input});
+  input.id='owner-later-edit';input.signal=4;
+  const received=JSON.parse((await answer).body);
+  assert.deepEqual(received.network,{type:'wifi',id:'network-😀',generation:7,signal:0});
+  assert.ok(received.sent.includes('network'));
+  assert.ok(!received.sent.includes('networkContext'));
+  assert.equal(JSON.parse((await client.get('https://ok/',{networkContext:{type:'none',id:'',generation:0,signal:null}})).body).network.signal,null);
+ });
+});
+
+test('malformed network metadata is rejected before discovery or a request', async () => {
+ const good={type:'wifi',id:'network-a',generation:0,signal:null};
+ const invalid=[[],false,'wifi',{}, {type:"wifi",id:"a",generation:0,rtt:1}, {...good,rtt:100}, {...good,signal:undefined}, {...good,type:'made-up'}, {...good,id:17}, {...good,id:'\ud800'}, {...good,id:'x'.repeat(4097)}, {...good,generation:-1}, {...good,generation:2**53}, {...good,generation:1.5}, {...good,signal:false}, {...good,signal:-1}, {...good,signal:5}];
+ await withTransport({},async(client)=>{
+  for(const value of invalid) await assert.rejects(client.get('https://ok/',{networkContext:value}),TypeError);
+  const answer=await seen(client);assert.equal(answer.controls,1);assert.equal(answer.requests,1);
+ });
+});
+
+test('same-major legacy daemons cannot silently ignore catalogue or estimator policy', async () => {
+ for(const caps of ['browser_context,engine_major','browser_context,engine_major,catalogue_json_v1']){
+  const log=path.join(wrapperDir,`legacy-${caps.length}.jsonl`);
+  await withTransport({TLSFORGE_TEST_CAPABILITIES:caps,TLSFORGE_TEST_WIRE_LOG:log},async(client)=>{
+   assert.equal((await client.hello()).engine_major,1);
+   await assert.rejects(client.get('https://must-not-send/'),/lacks required capabilities.*request was not sent/);
+   const lines=readFileSync(log,'utf8').trim().split('\n').map(JSON.parse);
+   assert.equal(lines.length,1);assert.equal(lines[0].control,'hello');
+  });
+ }
+ await withTransport({TLSFORGE_TEST_CAPABILITIES:'catalogue_json_v1,network_hints_estimator_v1'},async(client)=>{
+  await assert.rejects(client.get('https://must-not-send/',{networkContext:{type:'wifi',id:'a',generation:0,signal:null}}),/does not apply network contexts/);
+  assert.equal((await seen(client)).requests,1);
+ });
 });

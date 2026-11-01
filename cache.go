@@ -110,7 +110,7 @@ func (e *cachedResponse) response(req *fhttp.Request) *fhttp.Response {
 		body = nil
 	}
 	return &fhttp.Response{StatusCode: e.status, Status: e.statusText, Header: h,
-		Body: io.NopCloser(bytes.NewReader(body)), ContentLength: int64(len(e.body)),
+		Body: observedCacheBody(req, io.NopCloser(bytes.NewReader(body))), ContentLength: int64(len(e.body)),
 		Request: req, Proto: e.proto, ProtoMajor: e.major, ProtoMinor: e.minor}
 }
 
@@ -151,9 +151,11 @@ func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.Roun
 				entry = nil
 			} else if !forced && !entry.validate && entry.age < entry.fresh && max(0, time.Since(entry.stored)) < entry.fresh-entry.age {
 				if cacheValue(req.Header, "Range") == "" {
+					markNetworkCached(req)
 					return entry.response(req), nil
 				}
 				if ranged := entry.rangeResponse(req); ranged != nil {
+					markNetworkCached(req)
 					return ranged, nil
 				}
 			}
@@ -176,6 +178,7 @@ func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.Roun
 		return nil, err
 	}
 	if conditional && res.StatusCode == 304 {
+		markNetworkCached(req)
 		_ = res.Body.Close()
 		merged := entry.response(req)
 		for name, values := range res.Header {
@@ -340,7 +343,9 @@ func (c *responseCache) store(key string, request fhttp.Header, res *fhttp.Respo
 }
 
 type cacheBody struct {
-	limit int
+	observedRead func(int)
+	observedDone func()
+	limit        int
 	io.ReadCloser
 	data     []byte
 	commit   func([]byte)
@@ -352,6 +357,12 @@ type cacheBody struct {
 // ends, unless it grew past the limit: then none of it.
 func (r *cacheBody) Read(p []byte) (int, error) {
 	n, err := r.ReadCloser.Read(p)
+	if n > 0 && r.observedRead != nil {
+		r.observedRead(n)
+	}
+	if err != nil && r.observedDone != nil {
+		r.observedDone()
+	}
 	if r.commit != nil {
 		if len(r.data)+n > r.maxBytes() {
 			r.commit, r.data = nil, nil
@@ -386,6 +397,9 @@ func leftUnread(res *fhttp.Response) {
 
 func (r *cacheBody) Close() error {
 	err := r.ReadCloser.Close()
+	if r.observedDone != nil {
+		r.observedDone()
+	}
 	if r.done != nil {
 		r.done()
 	}
@@ -403,4 +417,15 @@ func (r *cacheBody) maxBytes() int {
 		return r.limit
 	}
 	return legacyPolicy().Int("cache.entry_bytes")
+}
+
+// ResponseBodyReleased forwards observation ownership without wrapping the
+// underlying transport body or changing its independent drainer lifetime.
+func (r *cacheBody) ResponseBodyReleased() {
+	if r.observedDone != nil {
+		r.observedDone()
+	}
+	if observed, ok := r.ReadCloser.(interface{ ResponseBodyReleased() }); ok {
+		observed.ResponseBodyReleased()
+	}
 }

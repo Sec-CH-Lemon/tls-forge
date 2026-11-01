@@ -60,5 +60,11 @@
       "GET",
       "HEAD"
     ]
+  },
+  "network_hints": {
+    "with_literals": {
+      "mode": "literal"
+    },
+    "without_literals": "none"
   }
 }

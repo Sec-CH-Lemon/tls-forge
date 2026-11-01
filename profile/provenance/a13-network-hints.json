@@ -1,0 +1,1282 @@
+{
+  "schema": 1,
+  "engine_major": 1,
+  "stage": "A13 network estimator source-derived candidate; browser/platform acceptance remains separate",
+  "profiles": {
+    "profile/data/chrome_151/linux.json": {
+      "before_sha256": "9f316cfe8e48f194c9a0140765d67e5bd97133b1f229204a915b10c2c8027545",
+      "before_semantic_sha256": "8a05d819a8f8651fe1468e9dc21dd22d6c431beaf453ba53f54de25b77a79571",
+      "after_sha256": "ac9966af54b3f5bc8812e9a6076af9fb8f6ee81d44888e69a9ff7ab3e1a635e1",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_151-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_151-content-browser-client_hints-client_hints.cc",
+          "sha256": "0cac35a33b09c137b7b00a8f101fc819970fc7329d84eabe0d8ca01302622fc4"
+        },
+        {
+          "file": "chrome_151-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_151-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_151-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_151/macos.json": {
+      "before_sha256": "272d550ebcbf662e6609f124f17b00dabd5c462ad9e2102bc24d352e47166481",
+      "before_semantic_sha256": "1db251672e414e01f139b1f92ede1f8d6ad2fe3d949b9a903a30004e9e7cba6f",
+      "after_sha256": "c45fef16f9cd9ec5ea966a4e82e5848e0eb4ef2d7132a2bbc7a63367923811bb",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_151-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_151-content-browser-client_hints-client_hints.cc",
+          "sha256": "0cac35a33b09c137b7b00a8f101fc819970fc7329d84eabe0d8ca01302622fc4"
+        },
+        {
+          "file": "chrome_151-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_151-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_151-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_151/windows.json": {
+      "before_sha256": "4957574e170f24c9760ebb97ad3f0e8467c322858e925e52a71e9147a85d38e8",
+      "before_semantic_sha256": "914b54e0c9ca08f6f5f163d81c328cee81f1ad1270ed62334ed5c6b1835164be",
+      "after_sha256": "afadc3996579e340e5e31e5010fa8ba045031070c8bf9ae3992758fb5e974d14",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_151-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_151-content-browser-client_hints-client_hints.cc",
+          "sha256": "0cac35a33b09c137b7b00a8f101fc819970fc7329d84eabe0d8ca01302622fc4"
+        },
+        {
+          "file": "chrome_151-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_151-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_151-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_152/linux.json": {
+      "before_sha256": "825fc333b1c27d10c934cd3a3dd66605c0ec25fe2dc84c71272646ebed37b946",
+      "before_semantic_sha256": "e01e8575cd8ed85cdc0b9954b06efe3331a490b1844023a5acdf2d03cafb82a9",
+      "after_sha256": "5eac9375e3da89daf246ffb897aefe2969f84cae423fd65407a848f9c8e58dc6",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_152-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_152-content-browser-client_hints-client_hints.cc",
+          "sha256": "0cac35a33b09c137b7b00a8f101fc819970fc7329d84eabe0d8ca01302622fc4"
+        },
+        {
+          "file": "chrome_152-net-nqe-network_quality_estimator.cc",
+          "sha256": "f2df75d3cce365aed6fecc6ea90290a300a0181ade8cf88ce8ee71019f16f728"
+        },
+        {
+          "file": "chrome_152-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_152-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_152/macos.json": {
+      "before_sha256": "35399b4bd1bb18889427b0b78d13a11513e9235aa0e72c605b8bf740a870488c",
+      "before_semantic_sha256": "39fb26047da87ac18527ac3168d512e660719185643deb4cb330803f68496166",
+      "after_sha256": "2ec7bf85b2702d749dffac5cf4c2efbcb6ea2120af086e2e2d841aba0c74eacb",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_152-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_152-content-browser-client_hints-client_hints.cc",
+          "sha256": "0cac35a33b09c137b7b00a8f101fc819970fc7329d84eabe0d8ca01302622fc4"
+        },
+        {
+          "file": "chrome_152-net-nqe-network_quality_estimator.cc",
+          "sha256": "f2df75d3cce365aed6fecc6ea90290a300a0181ade8cf88ce8ee71019f16f728"
+        },
+        {
+          "file": "chrome_152-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_152-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_152/windows.json": {
+      "before_sha256": "c88dfa7fa20155abe9f8a8c34fcddad64a7981e4bb8058b25e55d7dc7c43e3bd",
+      "before_semantic_sha256": "2a6415e696cae411e78552de9271b4f6e0a5e43b419db1139e35066ca1e5c56a",
+      "after_sha256": "13efb1ae37e338696fcd9ae22072157b146c241c486ed5a14e80de524c28f22a",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_152-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_152-content-browser-client_hints-client_hints.cc",
+          "sha256": "0cac35a33b09c137b7b00a8f101fc819970fc7329d84eabe0d8ca01302622fc4"
+        },
+        {
+          "file": "chrome_152-net-nqe-network_quality_estimator.cc",
+          "sha256": "f2df75d3cce365aed6fecc6ea90290a300a0181ade8cf88ce8ee71019f16f728"
+        },
+        {
+          "file": "chrome_152-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_152-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_153/linux.json": {
+      "before_sha256": "72066e1849da0bf1bbc9720ab664d62767b0029a693fe648443a7c09bbec348a",
+      "before_semantic_sha256": "71d899f4f17778b3b072fad6caa869e59d4513120cf7214d243a3f05a7bc54e6",
+      "after_sha256": "42cf738ff478816ae61f32d85e9928b3ad8955a8c538ffef5d1ce6c1f82f820c",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_153-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_153-content-browser-client_hints-client_hints.cc",
+          "sha256": "97a5b0accac0ca8c0e31320fd22fa904d5f8b4454bc3eb9116c98016a3a0cb71"
+        },
+        {
+          "file": "chrome_153-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_153-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_153-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_153/macos.json": {
+      "before_sha256": "d5d07328a71642f1a735dae626ea138a36909e2a29f15741a981dcb00ef946db",
+      "before_semantic_sha256": "baecf72b3d131f5f1f24b9de7df80b845bb22d4d65c9a2c51bbf218e1fbc8080",
+      "after_sha256": "8a8c86e5aec143a347cf98082a9102cb5d355b8790a8ed576421e9443cc53f76",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_153-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_153-content-browser-client_hints-client_hints.cc",
+          "sha256": "97a5b0accac0ca8c0e31320fd22fa904d5f8b4454bc3eb9116c98016a3a0cb71"
+        },
+        {
+          "file": "chrome_153-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_153-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_153-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_153/windows.json": {
+      "before_sha256": "b62f521d4f6666eabac43b90367b32f47e701fb7f7083f2ef92a861fb07c8a09",
+      "before_semantic_sha256": "c058e80c4efb2fa179b17312b8ee4e01164d3e2a4fe4a1f3d72efd666f202637",
+      "after_sha256": "6255c292efcb285a0126ab5b568c62382c394af093336b2306cafc242238f836",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_153-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_153-content-browser-client_hints-client_hints.cc",
+          "sha256": "97a5b0accac0ca8c0e31320fd22fa904d5f8b4454bc3eb9116c98016a3a0cb71"
+        },
+        {
+          "file": "chrome_153-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_153-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_153-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_154/linux.json": {
+      "before_sha256": "62628cfdf9cbb2d01c6bdbfc1bdbe868c4b952975c5fdd5b2718a7cbc0aaf2a7",
+      "before_semantic_sha256": "df0faa9d56cb99ae26779eabf34e8a2435ec36163101123329c2f1076a1429f4",
+      "after_sha256": "02b174e7a14dcebf77a98803580c52385a85bdcc55b7f5ab5bd21d380f6a0643",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_154-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_154-content-browser-client_hints-client_hints.cc",
+          "sha256": "97a5b0accac0ca8c0e31320fd22fa904d5f8b4454bc3eb9116c98016a3a0cb71"
+        },
+        {
+          "file": "chrome_154-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_154-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_154-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_154/macos.json": {
+      "before_sha256": "19810da5e493b196ab81116e82b456168dc86c0297028344c85048da213f9d9e",
+      "before_semantic_sha256": "750157e7082bb9df3daa7534f67aaba9fdb66e4478d2d0e60870e06da132c381",
+      "after_sha256": "0cbdba6e6a47ddd48368f69e3058d9071cfeca24b78f0060252583434457d84e",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_154-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_154-content-browser-client_hints-client_hints.cc",
+          "sha256": "97a5b0accac0ca8c0e31320fd22fa904d5f8b4454bc3eb9116c98016a3a0cb71"
+        },
+        {
+          "file": "chrome_154-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_154-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_154-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_154/windows.json": {
+      "before_sha256": "4cf5c75b13cd4a452d566d42dca834df6376233a00fc6f8d4b5e0a404bb78f13",
+      "before_semantic_sha256": "79f880f02998be10d893473cbdc97f2d3218fecbe864c977efed70c6c7a1b9fc",
+      "after_sha256": "809700e116aa23d67ad935b782e0d884dc82cbca8e85b64b1f473b6d3ddf3186",
+      "removed_fields": {},
+      "added_top_level": [],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Explicitly preserve the prior absence of network hints; no historical NQE capability or browser parity added",
+      "source_files": [
+        {
+          "file": "chrome_154-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_154-content-browser-client_hints-client_hints.cc",
+          "sha256": "97a5b0accac0ca8c0e31320fd22fa904d5f8b4454bc3eb9116c98016a3a0cb71"
+        },
+        {
+          "file": "chrome_154-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_154-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_154-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "headers.network_hints": {
+          "class": "explicit-policy",
+          "source": "Preserved prior absence of network hints; historical NQE acceptance outside current scope"
+        }
+      },
+      "mode": "none"
+    },
+    "profile/data/chrome_155/linux.json": {
+      "before_sha256": "103c851ec7d8045db60e2a5cdc1c2759d0e09ec44fcf66f2e31d1a65bf418d19",
+      "before_semantic_sha256": "4086e099fdc336adc3ad78165dbcef209b5040668f004310f2623eeb2f3dc188",
+      "after_sha256": "c0d6e0ce07f6afdfd4c08c1047f1a4f4bdaf14850d3a9b475cab5f465a5298de",
+      "removed_fields": {
+        "headers": [],
+        "client_hints": [
+          {
+            "index": 7,
+            "field": {
+              "name": "rtt",
+              "value": "100"
+            }
+          },
+          {
+            "index": 8,
+            "field": {
+              "name": "downlink",
+              "value": "1.6"
+            }
+          },
+          {
+            "index": 9,
+            "field": {
+              "name": "ect",
+              "value": "4g"
+            }
+          }
+        ]
+      },
+      "added_top_level": [
+        "network_hints"
+      ],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Chromium 155 pinned source; platform hash ABI and live NQE transitions require separate acceptance",
+      "source_files": [
+        {
+          "file": "chrome_155-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_155-content-browser-client_hints-client_hints.cc",
+          "sha256": "0cac35a33b09c137b7b00a8f101fc819970fc7329d84eabe0d8ca01302622fc4"
+        },
+        {
+          "file": "chrome_155-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_155-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_155-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "network_hints.policy": {
+          "class": "source-derived",
+          "source": "Pinned Chromium selection, generation, sampling and lifecycle rules; no captured RTT/downlink/ECT constants"
+        },
+        "network_hints.runtime": {
+          "class": "generated/stateful/environment-dependent",
+          "source": "Fresh browser-instance salt, request/transport observations and typed physical-network context"
+        },
+        "headers.network_hints": {
+          "class": "source-derived",
+          "source": "Explicit current-network estimator selection; browser acceptance scoped separately"
+        }
+      },
+      "mode": "estimated"
+    },
+    "profile/data/chrome_155/macos.json": {
+      "before_sha256": "0a91084e4b932b27005afd46d3c05a4759a7af0737bd857b0b9521d4af1989f6",
+      "before_semantic_sha256": "f20303842930ab4963382743f0ac1c34a7d7461d02996c780eaeae210336c299",
+      "after_sha256": "af8aeef3ba70776e7b6f6d9fc4383f80e8beda9773161123979eafee569f98cc",
+      "removed_fields": {
+        "headers": [],
+        "client_hints": [
+          {
+            "index": 7,
+            "field": {
+              "name": "rtt",
+              "value": "100"
+            }
+          },
+          {
+            "index": 8,
+            "field": {
+              "name": "downlink",
+              "value": "1.45"
+            }
+          },
+          {
+            "index": 9,
+            "field": {
+              "name": "ect",
+              "value": "4g"
+            }
+          }
+        ]
+      },
+      "added_top_level": [
+        "network_hints"
+      ],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Chromium 155 pinned source; platform hash ABI and live NQE transitions require separate acceptance",
+      "source_files": [
+        {
+          "file": "chrome_155-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_155-content-browser-client_hints-client_hints.cc",
+          "sha256": "0cac35a33b09c137b7b00a8f101fc819970fc7329d84eabe0d8ca01302622fc4"
+        },
+        {
+          "file": "chrome_155-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_155-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_155-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "network_hints.policy": {
+          "class": "source-derived",
+          "source": "Pinned Chromium selection, generation, sampling and lifecycle rules; no captured RTT/downlink/ECT constants"
+        },
+        "network_hints.runtime": {
+          "class": "generated/stateful/environment-dependent",
+          "source": "Fresh browser-instance salt, request/transport observations and typed physical-network context"
+        },
+        "headers.network_hints": {
+          "class": "source-derived",
+          "source": "Explicit current-network estimator selection; browser acceptance scoped separately"
+        }
+      },
+      "mode": "estimated"
+    },
+    "profile/data/chrome_155/windows.json": {
+      "before_sha256": "730ed6decff866eb3e8e71e00348752ef078f024a4c4a93afbf781f6daf0dfe1",
+      "before_semantic_sha256": "3ee932da53f8fbdc90a758d8cba73892c09c8f2608d93634d4a7f8c3b47a6d19",
+      "after_sha256": "0c51f1bc789b75d1b3f06430c70a160ba5e8d20878c62f786c08870e00dbbef3",
+      "removed_fields": {
+        "headers": [],
+        "client_hints": [
+          {
+            "index": 7,
+            "field": {
+              "name": "rtt",
+              "value": "100"
+            }
+          },
+          {
+            "index": 8,
+            "field": {
+              "name": "downlink",
+              "value": "1.45"
+            }
+          },
+          {
+            "index": 9,
+            "field": {
+              "name": "ect",
+              "value": "4g"
+            }
+          }
+        ]
+      },
+      "added_top_level": [
+        "network_hints"
+      ],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Chromium 155 pinned source; platform hash ABI and live NQE transitions require separate acceptance",
+      "source_files": [
+        {
+          "file": "chrome_155-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_155-content-browser-client_hints-client_hints.cc",
+          "sha256": "0cac35a33b09c137b7b00a8f101fc819970fc7329d84eabe0d8ca01302622fc4"
+        },
+        {
+          "file": "chrome_155-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_155-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_155-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "network_hints.policy": {
+          "class": "source-derived",
+          "source": "Pinned Chromium selection, generation, sampling and lifecycle rules; no captured RTT/downlink/ECT constants"
+        },
+        "network_hints.runtime": {
+          "class": "generated/stateful/environment-dependent",
+          "source": "Fresh browser-instance salt, request/transport observations and typed physical-network context"
+        },
+        "headers.network_hints": {
+          "class": "source-derived",
+          "source": "Explicit current-network estimator selection; browser acceptance scoped separately"
+        }
+      },
+      "mode": "estimated"
+    },
+    "profile/data/chrome_156/linux.json": {
+      "before_sha256": "1448ae44118a435037ecaa30a72c256bb173a398fbe15061e6378c720d0859ca",
+      "before_semantic_sha256": "1122f3ace62d82f65da8c4c4328cbd39797358da4f3e18f5090b82f273bd13bf",
+      "after_sha256": "92b41c09c55f457672a96771341154a3732e92faef3074635ac1ae9b6ec84d3e",
+      "removed_fields": {
+        "headers": [],
+        "client_hints": [
+          {
+            "index": 7,
+            "field": {
+              "name": "rtt",
+              "value": "100"
+            }
+          },
+          {
+            "index": 8,
+            "field": {
+              "name": "downlink",
+              "value": "1.6"
+            }
+          },
+          {
+            "index": 9,
+            "field": {
+              "name": "ect",
+              "value": "4g"
+            }
+          }
+        ]
+      },
+      "added_top_level": [
+        "network_hints"
+      ],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Chromium 156 pinned source; platform hash ABI and live NQE transitions require separate acceptance",
+      "source_files": [
+        {
+          "file": "chrome_156-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_156-content-browser-client_hints-client_hints.cc",
+          "sha256": "39d1519faee2f46e5d21733ee6a2b038efdf4a6845ffd85e2df53ff0be5c79e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.cc",
+          "sha256": "a9b93cafc14ecef3a98e3507a50fa8c4098e2ecea26c6455b32fa04e45cb78e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.h",
+          "sha256": "7fd6f43561aa60a122b106fcc58737680b2cfdcbfcd7ec41a867c5caa717bdd5"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_apple.mm",
+          "sha256": "12183edb7abf0be7cf8e162815bfd13318c8bd56639191007ebd4f48a2078d55"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_linux.cc",
+          "sha256": "e0427a28d2afb4a3bd301f103a3b3ae1b23df149104f2434d519b7fb3c24512b"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_win.cc",
+          "sha256": "da974314a76bac84cb3884cdd95b7d5de4c3a20805c4865eadd079166716854c"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_156-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "network_hints.policy": {
+          "class": "source-derived",
+          "source": "Pinned Chromium selection, generation, sampling and lifecycle rules; no captured RTT/downlink/ECT constants"
+        },
+        "network_hints.runtime": {
+          "class": "generated/stateful/environment-dependent",
+          "source": "Fresh browser-instance salt, request/transport observations and typed physical-network context"
+        },
+        "headers.network_hints": {
+          "class": "source-derived",
+          "source": "Explicit current-network estimator selection; browser acceptance scoped separately"
+        }
+      },
+      "mode": "estimated"
+    },
+    "profile/data/chrome_156/macos.json": {
+      "before_sha256": "b2ec42446828b9b16b886ff7b8f863ec2b5b931d8ba02dc5741ad2aa87605989",
+      "before_semantic_sha256": "e2bc9bae7a5185d71756028772a78a773672f5e4d6edc5f5ce3f77e5cc6ae8bd",
+      "after_sha256": "b9f1cda2d88890efbecf6486e17edb1e5c9685eb90d73e948c918746e1e9deb0",
+      "removed_fields": {
+        "headers": [],
+        "client_hints": [
+          {
+            "index": 7,
+            "field": {
+              "name": "rtt",
+              "value": "100"
+            }
+          },
+          {
+            "index": 8,
+            "field": {
+              "name": "downlink",
+              "value": "1.45"
+            }
+          },
+          {
+            "index": 9,
+            "field": {
+              "name": "ect",
+              "value": "4g"
+            }
+          }
+        ]
+      },
+      "added_top_level": [
+        "network_hints"
+      ],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Chromium 156 pinned source; platform hash ABI and live NQE transitions require separate acceptance",
+      "source_files": [
+        {
+          "file": "chrome_156-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_156-content-browser-client_hints-client_hints.cc",
+          "sha256": "39d1519faee2f46e5d21733ee6a2b038efdf4a6845ffd85e2df53ff0be5c79e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.cc",
+          "sha256": "a9b93cafc14ecef3a98e3507a50fa8c4098e2ecea26c6455b32fa04e45cb78e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.h",
+          "sha256": "7fd6f43561aa60a122b106fcc58737680b2cfdcbfcd7ec41a867c5caa717bdd5"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_apple.mm",
+          "sha256": "12183edb7abf0be7cf8e162815bfd13318c8bd56639191007ebd4f48a2078d55"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_linux.cc",
+          "sha256": "e0427a28d2afb4a3bd301f103a3b3ae1b23df149104f2434d519b7fb3c24512b"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_win.cc",
+          "sha256": "da974314a76bac84cb3884cdd95b7d5de4c3a20805c4865eadd079166716854c"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_156-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "network_hints.policy": {
+          "class": "source-derived",
+          "source": "Pinned Chromium selection, generation, sampling and lifecycle rules; no captured RTT/downlink/ECT constants"
+        },
+        "network_hints.runtime": {
+          "class": "generated/stateful/environment-dependent",
+          "source": "Fresh browser-instance salt, request/transport observations and typed physical-network context"
+        },
+        "headers.network_hints": {
+          "class": "source-derived",
+          "source": "Explicit current-network estimator selection; browser acceptance scoped separately"
+        }
+      },
+      "mode": "estimated"
+    },
+    "profile/data/chrome_156/windows.json": {
+      "before_sha256": "b8fa6bd9d06afed4dec8c071c3a37cb739805d6aac0a2b143bcbd69388cab3e2",
+      "before_semantic_sha256": "722c8c36c1e7afb63777882c51a1f573a91f7785d5b4b8244a73e07d5da49dac",
+      "after_sha256": "439e7b26b31d03bd6bf419c8eb941521f5099d12bb99b3e3883d670379799874",
+      "removed_fields": {
+        "headers": [],
+        "client_hints": [
+          {
+            "index": 7,
+            "field": {
+              "name": "rtt",
+              "value": "100"
+            }
+          },
+          {
+            "index": 8,
+            "field": {
+              "name": "downlink",
+              "value": "1.45"
+            }
+          },
+          {
+            "index": 9,
+            "field": {
+              "name": "ect",
+              "value": "4g"
+            }
+          }
+        ]
+      },
+      "added_top_level": [
+        "network_hints"
+      ],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Chromium 156 pinned source; platform hash ABI and live NQE transitions require separate acceptance",
+      "source_files": [
+        {
+          "file": "chrome_156-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_156-content-browser-client_hints-client_hints.cc",
+          "sha256": "39d1519faee2f46e5d21733ee6a2b038efdf4a6845ffd85e2df53ff0be5c79e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.cc",
+          "sha256": "a9b93cafc14ecef3a98e3507a50fa8c4098e2ecea26c6455b32fa04e45cb78e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.h",
+          "sha256": "7fd6f43561aa60a122b106fcc58737680b2cfdcbfcd7ec41a867c5caa717bdd5"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_apple.mm",
+          "sha256": "12183edb7abf0be7cf8e162815bfd13318c8bd56639191007ebd4f48a2078d55"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_linux.cc",
+          "sha256": "e0427a28d2afb4a3bd301f103a3b3ae1b23df149104f2434d519b7fb3c24512b"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_win.cc",
+          "sha256": "da974314a76bac84cb3884cdd95b7d5de4c3a20805c4865eadd079166716854c"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_156-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "network_hints.policy": {
+          "class": "source-derived",
+          "source": "Pinned Chromium selection, generation, sampling and lifecycle rules; no captured RTT/downlink/ECT constants"
+        },
+        "network_hints.runtime": {
+          "class": "generated/stateful/environment-dependent",
+          "source": "Fresh browser-instance salt, request/transport observations and typed physical-network context"
+        },
+        "headers.network_hints": {
+          "class": "source-derived",
+          "source": "Explicit current-network estimator selection; browser acceptance scoped separately"
+        }
+      },
+      "mode": "estimated"
+    },
+    "example/profiles/chrome_156_linux_close_notify.json": {
+      "before_sha256": "fb2a40f9053c75ee30a8cde7daae3f0888230aa77a3573e73cf7c3278750e06f",
+      "before_semantic_sha256": "d3e5154babb053a81c57e630b1c3bbd9506f7ae738929553c774912720b48024",
+      "after_sha256": "334d328744aa303c4b69594176f6ec9917d9796247438f212d6a516eebea4000",
+      "removed_fields": {
+        "headers": [],
+        "client_hints": [
+          {
+            "index": 7,
+            "field": {
+              "name": "rtt",
+              "value": "100"
+            }
+          },
+          {
+            "index": 8,
+            "field": {
+              "name": "downlink",
+              "value": "1.6"
+            }
+          },
+          {
+            "index": 9,
+            "field": {
+              "name": "ect",
+              "value": "4g"
+            }
+          }
+        ]
+      },
+      "added_top_level": [
+        "network_hints"
+      ],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Chromium 156 pinned source; platform hash ABI and live NQE transitions require separate acceptance",
+      "source_files": [
+        {
+          "file": "chrome_156-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_156-content-browser-client_hints-client_hints.cc",
+          "sha256": "39d1519faee2f46e5d21733ee6a2b038efdf4a6845ffd85e2df53ff0be5c79e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.cc",
+          "sha256": "a9b93cafc14ecef3a98e3507a50fa8c4098e2ecea26c6455b32fa04e45cb78e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.h",
+          "sha256": "7fd6f43561aa60a122b106fcc58737680b2cfdcbfcd7ec41a867c5caa717bdd5"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_apple.mm",
+          "sha256": "12183edb7abf0be7cf8e162815bfd13318c8bd56639191007ebd4f48a2078d55"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_linux.cc",
+          "sha256": "e0427a28d2afb4a3bd301f103a3b3ae1b23df149104f2434d519b7fb3c24512b"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_win.cc",
+          "sha256": "da974314a76bac84cb3884cdd95b7d5de4c3a20805c4865eadd079166716854c"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_156-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "network_hints.policy": {
+          "class": "source-derived",
+          "source": "Pinned Chromium selection, generation, sampling and lifecycle rules; no captured RTT/downlink/ECT constants"
+        },
+        "network_hints.runtime": {
+          "class": "generated/stateful/environment-dependent",
+          "source": "Fresh browser-instance salt, request/transport observations and typed physical-network context"
+        },
+        "headers.network_hints": {
+          "class": "source-derived",
+          "source": "Explicit current-network estimator selection; browser acceptance scoped separately"
+        }
+      },
+      "mode": "estimated"
+    },
+    "example/profiles/chrome_156_macos_close_notify.json": {
+      "before_sha256": "3afd05d8c291dea0a06be24555e3a3449a2fa3f6b913c9d49b6fa8a94deeea60",
+      "before_semantic_sha256": "5799bf1fb8e34577ca9183438c28035b5ea13df2568a6bb95fd0fdc65138d1dc",
+      "after_sha256": "4c0266c4f77aa74b57379aba44c578c0742e95724e0f970fd6ee8c4d7e780114",
+      "removed_fields": {
+        "headers": [],
+        "client_hints": [
+          {
+            "index": 7,
+            "field": {
+              "name": "rtt",
+              "value": "100"
+            }
+          },
+          {
+            "index": 8,
+            "field": {
+              "name": "downlink",
+              "value": "1.45"
+            }
+          },
+          {
+            "index": 9,
+            "field": {
+              "name": "ect",
+              "value": "4g"
+            }
+          }
+        ]
+      },
+      "added_top_level": [
+        "network_hints"
+      ],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Chromium 156 pinned source; platform hash ABI and live NQE transitions require separate acceptance",
+      "source_files": [
+        {
+          "file": "chrome_156-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_156-content-browser-client_hints-client_hints.cc",
+          "sha256": "39d1519faee2f46e5d21733ee6a2b038efdf4a6845ffd85e2df53ff0be5c79e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.cc",
+          "sha256": "a9b93cafc14ecef3a98e3507a50fa8c4098e2ecea26c6455b32fa04e45cb78e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.h",
+          "sha256": "7fd6f43561aa60a122b106fcc58737680b2cfdcbfcd7ec41a867c5caa717bdd5"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_apple.mm",
+          "sha256": "12183edb7abf0be7cf8e162815bfd13318c8bd56639191007ebd4f48a2078d55"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_linux.cc",
+          "sha256": "e0427a28d2afb4a3bd301f103a3b3ae1b23df149104f2434d519b7fb3c24512b"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_win.cc",
+          "sha256": "da974314a76bac84cb3884cdd95b7d5de4c3a20805c4865eadd079166716854c"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_156-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "network_hints.policy": {
+          "class": "source-derived",
+          "source": "Pinned Chromium selection, generation, sampling and lifecycle rules; no captured RTT/downlink/ECT constants"
+        },
+        "network_hints.runtime": {
+          "class": "generated/stateful/environment-dependent",
+          "source": "Fresh browser-instance salt, request/transport observations and typed physical-network context"
+        },
+        "headers.network_hints": {
+          "class": "source-derived",
+          "source": "Explicit current-network estimator selection; browser acceptance scoped separately"
+        }
+      },
+      "mode": "estimated"
+    },
+    "example/profiles/chrome_156_windows_close_notify.json": {
+      "before_sha256": "9fe9900620fe7cec85cc5839a81ffc57424b215ef07cae8b25d4fabd48c311c5",
+      "before_semantic_sha256": "10fdc19b7780915886cdff0ba16a3d32a04b2122d3611e1c12240fcd5a2828f2",
+      "after_sha256": "8514c31c7aeb594c4a03b0b06000115688bd5486931dcab00f12f8edac35dbbd",
+      "removed_fields": {
+        "headers": [],
+        "client_hints": [
+          {
+            "index": 7,
+            "field": {
+              "name": "rtt",
+              "value": "100"
+            }
+          },
+          {
+            "index": 8,
+            "field": {
+              "name": "downlink",
+              "value": "1.45"
+            }
+          },
+          {
+            "index": 9,
+            "field": {
+              "name": "ect",
+              "value": "4g"
+            }
+          }
+        ]
+      },
+      "added_top_level": [
+        "network_hints"
+      ],
+      "added_behavior": [
+        "headers.network_hints"
+      ],
+      "source_scope": "Chromium 156 pinned source; platform hash ABI and live NQE transitions require separate acceptance",
+      "source_files": [
+        {
+          "file": "chrome_156-build-config-c++-BUILD.gn",
+          "sha256": "cb4a178040bb3066962cda1dbc390a4b0243c6a80d9545d3faf49b139dbf1a6e"
+        },
+        {
+          "file": "chrome_156-content-browser-client_hints-client_hints.cc",
+          "sha256": "39d1519faee2f46e5d21733ee6a2b038efdf4a6845ffd85e2df53ff0be5c79e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.cc",
+          "sha256": "a9b93cafc14ecef3a98e3507a50fa8c4098e2ecea26c6455b32fa04e45cb78e4"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier.h",
+          "sha256": "7fd6f43561aa60a122b106fcc58737680b2cfdcbfcd7ec41a867c5caa717bdd5"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_apple.mm",
+          "sha256": "12183edb7abf0be7cf8e162815bfd13318c8bd56639191007ebd4f48a2078d55"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_linux.cc",
+          "sha256": "e0427a28d2afb4a3bd301f103a3b3ae1b23df149104f2434d519b7fb3c24512b"
+        },
+        {
+          "file": "chrome_156-net-base-network_change_notifier_win.cc",
+          "sha256": "da974314a76bac84cb3884cdd95b7d5de4c3a20805c4865eadd079166716854c"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator.cc",
+          "sha256": "70c4556c61d6ffa365035d5949bb75152b7f5611535acf997da4b924adc60cde"
+        },
+        {
+          "file": "chrome_156-net-nqe-network_quality_estimator_params.cc",
+          "sha256": "6ddfb46b962657894b01bcfb3a6299cda7031fb5f24366c56ecb1edaf5b4e7d4"
+        },
+        {
+          "file": "chrome_156-services-network-public-cpp-network_quality_tracker.cc",
+          "sha256": "135d74c158863502c3a52a2e94bc93e347fd78437822449c72898a8098f6fea9"
+        }
+      ],
+      "fields": {
+        "network_hints.policy": {
+          "class": "source-derived",
+          "source": "Pinned Chromium selection, generation, sampling and lifecycle rules; no captured RTT/downlink/ECT constants"
+        },
+        "network_hints.runtime": {
+          "class": "generated/stateful/environment-dependent",
+          "source": "Fresh browser-instance salt, request/transport observations and typed physical-network context"
+        },
+        "headers.network_hints": {
+          "class": "source-derived",
+          "source": "Explicit current-network estimator selection; browser acceptance scoped separately"
+        }
+      },
+      "mode": "estimated"
+    }
+  }
+}

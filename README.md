@@ -3211,3 +3211,12 @@ acceptance; root profile/SDK activation and complete browser acceptance remain p
 The [A13 network capability record](docs/remediation/2026-10-31/A13-network-capability.ru.md) preserves exact shared-registry acceptance; production estimator activation and browser acceptance remain pending.
 
 The [A13 observation-policy follow-up](docs/remediation/2026-10-31/A13-network-delivery-policy.ru.md) records explicit identity and callback-delivery choices, with standalone validation and preserved source provenance.
+
+
+The [bounded Chrome156 acceptance](docs/remediation/2026-11-01/Network-hints-final.ru.md) records the current result; earlier A13 component reports retain their historical scope.
+
+Browser network hints (`RTT`, `Downlink`, `ECT`) now use the selected profile's
+measurement, host-noise and rounding policy after origin opt-in. Default isolated
+requests own fresh state; redirects and Critical-CH restarts retain that state
+within the same request. [JSON modes and metadata inputs](docs/profile-behavior.md#network-hints-from-current-observations-unreleased-engine-1)
+are explicit; captured estimates are not frozen into executable defaults.

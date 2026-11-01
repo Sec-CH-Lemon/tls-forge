@@ -428,3 +428,12 @@ Daemon starts and replacements inherit the environment except `SSLKEYLOGFILE`
 requires explicit engine/CLI keylog or pcap configuration; other `QUIC_GO_*`
 variables and `GODEBUG` are preserved. An explicit profile's QUIC layout and
 HTTP/2 selection keep their authority over ambient protocol defaults.
+
+
+## Actual network metadata
+
+`networkContext` optionally supplies actual metadata for one request: `{ type: "wifi", id: "", generation: 0, signal: null }`.
+Omit it to use the profile's system/context policy. It accepts no RTT, bandwidth
+or ECT estimate. All four fields are required; unavailable signal differs from
+zero. The SDK snapshots values and requires the daemon's network capability.
+Default isolated requests retain separate estimator and origin state.

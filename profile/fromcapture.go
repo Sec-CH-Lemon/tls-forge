@@ -129,7 +129,7 @@ func FromCapture(name string, c *capture.Capture, basis ...*Profile) (*Profile, 
 	}
 	for _, h := range c.HTTP2.Headers {
 		name := strings.ToLower(h.Name)
-		if strings.HasPrefix(name, ":") || perRequest[name] {
+		if strings.HasPrefix(name, ":") || perRequest[name] || networkHintName(name) {
 			continue
 		}
 		p.Headers = append(p.Headers, Field{Name: name, Value: h.Value})
@@ -271,7 +271,7 @@ func http1FromCapture(measured *capture.HTTP1, shared []Field) *HTTP1 {
 			groups[name] = g
 			order = append(order, wireName)
 		}
-		if name != "host" {
+		if name != "host" && !networkHintName(name) {
 			g.fields = append(g.fields, Field{Name: wireName, Value: header.Value})
 		}
 	}

@@ -10,6 +10,9 @@
   "protocol": 3,
   "capabilities": [
     "browser_context",
-    "engine_major"
+    "engine_major",
+    "catalogue_json_v1",
+    "network_hints_estimator_v1",
+    "network_context_v1"
   ]
 }

@@ -17,21 +17,21 @@ def seen(client: tlsforge.Client) -> dict:
 
 
 def test_a_transport_says_what_it_is_once(client, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "one,two")
+    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "one,two,catalogue_json_v1,network_hints_estimator_v1")
     c = client()
-    assert c.hello() == tlsforge.Hello(3, ("one", "two"), 1, "1.0.0")
+    assert c.hello() == tlsforge.Hello(3, ('one', 'two', 'catalogue_json_v1', 'network_hints_estimator_v1'), 1, "1.0.0")
     assert c.hello() is c.hello()
     assert seen(c)["controls"] == 1
 
 
 def test_a_transport_with_nothing_to_say(client, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("TLSFORGE_TEST_CAPABILITIES", raising=False)
+    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "")
     assert client().hello() == tlsforge.Hello(3, (), 1, "1.0.0")
 
 
 @pytest.mark.parametrize(
     ("mode", "want"),
-    [("1", tlsforge.Hello(1, ())), ("fixture", tlsforge.Hello(3, ("browser_context", "engine_major"), 1, "1.0.0")), ("fixture-old", tlsforge.Hello(1, ()))],
+    [("1", tlsforge.Hello(1, ())), ("fixture", tlsforge.Hello(3, ('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), 1, "1.0.0")), ("fixture-old", tlsforge.Hello(1, ()))],
 )
 def test_older_transports_and_the_committed_answers(client, monkeypatch, mode, want) -> None:
     monkeypatch.setenv("TLSFORGE_TEST_PROTOCOL", mode)
@@ -61,7 +61,7 @@ def test_a_transport_newer_than_this_package_is_read_for_what_it_says_it_can_do(
     # to refuse what both know.
     monkeypatch.setenv("TLSFORGE_TEST_PROTOCOL", "newer")
     c = client()
-    assert c.hello() == tlsforge.Hello(7, ("browser_context", "teleport"), 1, "1.0.0")
+    assert c.hello() == tlsforge.Hello(7, ('browser_context', 'teleport', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), 1, "1.0.0")
     context = {"kind": "fetch", "initiator": "https://example.com/"}
     assert json.loads(c.get("https://ok/", browser_context=context).body)["browser"] == context
 
@@ -83,7 +83,7 @@ def test_a_question_asked_after_a_session_went_leaves_the_next_request_to_be_tol
     c = client(timeout=0.3)
     with pytest.raises(tlsforge.Timeout):
         c.get("https://silent/")
-    assert c.hello() == tlsforge.Hello(3, (), 1, "1.0.0")
+    assert c.hello() == tlsforge.Hello(3, ('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), 1, "1.0.0")
     with pytest.raises(tlsforge.SessionReset):
         c.get("https://ok/")
     assert seen(c)["requests"] == 1
@@ -101,7 +101,7 @@ def test_a_transport_gone_while_idle_is_noticed_by_hello(client, monkeypatch) ->
     os.kill(first["pid"], 9)
     c._process.wait()
     # Asked of a new one; the request after it is told its session went.
-    assert c.hello() == tlsforge.Hello(3, (), 1, "1.0.0")
+    assert c.hello() == tlsforge.Hello(3, ('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), 1, "1.0.0")
     with pytest.raises(tlsforge.SessionReset):
         c.get("https://ok/")
     assert seen(c)["pid"] != first["pid"]
@@ -124,7 +124,7 @@ def test_hello_waits_its_turn(client, monkeypatch) -> None:
         c._lock.release()
 
 
-@pytest.mark.parametrize(("env", "protocol"), [({"TLSFORGE_TEST_CAPABILITIES": "other"}, 3)])
+@pytest.mark.parametrize(("env", "protocol"), [({"TLSFORGE_TEST_CAPABILITIES": "other,catalogue_json_v1,network_hints_estimator_v1"}, 3)])
 def test_a_browser_context_goes_to_no_transport_that_does_not_apply_one(client, monkeypatch, env, protocol) -> None:
     for name, value in env.items():
         monkeypatch.setenv(name, value)
@@ -141,7 +141,7 @@ def test_a_browser_context_goes_to_no_transport_that_does_not_apply_one(client, 
 
 
 def test_a_browser_context_goes_to_a_transport_that_applies_one(client, monkeypatch) -> None:
-    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "browser_context")
+    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "browser_context,catalogue_json_v1,network_hints_estimator_v1")
     c = client()
     context = {"kind": "fetch", "initiator": "https://example.com/"}
     answer = json.loads(c.post("https://ok/", "x", browser_context=context).body)
@@ -155,7 +155,7 @@ def test_a_browser_context_goes_to_a_transport_that_applies_one(client, monkeypa
 
 
 def test_a_browser_context_goes_by_this_packages_names_as_the_daemons(client, monkeypatch) -> None:
-    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "browser_context")
+    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "browser_context,catalogue_json_v1,network_hints_estimator_v1")
     c = client()
     context: tlsforge.BrowserContext = {
         "kind": "fetch",
@@ -191,7 +191,7 @@ def test_a_browser_context_goes_by_this_packages_names_as_the_daemons(client, mo
 def test_a_browser_context_that_is_no_mapping_or_has_a_key_there_is_none_of_is_a_mistake(
     client, monkeypatch, context, says
 ) -> None:
-    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "browser_context")
+    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "browser_context,catalogue_json_v1,network_hints_estimator_v1")
     c = client()
     with pytest.raises(TypeError, match=says) as refused:
         c.get("https://ok/", browser_context=context)
@@ -223,3 +223,44 @@ def test_only_ambient_key_logging_is_removed_on_every_start(client, monkeypatch)
                 c.get("https://silent/")
             with pytest.raises(tlsforge.SessionReset):
                 c.get("https://ok/")
+
+
+def test_network_context_has_no_ready_made_estimates_and_preserves_unknown_signal(client):
+    metadata: tlsforge.NetworkContext = {"type": "wifi", "id": "network-😀", "generation": 7, "signal": 0}
+    c = client()
+    answer = c.get("https://ok/", network_context=metadata).json()
+    assert answer["network"] == metadata
+    assert "network" in answer["sent"] and "network_context" not in answer["sent"]
+    assert c.get("https://ok/", network_context={**metadata, "signal": None}).json()["network"]["signal"] is None
+
+
+def test_malformed_network_context_is_refused_before_discovery(client):
+    good = {"type": "wifi", "id": "a", "generation": 0, "signal": None}
+    invalid = [[], False, "wifi", {}, {**good, "rtt": 100}, {**good, "type": "made-up"}, {**good, "id": 7}, {**good, "id": "\ud800"}, {**good, "id": "x"*4097}, {**good, "generation": -1}, {**good, "generation": 2**53}, {**good, "generation": 1.5}, {**good, "generation": True}, {**good, "signal": True}, {**good, "signal": -1}, {**good, "signal": 5}]
+    c = client()
+    for value in invalid:
+        with pytest.raises(TypeError):
+            c.get("https://ok/", network_context=value)
+    assert seen(c)["controls"] == 1
+    assert seen(c)["requests"] == 2
+
+
+@pytest.mark.parametrize("caps", ["browser_context,engine_major", "browser_context,engine_major,catalogue_json_v1"])
+def test_same_major_legacy_daemon_cannot_ignore_required_policy(client, monkeypatch, tmp_path, caps):
+    log = tmp_path / "legacy.jsonl"
+    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", caps)
+    monkeypatch.setenv("TLSFORGE_TEST_WIRE_LOG", str(log))
+    c = client()
+    assert c.hello().engine_major == 1
+    with pytest.raises(tlsforge.Unsupported, match="lacks required capabilities.*request was not sent"):
+        c.get("https://must-not-send/")
+    lines = [json.loads(line) for line in log.read_text().splitlines()]
+    assert len(lines) == 1 and lines[0]["control"] == "hello"
+
+
+def test_network_context_requires_specific_daemon_capability(client, monkeypatch):
+    monkeypatch.setenv("TLSFORGE_TEST_CAPABILITIES", "catalogue_json_v1,network_hints_estimator_v1")
+    c = client()
+    with pytest.raises(tlsforge.Unsupported, match="does not apply network contexts"):
+        c.get("https://must-not-send/", network_context={"type": "wifi", "id": "a", "generation": 0, "signal": None})
+    assert seen(c)["requests"] == 1

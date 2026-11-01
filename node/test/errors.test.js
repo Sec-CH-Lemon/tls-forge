@@ -125,7 +125,7 @@ const FAILURES = [
   { name: 'an init line that cannot be written', env: { TLSFORGE_TEST_INIT: 'deaf' },
     options: { proxy: `http://proxy.test:8080/${'x'.repeat(1 << 20)}` },
     ask: (c) => c.get('https://ok/'), kind: TransportError, says: /^tlsforge: write failed: /, cause: Error },
-  { name: 'a browser context the transport does not apply',
+  { name: 'a browser context the transport does not apply', env: {TLSFORGE_TEST_CAPABILITIES:'catalogue_json_v1,network_hints_estimator_v1'},
     ask: (c) => c.request({ url: 'https://ok/', browserContext: { kind: 'fetch', initiator: 'https://a.test/' } }),
     kind: Unsupported, says: /does not apply browser contexts; the request was not sent$/ },
   { name: 'a client closed', ask: (c) => (c.close(), c.get('https://ok/')), kind: TransportError,

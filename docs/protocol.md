@@ -349,3 +349,18 @@ matter:
   sessions, connections — so the packages fail every request waiting for it,
   or the next one made when none was waiting, with `SessionReset`, unsent,
   rather than send it as a new identity nobody asked for
+
+
+### Network metadata and same-major capabilities
+
+A request may include `network:{"type":"wifi","id":"","generation":0,"signal":null}`.
+These are actual context fields; RTT, bandwidth, ECT and host salt are not inputs.
+The complete object is strictly validated before client execution. Signal null
+is distinct from zero. Omission/null means the selected profile's explicit
+metadata-source policy; it does not retain the previous request's override.
+
+`hello.capabilities` advertises `catalogue_json_v1`, `network_hints_estimator_v1`
+and `network_context_v1`. Updated SDKs require the first two for every request,
+and the last when sending network metadata, including after process replacement.
+This rejects earlier same-major daemon snapshots; protocol3 and engine1 remain
+unchanged within the single unpublished release.

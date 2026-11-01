@@ -23,6 +23,52 @@ func testCaptureBasis(t *testing.T) *Profile {
 	return p
 }
 
+func TestCaptureKeepsNetworkSamplesOutOfExecutableDefaults(t *testing.T) {
+	basis := testCaptureBasis(t)
+	c := &capture.Capture{
+		RawClientHello: chromeHelloBytes(t),
+		HTTP2:          &capture.HTTP2{Headers: []capture.HeaderField{{Name: "user-agent", Value: "measured-agent"}, {Name: "rtt", Value: "987654"}, {Name: "downlink", Value: "9.875"}, {Name: "ect", Value: "slow-2g"}}},
+		HTTP1:          &capture.HTTP1{Headers: []capture.HeaderField{{Name: "Host", Value: "example.com"}, {Name: "RTT", Value: "987654"}, {Name: "Downlink", Value: "9.875"}, {Name: "ECT", Value: "slow-2g"}}},
+	}
+	before, _ := json.Marshal(c)
+	built, e := FromCapture("independent-candidate", c, basis)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = built.Validate(); e != nil {
+		t.Fatal(e)
+	}
+	for _, fields := range built.networkHintFields() {
+		for _, f := range fields {
+			if networkHintName(f.Name) {
+				t.Fatal("network observation frozen", f)
+			}
+		}
+	}
+	if !reflect.DeepEqual(built.NetworkHints, basis.NetworkHints) {
+		t.Fatal("capture replaced estimator rules")
+	}
+	built.NetworkHints.Policy.Noise.SaltMax++
+	if built.NetworkHints.Policy.Noise.SaltMax == basis.NetworkHints.Policy.Noise.SaltMax {
+		t.Fatal("capture aliases basis policy")
+	}
+	after, _ := json.Marshal(c)
+	if string(before) != string(after) {
+		t.Fatal("raw network evidence changed")
+	}
+	literal := basis.Clone()
+	literal.NetworkHints = &NetworkHintsPolicy{Mode: "literal"}
+	literal.Behavior["headers.network_hints"] = json.RawMessage(`"literal"`)
+	literal.ClientHints = []Field{{Name: "rtt", Value: "50"}}
+	built, e = FromCapture("literal-candidate", c, literal)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if !reflect.DeepEqual(built.ClientHints, literal.ClientHints) || built.NetworkHints.Mode != "literal" {
+		t.Fatal("capture replaced explicit literal basis")
+	}
+}
+
 func TestCaptureRequiresExplicitPolicyBasis(t *testing.T) {
 	c := &capture.Capture{RawClientHello: chromeHelloBytes(t), HTTP2: &capture.HTTP2{}}
 	if _, err := FromCapture("chrome_156_macos", c); err == nil {
@@ -107,7 +153,7 @@ func TestCaptureProvenanceBindsDataAndDoesNotUpgradeVerdicts(t *testing.T) {
 			t.Fatalf("policy %s falsely measured", k)
 		}
 	}
-	if provenance.Fields["client_hints.rtt"].Class != "inherited" || provenance.Fields["client_hints.sec-ch-ua-arch"].Class != "measured" {
+	if provenance.Fields["network_hints"].Class != "inherited" || provenance.Fields["network_hints.values"].Class != "generated/stateful/environment-dependent" || provenance.Fields["client_hints.sec-ch-ua-arch"].Class != "measured" {
 		t.Fatal("dynamic/persona origin mixed")
 	}
 	if provenance.Acceptance != "candidate; browser/wire acceptance not established by capture" {

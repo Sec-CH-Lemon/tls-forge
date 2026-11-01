@@ -44,14 +44,25 @@ function helloOf(response) {
   const { engine_major, version } = response;
   return { protocol, capabilities: [...capabilities], engine_major, version };
 }
+const REQUIRED_CAPABILITIES = ['catalogue_json_v1', 'network_hints_estimator_v1'];
 function checkEngine(hello) {
  const {protocol, engine_major, version}=hello;
  if (protocol < 3 || !Number.isSafeInteger(engine_major) || engine_major < 0 || engine_major !== ENGINE_MAJOR ||
      typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version) || Number(version.split('.')[0]) !== engine_major) {
   throw new Unsupported(`tlsforge: daemon engine_major ${JSON.stringify(engine_major) ?? 'missing'} (version ${version ?? 'missing'}, protocol ${protocol}) is incompatible with SDK engine major ${ENGINE_MAJOR}; request was not sent`);
  }
+ const missing = REQUIRED_CAPABILITIES.filter((name) => !hello.capabilities.includes(name));
+ if (missing.length) throw new Unsupported(`tlsforge: daemon lacks required capabilities ${missing.join(', ')}; request was not sent`);
 }
 
+function networkContextSnapshot(value) {
+ if (typeof value !== 'object' || Array.isArray(value)) throw new TypeError('tlsforge: networkContext must be an object');
+ const keys = ['type', 'id', 'generation', 'signal'];
+ if (Object.keys(value).length !== keys.length || !keys.every((key) => Object.hasOwn(value, key))) throw new TypeError('tlsforge: networkContext requires exactly type, id, generation and signal');
+ const result = {type: value.type, id: value.id, generation: value.generation, signal: value.signal};
+ if (!['unknown','ethernet','wifi','2g','3g','4g','5g','none','bluetooth'].includes(result.type) || typeof result.id !== 'string' || /[\uD800-\uDFFF]/u.test(result.id) || Buffer.byteLength(result.id) > 4096 || !Number.isSafeInteger(result.generation) || result.generation < 0 || (result.signal !== null && (!Number.isInteger(result.signal) || result.signal < 0 || result.signal > 4))) throw new TypeError('tlsforge: invalid networkContext metadata');
+ return result;
+}
 
 // The keys of a browser context, as the protocol names them.
 const CONTEXT_KEYS = ['kind', 'initiator', 'referrerPolicy', 'mode', 'credentials'];
@@ -296,7 +307,10 @@ export class Client {
         new TransportError('tlsforge: this client was closed and will not respawn; construct a new one'),
       );
     }
-    const { browserContext, ...asked } = request;
+    const { browserContext, networkContext, ...asked } = request;
+    let network;
+    try { network = networkContext == null ? undefined : networkContextSnapshot(networkContext); }
+    catch (error) { return Promise.reject(error); }
     // null is none, as it is to the daemon.
     const refused = browserContext == null ? undefined : contextProblem(browserContext);
     if (refused) return Promise.reject(new TypeError(refused));
@@ -309,7 +323,9 @@ export class Client {
             'browser contexts; the request was not sent',
         );
       }
-      return this.#send(browserContext == null ? asked : { ...asked, browser: browserContext });
+      if (network && !capabilities.includes('network_context_v1')) throw new Unsupported('tlsforge: daemon does not apply network contexts; request was not sent');
+      const payload = browserContext == null ? asked : {...asked, browser: browserContext};
+      return this.#send(network == null ? payload : {...payload, network});
     });
   }
 

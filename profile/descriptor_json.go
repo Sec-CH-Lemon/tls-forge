@@ -57,7 +57,13 @@ func checkDescriptorShape(data []byte, t reflect.Type) error {
 	for i := 0; i < t.NumField(); i++ {
 		name := t.Field(i).Tag.Get("json")
 		raw, ok := fields[name]
-		if !ok || bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+		if !ok {
+			return fmt.Errorf("requires non-null %s", name)
+		}
+		if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+			if t.Field(i).Type.Kind() == reflect.Pointer && t.Field(i).Tag.Get("descriptor") == "nullable" {
+				continue
+			}
 			return fmt.Errorf("requires non-null %s", name)
 		}
 		if err := checkDescriptorShape(raw, t.Field(i).Type); err != nil {

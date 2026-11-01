@@ -2049,3 +2049,83 @@ The owner also retained macOS ACK24ms plus4ms slack and advertised25ms after
 joint Chrome/client observations. No ACK profile field changes in A12. See the
 same matrix for the exact normative exception and measurement limits; sums of
 JSON timer values alone do not establish compliance or browser fidelity.
+
+
+## Network hints from current observations (unreleased engine 1)
+
+`behavior.headers.network_hints` is mandatory on executable profiles. It selects
+`none`, `literal`, or `weighted-observations`; names, versions and User-Agent do
+not select an estimator. The matching top-level `network_hints` object is:
+
+| Selector | Configuration | Meaning |
+| --- | --- | --- |
+| `none` | No `network_hints` object | No network hint values; literal RTT/Downlink/ECT fields are rejected. |
+| `literal` | `{"mode":"literal"}` | Explicit caller-selected values in the profile; not observations of the current network. |
+| `weighted-observations` | `{"mode":"estimated","policy":{...}}` | Complete typed policy described below; no captured RTT/Downlink/ECT values. |
+
+Estimated mode rejects conflicting literal fields in shared headers, client hints,
+HTTP/1 overrides and caller request headers. Values are generated when the origin
+has opted in through the existing Accept-CH/Critical-CH/ALPS path. Header order,
+privacy decisions and the single Critical-CH restart remain profile-owned.
+
+The complete policy is represented by [`networkquality.Policy`](../networkquality/policy.go).
+Every declared nested parameter is required; unknown, duplicate, case-folded,
+null (except nullable signal), unsupported and out-of-range inputs are rejected.
+The shipped [Chrome156 macOS JSON](../profile/data/chrome_156/macos.json) supplies
+values; the engine contains mechanisms and hard resource bounds, not Chrome defaults.
+
+| Policy group | Parameters and effect |
+| --- | --- |
+| `algorithm` | The implemented `weighted-observations` state machine. |
+| `metrics` | One history per HTTP/transport/end-to-end/downlink metric; buffer capacity, age half-life, signal weight, recent window, fallback and percentile. |
+| `sources` | Source-to-metric categories, seed/cache provenance and recomputation selection. |
+| `seeds` | Explicit available/unavailable initial estimates for each physical connection type. These are source-derived priors, not captured network conditions. |
+| `ect` | Ordered RTT thresholds, labels, typical estimates and downlink clamping. |
+| `compute` | Recompute interval, growth/new-sample thresholds, navigation and minimum sample counts; transport/end-to-end corrections, sparse/hanging limits, cache grace and observation delivery. `transaction_start` selects request/headers/next-step; `headers_delivery` selects headers/next-step. Original observation timestamps are preserved. |
+| `throughput` | Minimum concurrent eligible requests and bytes, independent request-set bounds, hanging/sweep/window rules. Uses receive counters, not decoded body size divided by request duration. |
+| `socket` | Bounded per-socket history, per-socket/global notification intervals, minimum RTT, private-address and first-QUIC filtering, `tcp_source` none/kernel-tcp-info. |
+| `publication` | Absolute latency/bandwidth and ratio thresholds for publishing changed estimates. |
+| `cache` | Bounded browser-instance memory cache, explicit network key and bootstrap ordering. |
+| `noise` | Hash primitive, integer width, salt range and browser-instance lifetime, host buckets/factor, rounding quanta, caps and missing-value rules. |
+| `environment` | Source system/context, explicit missing-metadata fallback/rejection, ordered IP families and identity connection-type/route-interface-addresses. |
+| `addresses` | Ordered CIDR public/private rules, IPv4 unmapping, missing-resolution and localhost rules. |
+| Other fields | Eligible methods, private/cached response filtering and unavailable/offline internal ECT labels. |
+
+Runtime randomness, keys, counters, state and measured estimates are rebuilt for
+the actual browser instance. Default `http.instance_scope:request` gives each Do
+its own estimator, salt, origin opt-ins, cookies, cache and transports. Redirects
+and a Critical-CH restart within one Do retain that instance. Explicit client
+scope additionally permits reuse; it does not inherit another client's state.
+
+HTTP observations use actual protocol-write start to complete final headers;
+103 and partial header blocks are not final responses. Cache hits and 304
+revalidation do not invent HTTP RTT samples. TCP/QUIC/H2 PING observations remain
+separate. Completion covers EOF, close, no-body responses and transfer to an
+independent background drainer, without replacing concrete transport body types.
+
+`system` reads local interface/route metadata at construction and request start;
+it does not change the host network. Passive mid-request OS change notifications
+are outside this bounded implementation. `connection-type` keeps ID empty and
+signal unavailable, matching the pinned Chrome156 source path. Linux can query
+kernel TCP RTT; the current Chrome macOS/Windows policies select no such source.
+A missing estimate remains unavailable until an explicit profile rule supplies it.
+
+Go `WithNetworkContext` and `Request.Network`, Node `networkContext` and Python
+`network_context` optionally supply actual metadata, never ready-made estimates:
+`type`, UTF-8 `id` (at most4096 bytes), `generation` (0..2^53-1), and `signal`
+(null or0..4). All four fields are required. Unknown signal and zero differ.
+Inputs are snapshotted; a request override applies only to that request.
+
+Capture preserves raw values as provenance while retaining the basis's explicit
+network policy. Load/Save/Clone never migrate or silently enable the estimator.
+Explicit Migrate preserves existing literals in literal mode, or preserves their
+absence. Earlier same-major engine snapshots reject the new registry choice;
+SDKs also require catalogue/network-hint capabilities on the actual daemon.
+
+This slice replaces existing155/156 literals. Profiles151–154 preserve their
+prior absence of network hints; no historical NQE acceptance is added. Final
+browser evidence is scoped to Chrome156 and the recorded platform/scenarios.
+The engine's aggregate counters and finite controls do not establish a complete
+replica of Chromium's process-wide activity monitor or all long-lived states.
+Chrome's integral Downlink wire representation is retained; strict Structured
+Decimal conformance is not claimed for that representation.

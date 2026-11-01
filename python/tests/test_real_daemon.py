@@ -444,7 +444,7 @@ def test_the_real_go_daemon_applies_a_browser_context_cors_and_all() -> None:
         elsewhere = f"http://127.0.0.1:{other.server_port}"
         initiator = f"{base}/page"
         with Client(binary=binary) as client:
-            assert client.hello() == Hello(3, ("browser_context", "engine_major"), 1, "1.0.0")
+            assert client.hello() == Hello(3, ('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), 1, "1.0.0")
             answer = client.get(f"{base}/api", browser_context={"kind": "fetch", "initiator": initiator})
             assert answer.status == 200
             method, path, headers = page_seen[0]
@@ -568,6 +568,58 @@ def test_each_python_request_owns_a_cold_browser() -> None:
                 assert response.body == f"body-{i}"
         assert cookies == ["", "", "", ""]
         assert len(set(peers)) == 4
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_typed_network_metadata_selects_json_estimator_in_real_daemon(tmp_path) -> None:
+    binary = os.environ.get("TLSFORGE_REAL_BIN")
+    if not binary:
+        pytest.skip("run through make wrapper-smoke")
+    root = Path(__file__).resolve().parents[2]
+    profile = json.loads((root / "profile/data/chrome_156/macos.json").read_text())
+    policy = json.loads((root / "networkquality/testdata/chromium156-nqe-source-candidate.json").read_text())
+    for field in ("headers", "client_hints"):
+        profile[field] = [h for h in profile[field] if h["name"] not in ("rtt", "downlink", "ect")]
+    policy["cache"].update(enabled=False, read_after_bootstrap=False)
+    policy["compute"].update(sparse_rtt_cap_ms=0, use_end=False, transport_lower=0)
+    policy["noise"].update(salt_min=1, salt_max=1, buckets=1, base=1, step=0, rtt_quantum_ms=10)
+    for seed in policy["seeds"]:
+        seed["http_ms"] = {"value": 1110 if seed["type"] == "wifi" else 2220, "available": True}
+        seed["transport_ms"] = {"value": 0, "available": False}
+        seed["downlink_kbps"] = {"value": 0, "available": False}
+    profile["network_hints"] = {"mode": "estimated", "policy": policy}
+    path = tmp_path / "profile.json"
+    path.write_text(json.dumps(profile))
+    counts = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            counts.append(self.headers.get("rtt"))
+            body = (self.headers.get("rtt") or "").encode()
+            self.send_response(200)
+            self.send_header("Accept-CH", "rtt")
+            self.send_header("Critical-CH", "rtt")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, _format: str, *_args: object) -> None:
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with Client(binary=binary, profile=str(path)) as client:
+            url = f"http://127.0.0.1:{server.server_port}/"
+            wifi = client.get(url, network_context={"type": "wifi", "id": "wifi-a", "generation": 1, "signal": 0})
+            unknown = client.get(url, network_context={"type": "unknown", "id": "unknown-b", "generation": 2, "signal": None})
+        assert wifi.body == "1110" and unknown.body == "2220"
+        assert counts == [None, "1110", None, "2220"]
     finally:
         server.shutdown()
         server.server_close()

@@ -675,7 +675,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -1577,7 +1578,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": true
+        "quic.session_cache": true,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -2486,7 +2488,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -3373,7 +3376,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -4260,7 +4264,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -5147,7 +5152,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -6038,7 +6044,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -6929,7 +6936,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -7820,7 +7828,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -8711,7 +8720,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -9602,7 +9612,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -10493,7 +10504,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -11384,7 +11396,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": true
+        "quic.session_cache": true,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -12282,7 +12295,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": true
+        "quic.session_cache": true,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -13186,7 +13200,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -14073,7 +14088,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -14969,7 +14985,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -15871,7 +15888,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": true
+        "quic.session_cache": true,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -16774,7 +16792,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -17676,7 +17695,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": true
+        "quic.session_cache": true,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -18585,7 +18605,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -19489,7 +19510,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": true
+        "quic.session_cache": true,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -20400,7 +20422,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -21302,7 +21325,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": true
+        "quic.session_cache": true,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -22211,7 +22235,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -23120,7 +23145,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": true
+        "quic.session_cache": true,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -24036,7 +24062,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -24941,7 +24968,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": true
+        "quic.session_cache": true,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -25853,7 +25881,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -26766,7 +26795,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": true
+        "quic.session_cache": true,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -27420,7 +27450,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -28091,7 +28122,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -28748,7 +28780,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -29492,7 +29525,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -30263,7 +30297,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -31034,7 +31069,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -31805,7 +31841,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -32576,7 +32613,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -33347,7 +33385,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -34106,7 +34145,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -34877,7 +34917,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -35645,7 +35686,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -36425,7 +36467,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -37186,7 +37229,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -37943,7 +37987,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -38704,7 +38749,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -39516,7 +39562,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -40304,7 +40351,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -41105,7 +41153,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -41880,7 +41929,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -42626,7 +42676,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -43372,7 +43423,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -44042,7 +44094,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -44786,7 +44839,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -45530,7 +45584,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -46266,7 +46321,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -46963,7 +47019,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -47660,7 +47717,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -48357,7 +48415,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -49100,7 +49159,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -49818,7 +49878,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -50558,7 +50619,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -51255,7 +51317,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -51952,7 +52015,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -52649,7 +52713,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -53346,7 +53411,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -54010,7 +54076,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -54675,7 +54742,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -55608,7 +55676,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -56495,7 +56564,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -57382,7 +57452,8 @@
         "quic.ack_reordering_threshold": 1,
         "quic.ack_gap_policy": "new-gap",
         "quic.ack_decimation": "none",
-        "quic.session_cache": false
+        "quic.session_cache": false,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -58003,7 +58074,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -58740,7 +58812,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -59477,7 +59550,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -60214,7 +60288,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -60951,7 +61026,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -61688,7 +61764,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -62429,7 +62506,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -63178,7 +63256,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -63922,7 +64001,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -64660,7 +64740,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -65397,7 +65478,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {
@@ -66114,7 +66196,8 @@
         "quic.ignore_vn_after_retry": false,
         "quic.accept_zero_available_version": false,
         "quic.version_parse_error": 8,
-        "quic.version_mismatch_error": 17
+        "quic.version_mismatch_error": 17,
+        "headers.network_hints": "none"
       },
       "engine_major": 1,
       "http2": {

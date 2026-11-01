@@ -166,6 +166,9 @@ func capabilityFixture(t *testing.T, p *Profile) *Profile {
 			p.Behavior[key] = append(json.RawMessage(nil), value...)
 		}
 	}
+	if p.NetworkHints == nil {
+		p.Behavior["headers.network_hints"] = append(json.RawMessage(nil), mustGet(t, "firefox_148").Behavior["headers.network_hints"]...)
+	}
 	if p.Behavior.Flag("quic.enabled") {
 		native := mustGet(t, "firefox_148").Behavior
 		if !p.Behavior.Has("quic.ack_gap_packets") {

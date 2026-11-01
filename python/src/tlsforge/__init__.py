@@ -16,7 +16,7 @@ from __future__ import annotations
 __version__ = "1.0.0"
 
 from ._binary import ENV_VAR, bundled_binary, exe_name, resolve_binary
-from ._client import DEFAULT_TIMEOUT, MAX_REQUEST_BYTES, BrowserContext, Client, Hello, Response
+from ._client import DEFAULT_TIMEOUT, MAX_REQUEST_BYTES, BrowserContext, NetworkContext, Client, Hello, Response
 from ._errors import (
     BinaryNotFound,
     RequestFailed,
@@ -30,6 +30,7 @@ from ._errors import (
 __all__ = [
     "Client",
     "BrowserContext",
+    "NetworkContext",
     "Hello",
     "Response",
     "DEFAULT_TIMEOUT",

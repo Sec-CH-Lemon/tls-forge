@@ -62,6 +62,7 @@ import (
 //
 // A Client is safe for concurrent use.
 type Client struct {
+	network     *networkObserver
 	prototype   config
 	instancesMu sync.Mutex
 	instances   map[*Client]struct{}
@@ -121,6 +122,9 @@ var newDefaultCookieJar = func() (fhttp.CookieJar, error) {
 
 // Request is one HTTP request.
 type Request struct {
+	// Network identifies the current actual network epoch. Nil uses the configured
+	// input or the profile's explicit unavailable-input contract.
+	Network *NetworkContext
 	// Context cancels this request. Nil means context.Background.
 	Context context.Context
 	// Method defaults to GET.
@@ -274,6 +278,9 @@ func New(opts ...Option) (*Client, error) {
 	if err := prof.Validate(); err != nil {
 		return nil, err
 	}
+	if err := validateNetworkHeaderInputs(prof, cfg.headers); err != nil {
+		return nil, err
+	}
 	for _, opt := range cfg.extra {
 		if opt == nil {
 			return nil, fmt.Errorf("tlsforge: nil transport option")
@@ -281,6 +288,13 @@ func New(opts ...Option) (*Client, error) {
 	}
 	if prof.RuntimeBehavior().Text("http.instance_scope") == "request" && (cfg.jar != nil || len(cfg.extra) != 0) {
 		return nil, fmt.Errorf("tlsforge: profile %q engine_major %d: request isolation rejects opaque cookie jars and transport options; use profile JSON and explicit cookie inputs", prof.Name, *prof.EngineMajor)
+	}
+	if cfg.network != nil {
+		if err := cfg.network.Validate(); err != nil {
+			return nil, err
+		}
+		value := cfg.network.Clone()
+		cfg.network = &value
 	}
 	prof = prof.Clone()
 	prof.Behavior = prof.RuntimeBehavior().Clone()
@@ -338,6 +352,10 @@ func New(opts ...Option) (*Client, error) {
 	idleTimeout := policyDuration(prof.RuntimeBehavior(), "http.idle_connection_timeout_ms")
 	if prof.RuntimeBehavior().Has("h1.idle_connection_timeout_ms") {
 		idleTimeout = policyDuration(prof.RuntimeBehavior(), "h1.idle_connection_timeout_ms")
+	}
+	network, err := newNetworkObserver(prof, cfg.network)
+	if err != nil {
+		return nil, err
 	}
 	transportOptions := &tls_client.TransportOptions{
 		MaxIdleConnsPerHost:   prof.RuntimeBehavior().Int("h1.max_idle_connections"),
@@ -417,8 +435,12 @@ func New(opts ...Option) (*Client, error) {
 		out := append([]tls_client.HttpClientOption{tls_client.WithLockedClientProfile(clientProfile, fmt.Sprintf("profile %q engine_major %d (running engine major %d)", prof.Name, *prof.EngineMajor, EngineMajor()))}, options...)
 		h3 := &tls_client.HTTP3FromDNS{Endpoint: res.quicEndpoint, State: quic, Key: site, Tap: quicTapped}
 		out = append(out, dialOptions(cfg.proxy, len(cfg.extra) == 0, keys, keepAliveOf(prof.RuntimeBehavior()),
-			res, h3, proxyIdentity{profile: prof, pool: proxyPool})...)
-		return append(append(out, own...), cfg.extra...)
+			res, h3, proxyIdentity{profile: prof, pool: proxyPool, network: ownedNetworkObserver(network, len(cfg.extra) == 0)})...)
+		out = append(append(out, own...), cfg.extra...)
+		if network != nil {
+			out = append(out, tls_client.WithNetworkObserver(network.transport(len(cfg.extra) != 0 || cfg.proxy != "" && !strings.HasPrefix(cfg.proxy, "http://") && !strings.HasPrefix(cfg.proxy, "https://"))))
+		}
+		return out
 	}
 
 	id, log := newClientLog(cfg.logger)
@@ -439,7 +461,7 @@ func New(opts ...Option) (*Client, error) {
 	// not here: the jar files a cookie under the URL it is given, and a URL
 	// synthesised from a domain has no port, which a jar keyed by host and port
 	// then never matches. The request knows the URL exactly.
-	client := &Client{transports: t, session: newSession(jar, cfg.cookies, prof.RuntimeBehavior()), profile: prof, headers: headers,
+	client := &Client{network: network, transports: t, session: newSession(jar, cfg.cookies, prof.RuntimeBehavior()), profile: prof, headers: headers,
 		given: cfg.headers.Clone(), http1Headers: http1Headers, withheld: withheldOf(prof, cfg.headers), maxBody: cfg.maxResponseBody, timeout: cfg.timeout,
 		id: id, log: log, logger: cfg.logger, proxy: cfg.proxy}
 	// Retain configuration, never received session state. New constructs fresh
@@ -608,6 +630,9 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := c.prepareNetwork(req.Network); err != nil {
+		return nil, err
+	}
 	method := inner.Method
 	// The URL fhttp already parsed, rather than a second parse of the same
 	// string: two parsers agreeing is not something to verify at runtime, and a
@@ -629,6 +654,7 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	// body. Sent each alone, each had the whole timeout again.
 	ctx, cancel := context.WithTimeout(cmp.Or(req.Context, context.Background()), c.timeout)
 	defer cancel()
+	ctx = context.WithValue(ctx, networkCreatedKey{}, time.Now())
 	res, ch, err := c.send(ctx, req, inner, browser, r, false)
 	if errors.Is(err, errCriticalHints) {
 		// Chrome starts the navigation again, once, where it began. The
@@ -857,6 +883,9 @@ func (c *Client) Validate(req *Request) error {
 func (c *Client) parse(req *Request) (*fhttp.Request, *browserRequest, error) {
 	if req == nil || req.URL == "" {
 		return nil, nil, fmt.Errorf("tlsforge: request needs a URL")
+	}
+	if err := c.validateNetworkRequest(req); err != nil {
+		return nil, nil, err
 	}
 	target, err := requestURL(req.URL, nil, c.behavior())
 	if err != nil {

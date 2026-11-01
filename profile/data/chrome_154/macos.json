@@ -429,6 +429,7 @@
       "if-modified-since",
       "priority"
     ],
+    "headers.network_hints": "none",
     "headers.preflight_order": [
       "accept",
       "access-control-request-method",
