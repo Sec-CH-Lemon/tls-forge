@@ -11,6 +11,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Bind the existing AirPort regression to Darwin test builds; preserve its test name, assertions and native witness.
+
 - Replace existing Chrome155/156 network-hint literals with a complete JSON-owned
   estimator policy: actual HTTP/transport observations, browser-instance salt,
   host-dependent rounding and isolated state across Do/Fresh. Preserve origin

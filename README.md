@@ -3220,3 +3220,5 @@ measurement, host-noise and rounding policy after origin opt-in. Default isolate
 requests own fresh state; redirects and Critical-CH restarts retain that state
 within the same request. [JSON modes and metadata inputs](docs/profile-behavior.md#network-hints-from-current-observations-unreleased-engine-1)
 are explicit; captured estimates are not frozen into executable defaults.
+
+The [native CI follow-up](docs/remediation/2026-11-01/Network-hints-native.ru.md) records platform-specific acceptance. The unchanged AirPort regression lives in `network_environment_airport_darwin_test.go`, alongside the Darwin API it exercises.
