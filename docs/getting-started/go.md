@@ -1,0 +1,32 @@
+# Install for Go
+
+Go **1.26.10** or newer is required. Add the unsuffixed module path (engine 1 has no `/v1` suffix):
+
+```bash
+go get github.com/Sec-CH-Lemon/tls-forge
+```
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+
+    tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+)
+
+func main() {
+    client, err := tlsforge.New(tlsforge.WithProfile("chrome"))
+    if err != nil { log.Fatal(err) }
+    defer client.Close()
+
+    response, err := client.Get("https://example.com/")
+    if err != nil { log.Fatal(err) }
+    fmt.Println(response.Status, response.Text())
+}
+```
+
+A browser is not needed to make requests. The Go package can also start a local echo server, measure a browser, compare captures, load profiles, and start a local proxy. Continue with the [Go guide](../integrations/go.md) and [generated API reference](../reference/go-api.md).
+
+For unpublished source, use a checkout and an appropriate `replace` directive in your application rather than assuming the 1.0.0 API has been published.

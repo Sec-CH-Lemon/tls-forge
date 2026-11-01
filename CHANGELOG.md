@@ -40,6 +40,18 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 
 ### Added and changed
 
+- Rebuild public documentation in `docs/` with installation paths, task guides,
+  CLI/Go/Node.js/Python examples and source-generated reference pages. Move
+  historical reports and evidence to `research/` without including them in the public MkDocs site.
+- Style the documentation with the landing page's glass panels, colors and
+  local Inter font. Use Stripe-inspired UX with sticky section tabs, a
+  contextual desktop sidebar, centered reading column and search, aligned
+  tables and code examples, compact mobile drawer and tabbed examples. Keep
+  both themes readable across desktop and mobile,
+  including full-screen mobile search. Keep the theme override in `docs-theme/`
+  and the styles in `docs/assets/extra.css`; check rendered HTML-card links
+  before deployment.
+
 - Browser JSON owns supported values, vectors, ordering, header templates,
   generation rules, protocol policies, limits, retries and timers. The engine
   implements generic parsing, state transitions, cryptography, I/O and resource
@@ -94,29 +106,29 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 - The completed product acceptance includes native Linux/Windows/macOS CI,
   Linux100% statement coverage across24 packages, full Linux race coverage and
   eight exact-source fork graphs. Existing fork skips remain explicit. See the
-  [native acceptance report](docs/remediation/2026-11-01/Network-hints-native.ru.md).
+  [native acceptance report](research/remediation/2026-11-01/Network-hints-native.ru.md).
 - The finite Chrome156.0.8078.80/macOS comparison covers network hints, cold
   TLS/H1/H2 and selected H3/QPACK and request sequences. It is not a claim of
   universal browser indistinguishability, RNG distribution equality or new
   historical/all-platform browser acceptance. See the
-  [browser comparison](docs/remediation/2026-11-01/Network-hints-final.ru.md).
+  [browser comparison](research/remediation/2026-11-01/Network-hints-final.ru.md).
 - Default request isolation is preserved. Physical network-change notification
   and complete process-wide network-quality estimation remain outside this
   accepted scope; profiles cannot replace the host TCP/IP implementation.
 - Browser profiles preserve owner-selected deviations for TLS close_notify,
   macOS delayed ACK, early QUIC application close and replay policies. Explicit
   alternatives and their consequences are documented in
-  [support boundaries](docs/support.md). Browser fidelity does not imply complete
+  [support boundaries](research/support.md). Browser fidelity does not imply complete
   RFC compliance or make a non-idempotent replay safe.
 - A retained macOS ACK timing-control failure has an unconfirmed cause; the same
   full job passed one unchanged repeat. This is not reported as a fixed cause.
 - Release-specific acceptance, including the strict three-platform browser gates
   and the exact built set, is tracked in the
-  [release readiness receipt](docs/releases/1.0.0-readiness.ru.md).
+  [release readiness receipt](research/releases/1.0.0-readiness.ru.md).
 
 ### Development provenance
 
-The [unpublished development log](docs/releases/1.0.0-development-history.md)
+The [unpublished development log](research/releases/1.0.0-development-history.md)
 preserves the complete earlier engineering journal. Internal engine2 through7
 labels there identify unpublished experiments; they are not released versions.
 
@@ -303,11 +315,11 @@ labels there identify unpublished experiments; they are not released versions.
 
 ### Documentation
 
-- `docs/protocol.md` said the whole header sequence could be dictated by naming
+- `research/protocol.md` said the whole header sequence could be dictated by naming
   every header in `order`. It cannot: the merge keeps the profile's position for
   every name the profile already has. Documented as the deliberate behaviour it
   is, since the profile's order is the fingerprint being impersonated.
-- `docs/profiles.md` told maintainers to refresh the shipped profile with
+- `research/profiles.md` told maintainers to refresh the shipped profile with
   `tls-forge capture --headless`, contradicting the same page's warning two
   sections earlier. Following it would have made every library user impersonate
   `HeadlessChrome` by default.

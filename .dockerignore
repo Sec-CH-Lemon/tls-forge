@@ -9,6 +9,10 @@
 bin
 dist
 docs
+research
+site
+mkdocs.yml
+docs-requirements.txt
 tmp
 # `go build ./cmd/tls-forge` from the root drops the binary there. The root
 # alone: cmd/tls-forge is the source of it.

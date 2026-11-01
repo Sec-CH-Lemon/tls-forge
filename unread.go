@@ -12,7 +12,7 @@ import (
 
 // leave lets go of res, an answer a request goes on from without reading its
 // body, as the profile says of answers of its kind over its protocol
-// (h1.KIND_body, h2.KIND_body; docs/profile-behavior.md): "dropped", a
+// (h1.KIND_body, h2.KIND_body; research/profile-behavior.md): "dropped", a
 // redirect followed or refused and a 401 answered no more; "auth", a 401
 // answered again; "restart", a navigation started again for its critical
 // client hints; "preflight", a preflight its request goes on from.

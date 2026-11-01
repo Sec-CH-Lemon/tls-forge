@@ -44,7 +44,7 @@ const GATE = /^pinned-[a-z]+-[a-z0-9]+\.json$/;
 
 // The pinned gates a release waits for: one on each platform, on a runner of
 // it, which installs Google Chrome Stable from Google and holds the profile to
-// it (docs/pinned.md).
+// it (research/pinned.md).
 const GATES = [
   { platform: 'macos', arch: 'arm64', runner: 'macos-15' },
   { platform: 'linux', arch: 'amd64', runner: 'ubuntu-24.04' },

@@ -5,7 +5,7 @@ COVER   ?= coverage.out
 PYTHON  ?= python3
 VENV    ?= .venv
 
-.PHONY: all build test cover lint vet fmt node-test python-test python-typecheck docs-check generated-check workflows-check wrapper-smoke release-test check dist capture compare notices report-css docker docker-check clean
+.PHONY: all build test cover lint vet fmt node-test python-test python-typecheck docs-check docs-generate docs-site-check docs-serve generated-check workflows-check wrapper-smoke release-test check dist capture compare notices report-css docker docker-check clean
 
 all: check
 
@@ -70,6 +70,21 @@ python-typecheck:
 docs-check:
 	node --test scripts/check-links.test.mjs
 	node scripts/check-links.mjs
+
+# The public /docs/ site is built from hand-authored guides plus generated CLI
+# and SDK references. The website workflow runs the same generator before deploy.
+DOCS_MKDOCS ?= .venv-docs/bin/mkdocs
+
+docs-generate:
+	python3 scripts/generate-docs.py --write
+
+docs-site-check:
+	python3 scripts/generate-docs.py --check
+	$(DOCS_MKDOCS) build --strict --clean
+	python3 scripts/check-docs-html-links.py
+
+docs-serve:
+	$(DOCS_MKDOCS) serve
 
 # A gate as well: what is generated or tidied, made again beside the checkout
 # and held to what is committed, the checkout left as it was.

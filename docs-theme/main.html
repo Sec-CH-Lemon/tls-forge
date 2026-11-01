@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  {% if page and nav.homepage and page.url == nav.homepage.url %}
+    <script>document.documentElement.classList.add("tf-home");</script>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  {% if page and nav.homepage and page.url != nav.homepage.url and page.title != "Overview" %}
+    <nav class="tf-breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ nav.homepage.url | url }}">Home</a>
+      {% for ancestor in page.ancestors | reverse %}
+        <span aria-hidden="true">/</span>
+        {% if ancestor.url %}
+          <a href="{{ ancestor.url | url }}">{{ ancestor.title }}</a>
+        {% else %}
+          <span>{{ ancestor.title }}</span>
+        {% endif %}
+      {% endfor %}
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">{{ page.title }}</span>
+    </nav>
+  {% endif %}
+  {{ super() }}
+{% endblock %}

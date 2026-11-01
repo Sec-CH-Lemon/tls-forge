@@ -14,7 +14,7 @@
 //
 // The result is for the commit and the release set it names, so that a
 // release takes it only for what it measured. It is not part of what ships: a
-// release workflow runs it, and docs/pinned.md says how.
+// release workflow runs it, and research/pinned.md says how.
 package main
 
 import (

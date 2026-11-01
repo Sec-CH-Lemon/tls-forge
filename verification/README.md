@@ -67,7 +67,7 @@ must be available remotely before these jobs can execute there. Locally sealed
 module artifacts demonstrate installation without a replace; they do not prove
 publication or remote CI.
 
-See the [A6 report](../docs/remediation/2026-10-27/A6.ru.md) for the retained
+See the [A6 report](../research/remediation/2026-10-27/A6.ru.md) for the retained
 before/after controls and acceptance limits.
 
 Each observed known failure also pins a SHA-256 of its diagnostic transcript
@@ -113,5 +113,5 @@ graphs. Missing/skip/renaming/deletion is a gate failure. The supplemental
 TestOmitHTTP2 obligation is tracked separately. A passing rerun alone cannot
 close a historical row. A11 now resolves all109 original rows; no active failure allowances or
 invocation exclusions remain. Existing source skips are recorded separately and
-cannot satisfy a resolved witness. The [final source-bound report](../docs/remediation/2026-10-30/A11.ru.md)
+cannot satisfy a resolved witness. The [final source-bound report](../research/remediation/2026-10-30/A11.ru.md)
 contains the results and named measurement limits.

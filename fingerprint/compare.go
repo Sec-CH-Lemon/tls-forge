@@ -154,9 +154,11 @@ func scalar(name, value string) Field {
 //   - The contents of server_name, which are the site's, and of padding, whose
 //     length follows from the rest.
 //
-// Everything else is stable for a given browser build and is compared exactly.
-// An extension both sides send that none of this describes, with contents
-// that differ, is reported by CompareTLS as not checked.
+// Other fields in this manifest are compared exactly for the supplied pair of
+// captures. This does not establish that they are invariant across launches,
+// request contexts or connection states. An extension both sides send that
+// none of this describes, with contents that differ, is reported by CompareTLS
+// as not checked.
 func TLSFields(hello *ClientHello) []Field {
 	ech, echPayload := echShape(hello)
 	return []Field{

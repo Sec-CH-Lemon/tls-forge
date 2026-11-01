@@ -123,20 +123,20 @@ Across ordinary calls the shipped profiles start cold; a persistent workflow
 requires explicit client-scope JSON.
 
 Within one browser instance, a connection is kept and closed as the profile's browser keeps and closes it
-([connection lifecycle](docs/profile-behavior.md#connection-lifecycle-unreleased-engine-1)).
+([connection lifecycle](research/profile-behavior.md#connection-lifecycle-unreleased-engine-1)).
 With a shipped Chrome profile no close sends a TLS close_notify, `Close` and
 `CloseIdleConnections` included; an idle HTTP/2 connection is kept until its
 server closes it, an idle HTTP/1.1 one 300 s, reaped when a later request asks
 for a connection; a connection a GOAWAY leaves no stream is closed at once;
 and the system probes an idle TCP connection after 45 s. A request to an
 HTTP/2 connection that has read nothing for more than 10 s sends a PING with
-its HEADERS ([the PING](docs/profile-behavior.md#the-connections-own-ping-unreleased-engine-1));
+its HEADERS ([the PING](research/profile-behavior.md#the-connections-own-ping-unreleased-engine-1));
 when no answer comes and nothing is read for 10 s, the connection is given up
 and a request with no answer yet goes again on another connection, so a
 `Trace` may see a request dial twice.
 
 A request goes again as the profile's browser sends one again
-([requests sent again](docs/profile-behavior.md#requests-sent-again-unreleased-engine-1)).
+([requests sent again](research/profile-behavior.md#requests-sent-again-unreleased-engine-1)).
 With a shipped Chrome profile a stream the server refuses goes again at once
 on its connection, and one above a GOAWAY with NO_ERROR on another, twice at
 most, those two and a PING not answered counted together; above a GOAWAY with
@@ -150,7 +150,7 @@ returns the last failure; a `Trace` sees each connection a request went on.
 An answer a request goes on from without reading it (a redirect followed, a
 401 answered, a navigation started again for its client hints, a CORS
 preflight) is let go of as the profile's browser lets go of it
-([answers let go of unread](docs/profile-behavior.md#answers-let-go-of-unread-unreleased-engine-1)).
+([answers let go of unread](research/profile-behavior.md#answers-let-go-of-unread-unreleased-engine-1)).
 With a shipped Chrome profile the next request no longer waits for that
 body: over HTTP/2 its stream is reset, over HTTP/1.1 a redirect's body is read
 in the background on its own connection while the next hop takes another, so
@@ -325,7 +325,7 @@ config's public name, the inner one the site, both as the profile's browser
 makes them. The shipped Chrome profiles do as Chrome 155 does, measured
 against servers that opened every inner hello they were sent; the fields and
 what was measured are in
-[the profile behavior reference](docs/profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1).
+[the profile behavior reference](research/profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1).
 
 ```go
 client, err := tlsforge.New(tlsforge.WithProfile("chrome_155_macos"))
@@ -365,7 +365,7 @@ res, err := client.Do(&tlsforge.Request{URL: "https://example.com/"})
 Through a proxy, or with transport options of the caller's, nothing changes;
 `tls_client.WithProtocolRacing` given with `WithTransportOption` still races
 HTTP/3 to every origin. The fields and what was measured are in
-[the profile behavior reference](docs/profile-behavior.md#http3-from-dns-https-records-unreleased-engine-1).
+[the profile behavior reference](research/profile-behavior.md#http3-from-dns-https-records-unreleased-engine-1).
 
 An answer whose `Alt-Svc` advertises `h3` sends its origin's later requests
 over HTTP/3 to that alternative, as Chrome's alternative job does
@@ -373,7 +373,7 @@ over HTTP/3 to that alternative, as Chrome's alternative job does
 has, its QUIC connection made apart for the next, else QUIC and TCP raced as
 for a record's `h3`. Alternatives are the session's, kept for the origin and
 the top-level site: see
-[the reference](docs/profile-behavior.md#http3-from-an-answers-alt-svc-unreleased-engine-1).
+[the reference](research/profile-behavior.md#http3-from-an-answers-alt-svc-unreleased-engine-1).
 
 ## Requests
 

@@ -89,7 +89,7 @@ done
 # the build is told to leave out.
 while IFS= read -r path; do
   case "$path" in
-    .github/* | docs/*) continue ;;
+    .github/* | docs/* | research/* | mkdocs.yml | docs-requirements.txt) continue ;;
   esac
   if ! grep -qxF "$path" "$context"; then
     echo "the build context lacks $path" >&2

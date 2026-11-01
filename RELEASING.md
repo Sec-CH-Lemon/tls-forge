@@ -61,7 +61,8 @@ is the SHA-256 of its `manifest.json`.
 1. **set**, on a tag that has no release yet, runs the gates (vet,
    the coverage gate, govulncheck, golangci-lint, the Node.js and
    Python suites, the real-daemon smoke test, the release-script tests, the
-   examples and `make generated-check`) and builds the set. On a tag whose
+   examples, `make generated-check`, tracked Markdown links and the strict
+   source-generated public documentation build) and builds the set. On a tag whose
    draft or release holds a set already, it takes that set instead and builds
    nothing. Either way it verifies the set against this commit.
 2. **go-race** uses two Linux partitions of the complete compiled root
@@ -81,7 +82,7 @@ is the SHA-256 of its `manifest.json`.
    digest stops the release. The manifest goes last, so a draft holding one
    holds the whole set.
 4. **gates** names a gate for each platform and **pinned** runs each on a
-   runner of that platform ([docs/pinned.md](docs/pinned.md)). It installs
+   runner of that platform ([research/pinned.md](research/pinned.md)). It installs
    Google Chrome Stable from Google, holds the profile to it, measures it on
    the bench in `internal/harness` against the fixtures of what a page does,
    and keeps the result, bound to this commit and this set, in the draft

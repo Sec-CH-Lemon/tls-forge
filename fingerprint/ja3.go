@@ -14,9 +14,9 @@ import (
 // not usable for Chrome. Chrome shuffles its extension order on every
 // connection, and JA3 hashes that order, so the same browser produces a
 // different JA3 for every request it makes. It is implemented here because
-// plenty of services still log it and because a JA3 that is stable across
-// connections is itself evidence of a client that is NOT Chrome — but never
-// compare two JA3s and conclude anything from their differing.
+// plenty of services still log it. A stable JA3 across a finite set of
+// connections is not enough to identify or rule out Chrome; never compare two
+// JA3s and conclude anything from their differing.
 //
 // Use JA4, which sorts before hashing for exactly this reason.
 func (c *ClientHello) JA3() string {

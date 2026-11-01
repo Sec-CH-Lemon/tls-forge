@@ -9,10 +9,11 @@
 // demonstrably not Chrome in its handshake is not a slightly imperfect
 // disguise; it is a contradiction, and it is trivially detectable.
 //
-// This package sends the browser's bytes. The profiles are not written by hand
-// from documentation: they are captured from a browser running on your own
-// machine (`tls-forge capture`) and verified against it (`tls-forge compare`),
-// which is why the claim can be checked rather than believed.
+// A profile combines captured browser fields with explicit rules for values
+// that change across requests and connections. `tls-forge capture` measures a
+// browser and `tls-forge compare` checks selected fields in a local scenario.
+// A match there is not proof of full browser equivalence across platforms,
+// protocols or connection states.
 //
 //	client, err := tlsforge.New(tlsforge.WithProfile("chrome"))
 //	if err != nil { return err }
@@ -22,8 +23,8 @@
 //
 // # Scope
 //
-// This is a network-layer tool. It makes a request look like it came from a
-// browser; it does not run JavaScript, execute challenges, or solve CAPTCHAs.
+// This is a network-layer tool. It models selected browser request behaviour;
+// it does not run JavaScript, execute challenges, or solve CAPTCHAs.
 // Use it where you are permitted to make the requests you are making.
 package tlsforge
 

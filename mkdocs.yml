@@ -1,0 +1,110 @@
+site_name: TLS Forge
+site_description: Install, use, and inspect TLS Forge across the CLI and language SDKs.
+site_url: https://tls-forge.com/docs/
+repo_url: https://github.com/Sec-CH-Lemon/tls-forge
+repo_name: GitHub
+docs_dir: docs
+site_dir: site/docs
+use_directory_urls: true
+theme:
+  name: material
+  custom_dir: docs-theme
+  language: en
+  font: false
+  logo: assets/mark.svg
+  favicon: assets/mark.svg
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.indexes
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  palette:
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+extra_css:
+  - assets/extra.css
+plugins:
+  - search
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      linenums: true
+nav:
+  - Home: index.md
+  - Get started:
+      - Overview: getting-started/index.md
+      - Install the CLI: getting-started/install-cli.md
+      - Docker: getting-started/docker.md
+      - Go: getting-started/go.md
+      - Node.js: getting-started/node.md
+      - Python: getting-started/python.md
+      - Verify an installation: getting-started/verify.md
+  - Guides:
+      - Make requests: guides/requests.md
+      - Browser contexts: guides/browser-context.md
+      - Lists and concurrency: guides/batch.md
+      - Proxies: guides/proxies.md
+      - Cookies and sessions: guides/cookies.md
+      - Retries and page checks: guides/retries.md
+      - Capture and compare: guides/capture-compare.md
+      - Output and diagnostics: guides/diagnostics.md
+      - Profiles and compatibility: guides/profiles.md
+  - Integrations:
+      - Choose an interface: integrations/index.md
+      - CLI: integrations/cli.md
+      - Go library: integrations/go.md
+      - Node.js SDK: integrations/node.md
+      - Python SDK: integrations/python.md
+      - Local proxy: integrations/proxy.md
+      - Daemon protocol: integrations/daemon.md
+  - Reference:
+      - Overview: reference/index.md
+      - CLI commands and flags: reference/cli.md
+      - Go API:
+          - Overview: reference/go-api.md
+          - Core client: reference/go/tlsforge.md
+          - Profiles: reference/go/profile.md
+          - Proxy: reference/go/proxy.md
+          - Cookies: reference/go/cookie.md
+          - Capture: reference/go/capture.md
+          - Fingerprint: reference/go/fingerprint.md
+          - Echo: reference/go/echo.md
+          - Daemon: reference/go/daemon.md
+          - Browser: reference/go/browser.md
+      - Node.js API: reference/node-api.md
+      - Python API: reference/python-api.md
+      - Profile behavior: reference/profile-behavior.md
+      - Shipped profile fields: reference/profile-fields.md
+      - Errors and exit codes: reference/errors.md
+  - Support:
+      - Overview: support.md
+      - Scope and limits: support/limits.md
+      - Troubleshooting: support/troubleshooting.md
+      - Release status: support/release-status.md
+      - Documentation maintenance: support/contributing.md

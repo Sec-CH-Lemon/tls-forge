@@ -6,10 +6,10 @@
 //	in : {"id":7,"url":"https://…","headers":{"a":"b"},"order":["a"]}
 //	out: {"id":7,"status":200,"url":"…","body":"…","headers":{…}}
 //
-// The process is long-lived and holds one client, which means one TLS
-// fingerprint, one cookie jar and one exit IP for its whole life. That is not a
-// simplification — it is the point. A fresh handshake and an empty jar for every
-// request is itself a signal, and no browser produces it.
+// The process is long-lived and holds one configured client. The selected
+// profile decides whether requests use separate browser network instances or
+// share state across calls. Shipped profiles use request scope: redirects and
+// retries share one request's state, while later requests start independently.
 //
 // # Why every response carries an id
 //
@@ -514,7 +514,7 @@ func handle(ctx context.Context, line string, client Client) Response {
 		headers[name] = append([]string(nil), values...)
 	}
 	// An empty list rather than null when the jar holds nothing for the URL,
-	// as docs/protocol.md has always shown it. Null is how a failure says it
+	// as research/protocol.md has historically shown it. Null is how a failure says it
 	// has nothing to report, and a reader should not have to tell an answer
 	// from a failure by anything but `error`.
 	held := res.Cookies

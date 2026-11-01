@@ -207,7 +207,7 @@ func about(got, want time.Duration) bool {
 // when the next request came and on which connection, what became of the
 // held body (sent, or given up as its stream was reset or its connection
 // closed) and when, and when an HTTP/1.1 connection closed. Chrome's choices
-// are measured (docs/profile-behavior.md); the rest are the engine's others.
+// are measured (research/profile-behavior.md); the rest are the engine's others.
 func TestAnAnswerIsLetGoOfUnreadAsTheProfileSays(t *testing.T) {
 	drain := func(mode string, ms int) map[string]any {
 		return map[string]any{mode: "drain", "http.drain_bytes": 16384, "http.drain_ms": ms}

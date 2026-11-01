@@ -1,14 +1,15 @@
 # Build output
 /bin/
 /dist/
+/site/
 /node/vendor/
 # `go build ./cmd/tls-forge` from the root drops the binary here, named after
 # the module, right next to the source.
 /tls-forge
 
 # Documentation kept locally rather than published with the repository.
-/docs/architecture.md
-/docs/fingerprinting.md
+/research/architecture.md
+/research/fingerprinting.md
 
 # Coverage
 coverage.out

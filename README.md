@@ -4,8 +4,8 @@
 real browser's network fingerprint. A measured profile controls the TLS
 ClientHello, JA3/JA4-relevant fields, HTTP/1.1 header casing and order, HTTP/2
 settings, pseudo-header order, regular header order and browser headers as one
-coherent identity. Profiles created before HTTP/1.1 capture was introduced
-remain compatible and use the documented canonical-casing fallback.
+coherent identity. Older profiles require an explicit migration and relevant
+browser/wire validation before use with a new engine major.
 
 Use it when an ordinary Go, Node.js or Python HTTP client is rejected because
 its network stack does not match the browser named by its `User-Agent`.
@@ -24,6 +24,21 @@ or alongside, normal HTTP handling.
 With shipped profiles, each request is a fresh network browser instance.
 Redirects and protocol retries share state only inside that request. This tool
 models browser networking; it does not create a browser process or execute JavaScript.
+
+**Documentation:** [installation, guides, integrations and generated API
+references](docs/index.md) are built at `https://tls-forge.com/docs/`. These pages
+describe the unreleased 1.0.0 development candidate; the published release
+anchor in `engine/version.json` is 0.2.2. Historical measurements and review
+receipts are preserved outside the public site in [`research/`](research/).
+The site uses the landing page's glass panels, colors and local Inter font.
+Its Stripe-inspired UX has sticky section tabs, a contextual desktop sidebar,
+a centered reading column and search, aligned tables and code examples,
+a compact mobile drawer and tabbed language examples. Guides
+and API reference both support light and dark themes. The
+local theme override is in `docs-theme/main.html` and its styles are in
+`docs/assets/extra.css`.
+`make docs-site-check` regenerates the references, builds the site strictly and
+checks internal links in its rendered HTML cards before publication.
 
 ## Quick start
 
@@ -201,7 +216,7 @@ known-failure allowances or invocation exclusions remain.
 Browser JSON explicitly selects RD, EDNS payload and the per-server timeout of
 the product's HTTPS DNS queries. Plain HTTP discovery hands its address lookup
 to that request's connection; it does not ask A/AAAA twice for the same hop.
-The [DNS field reference](docs/profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1)
+The [DNS field reference](research/profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1)
 distinguishes these choices from Go's A/AAAA resolver, Chrome's DoH padding and
 its address cache.
 
@@ -220,12 +235,12 @@ including:
 The unreleased engine1 candidate also resumes after a TLS1.3
 HelloRetryRequest: the binder covers the actual profile-shaped second hello.
 P-256/P-384 peers and Chrome156/macOS full/resumed handshake observations are
-recorded in [the A3 report](docs/remediation/2026-10-27/A3.ru.md).
+recorded in [the A3 report](research/remediation/2026-10-27/A3.ru.md).
 Executable profiles are validated before request I/O, including ordered H2
 SETTINGS ranges, stream/dependency rules and connection-window overflow.
 Explicit zero windows remain zero. Large valid H3 setup no longer blocks QUIC
-or Close. See [profile semantics](docs/profiles.md#executable-http2-semantics-a6)
-and the [A6 evidence report](docs/remediation/2026-10-27/A6.ru.md).
+or Close. See [profile semantics](research/profiles.md#executable-http2-semantics-a6)
+and the [A6 evidence report](research/remediation/2026-10-27/A6.ru.md).
 
 It authenticates a TLS1.2 server's Finished before rejecting a real ECH offer,
 checks exact compressed-certificate length within engine resource bounds,
@@ -419,7 +434,7 @@ Digest is answered with MD5 or SHA-256, as the page asks, and answered again
 when the page says its nonce is out of date. A page that offers NTLM, or
 Negotiate to a profile of Windows, is left with its 401, as is one whose
 request has an `Authorization` given with `-H`
-([docs/support.md](docs/support.md)).
+([support and limits](docs/support/limits.md)).
 
 ### Retrying and repeating
 
@@ -1314,7 +1329,7 @@ is named, and naming one that is not set or is empty, or giving `--proxy` as
 well, is a usage error before anything is asked. `daemon --proxy-stdin` takes
 the proxy from the first line of its input instead, which is read once, and
 the Node.js and Python packages start the daemon that way; see
-[the init line](docs/protocol.md#the-init-line).
+[the daemon protocol](docs/integrations/daemon.md#proxy-init-line).
 
 Ctrl-C, or SIGTERM as `kill`, a service manager and `docker stop` send it,
 stops a command in order. `fetch` cancels the requests in flight, which its
@@ -1813,7 +1828,7 @@ The17 supported names are `accept-language`, `sec-ch-ua-platform-version`,
 use `light`/`dark` or `no-preference`/`reduce`. Editing one supported alias changes
 both existing spellings; conflicting alias inputs fail before measurement.
 The saved inventory calls these machine/persona values and records every edited
-alias as user-provided. See [persona configuration](docs/profile-behavior.md#machine-persona-values-unreleased-engine1).
+alias as user-provided. See [persona configuration](research/profile-behavior.md#machine-persona-values-unreleased-engine1).
 A hint the browser does not send, as Firefox and Safari send none, is not
 given one: the profile is not kept.
 
@@ -2026,7 +2041,7 @@ says so in its header. To wear Firefox or Safari whole, measure it with
 Profiles store generation rules and context-dependent templates, rather than
 freezing changing values from one capture. Compare several fresh Chrome
 connections and repeated requests on reused connections; distinguish protocol
-validity from observed browser behavior. See [generation rules](docs/profile-behavior.md#generation-rules-not-frozen-observations).
+validity from observed browser behavior. See [generation rules](research/profile-behavior.md#generation-rules-not-frozen-observations).
 The shared method lives in the separate collector project at
 `../net-fp-server/docs/DYNAMIC_COMPARISON_POLICY.md`.
 
@@ -2064,7 +2079,7 @@ migratedJSON, err := candidate.Save() // save to a separate destination
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit unreleased engine-1
+The 18 shipped profiles and all backend catalogue policies have explicit unreleased engine-1
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
@@ -2103,7 +2118,7 @@ To update an implemented behavior, edit the relevant field in a local profile
 and pass that file with `--profile`; no rebuild is needed. New client instances
 read the updated data; existing clients keep their own snapshot. The embedded
 copies require rebuilding only to distribute changed embedded defaults. See
-[the behavior format and field reference](docs/profile-behavior.md).
+[the behavior format and field reference](docs/reference/profile-behavior.md).
 
 Unknown fields, incorrect types, duplicate behavior keys and unsupported
 capabilities fail before sending a request. HTTP/3 ORIGIN
@@ -2274,7 +2289,7 @@ Usage: `tls-forge daemon [flags]`
 | `-p`, `--profile <name-or-path>` | Profile to impersonate; without one, the browser measured on this machine (`local`) when there is one, else `chrome` |
 | `-x`, `--proxy <url>` | Upstream proxy |
 | `--proxy-env <name>` | Read the upstream proxy from this environment variable, such as `TLSFORGE_PROXY`, instead |
-| `--proxy-stdin` | Read the upstream proxy from the first line of standard input, the init line, as the Node.js and Python packages do; see [the protocol](docs/protocol.md#the-init-line) |
+| `--proxy-stdin` | Read the upstream proxy from the first line of standard input, the init line, as the Node.js and Python packages do; see [the protocol](docs/integrations/daemon.md#proxy-init-line) |
 | `-t`, `--timeout <duration>` | How long each request may take, all of it; default `30s` |
 | `-k`, `--insecure` | Skip certificate verification |
 | `--dns-server <ip[:port]>` | Look the names of direct connections up with this DNS server instead of the machine's |
@@ -2288,7 +2303,7 @@ One request object is read per line:
 The response repeats `id` and contains `status`, final `url`, `body`,
 multi-valued `headers`, `cookies`, and `error` when the request failed. An
 input line is read when it is at most 16 MiB, its newline included; a longer
-one ends the daemon, as described in [the protocol](docs/protocol.md).
+one ends the daemon, as described in [the protocol](docs/integrations/daemon.md#request-and-response).
 Requests are processed sequentially so one daemon remains one browser identity
 and one cookie jar.
 
@@ -2432,7 +2447,7 @@ The runnable consumer project is in [`example/python/`](example/python/).
 - **A site still turns the requests away.** A fingerprint is not all a site
   looks at: tls-forge runs no JavaScript, defaults to HTTP/1.1 or HTTP/2, and the TCP/IP
   packets under each connection are this machine's operating system's.
-  [docs/support.md](docs/support.md) says what is reproduced and what is not,
+  [support and limits](docs/support/limits.md) says what is reproduced and what is not,
   and `tls-forge compare` holds this client to the browser on this machine.
 
 ## Limitations
@@ -2445,7 +2460,7 @@ system's. Redirects are followed as Chrome follows them, and a form's POST,
 `fetch()` and an XHR go out as Chrome sends them, CORS, mixed content and the
 client hints a server asked for and all, when a request says it is one
 ([GO.md](GO.md#browser-contexts)).
-[docs/support.md](docs/support.md)
+[support and limits](docs/support/limits.md)
 lists what is reproduced, how each part is checked, and where it is known not
 to be.
 
@@ -2457,19 +2472,19 @@ client-scope profile. Request scope uses JSON/DNS protocol choices and rejects
 opaque transport overrides. It races connection
 establishment and sends the request once over the selected transport. The
 Chrome policy applies measured QUIC TLS 1.3 vectors and initial receive
-windows. The current QPACK decoder is stateless: table capacity and blocked
-streams remain zero, and nonzero configurations are refused. A Chrome
-profile's QUIC handshake is Chrome 155's, ALPS offered for h3 and what a server
+windows. Dynamic QPACK is implemented in the unreleased engine 1; its table,
+feedback and stream policy come from the selected JSON profile. A Chrome
+profile's QUIC handshake includes measured Chrome 155 behavior, ALPS offered for h3 and what a server
 gives in it read as Chrome reads it, and so is what the client sends after
-the handshake ([QUIC's handshake as Chrome's](docs/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1),
-[ALPS for HTTP/3](docs/profile-behavior.md#alps-for-http3-unreleased-engine-1),
-[QUIC after the handshake as Chrome's](docs/profile-behavior.md#quic-after-the-handshake-as-chromes-unreleased-engine-1)), and so is how it puts its HTTP/3 writes in packets
-([HTTP/3 writes in packets as Chrome's](docs/profile-behavior.md#http3-writes-in-packets-as-chromes-unreleased-engine-1)),
+the handshake ([QUIC's handshake as Chrome's](research/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1),
+[ALPS for HTTP/3](research/profile-behavior.md#alps-for-http3-unreleased-engine-1),
+[QUIC after the handshake as Chrome's](research/profile-behavior.md#quic-after-the-handshake-as-chromes-unreleased-engine-1)), and so is how it puts its HTTP/3 writes in packets
+([HTTP/3 writes in packets as Chrome's](research/profile-behavior.md#http3-writes-in-packets-as-chromes-unreleased-engine-1)),
 and how late its alarms fire, a delayed ACK's among them, as Chrome's on
-macOS ([How late a QUIC client's alarms fire](docs/profile-behavior.md#how-late-a-quic-clients-alarms-fire-unreleased-engine-1)),
+macOS ([How late a QUIC client's alarms fire](research/profile-behavior.md#how-late-a-quic-clients-alarms-fire-unreleased-engine-1)),
 and how it acknowledges a long download, every tenth packet after the
 server's 100th
-([How a QUIC client acknowledges a long download](docs/profile-behavior.md#how-a-quic-client-acknowledges-a-long-download-unreleased-engine-1)). QUIC transport parameters, QPACK compression,
+([How a QUIC client acknowledges a long download](research/profile-behavior.md#how-a-quic-client-acknowledges-a-long-download-unreleased-engine-1)). QUIC transport parameters, QPACK compression,
 discovery and complete lifecycle behavior still have differences; enabling
 this option does not establish a Chrome-equivalent H3 fingerprint.
 
@@ -2480,11 +2495,11 @@ certificate check, cancellation or an application request. The CLI's
 
 ## Development
 
-[A9 CLI acceptance](docs/remediation/2026-10-30/A9.ru.md) records the shared-pool
+[A9 CLI acceptance](research/remediation/2026-10-30/A9.ru.md) records the shared-pool
 and explicit exit-lookup changes, original counterexamples, headed Chrome156
 connection counts and remaining differences.
 
-[A7 acceptance](docs/remediation/2026-10-29/A7-IDNA.ru.md) records the IDNA
+[A7 acceptance](research/remediation/2026-10-29/A7-IDNA.ru.md) records the IDNA
 follow-up, all seven passing fuzz targets, SDK checks and the retained first
 race failure followed by a complete passing root rerun.
 
@@ -2492,7 +2507,7 @@ Percent-decoded URL hosts must contain valid UTF-8 before IDNA processing.
 Malformed hosts fail before network I/O, including targets named by redirects.
 The runtime fix retains valid IDNA and the existing userinfo/query behavior.
 
-[URL verification](docs/url-oracle.md) separates WHATWG components, idempotence,
+[URL verification](research/url-oracle.md) separates WHATWG components, idempotence,
 production H1/H2 targets and credential scope. Ordinary Go tests need no Node
 or Chrome. Explicit reference checks retain the independent versions and
 constructor results. The scheduled fuzz workflow discovers every target and
@@ -2504,8 +2519,8 @@ The opportunistic and immediate rules have separate negative controls. An
 as-written instruction may follow an immediate ACK; its own elapsed time
 from RESET is measured rather than inferred from ACK order.
 
-The [29 October checks](docs/remediation/2026-10-29/README.ru.md) preserve
-A7's earlier 7/8 result; its [follow-up](docs/remediation/2026-10-29/ACCEPTANCE-A7.ru.md)
+The [29 October checks](research/remediation/2026-10-29/README.ru.md) preserve
+A7's earlier 7/8 result; its [follow-up](research/remediation/2026-10-29/ACCEPTANCE-A7.ru.md)
 accepted eight gates with named historical debt. Those checkpoints predate A11.
 The current published fork pins are in `go.mod`; A11 removes the original
 failure allowances only after named, source-bound positive controls.
@@ -2591,9 +2606,9 @@ Release and maintenance documentation:
 
 - [`CHANGELOG.md`](CHANGELOG.md) — user-visible changes;
 - [`RELEASING.md`](RELEASING.md) — release process;
-- [`docs/profiles.md`](docs/profiles.md) — capture format and profile resolution;
-- [`docs/protocol.md`](docs/protocol.md) — JSON Lines daemon protocol;
-- [`docs/pinned.md`](docs/pinned.md) — the Google Chrome a release is held to, and the check;
+- [`research/profiles.md`](research/profiles.md) — capture format and profile resolution;
+- [`research/protocol.md`](research/protocol.md) — JSON Lines daemon protocol;
+- [`research/pinned.md`](research/pinned.md) — the Google Chrome a release is held to, and the check;
 - [`example/`](example/) — runnable Go, Node.js, Python and CLI examples.
 
 ## Licence and attribution
@@ -2658,12 +2673,12 @@ require `engine_major: 1`; Node/Python 1.0.0 require an engine-1 daemon.
 The profile now explicitly selects QPACK name/value Huffman coding with
 `h3.qpack.huffman_names` and `h3.qpack.huffman_values`: `always`, `shorter`,
 or `never`. Chrome155/macOS selects strictly shorter coding.
-See [profile-owned behavior](docs/profile-behavior.md#http3-qpack-unreleased-engine-1).
+See [profile-owned behavior](research/profile-behavior.md#http3-qpack-unreleased-engine-1).
 Dynamic QPACK is implemented in the pending engine1; its table/feedback/stream policy is declared in JSON. Other missing-API scenarios remain open.
 
 QPACK table draining, critical-stream error space/code/frame/reason and H3
 protocol-error retries are profile-owned in the pending engine1. See
-[the policy reference](docs/profile-behavior.md#qpack-small-tables-and-error-replay-unreleased-engine-1).
+[the policy reference](research/profile-behavior.md#qpack-small-tables-and-error-replay-unreleased-engine-1).
 Original internal engine3 profiles remain in the r18 source archive and are rejected by
 the current engine1. A migrated profile needs fresh wire acceptance for its workload.
 
@@ -2672,20 +2687,20 @@ H3 guaranteed-unprocessed retries use explicit `h3.retry_unprocessed_attempts`
 protocol retries. Do not restore a hardcoded single retry.
 
 QPACK error reasons and bounded diagnostic templates are JSON-owned in the pending engine1.
-See [the diagnostic policy](docs/profile-behavior.md#qpack-diagnostic-policy-unreleased-engine-1).
+See [the diagnostic policy](research/profile-behavior.md#qpack-diagnostic-policy-unreleased-engine-1).
 Profiles from internal snapshot4 require explicit migration and fresh relevant wire checks.
 
 
 The current engine1 Chrome155/macOS profile also controls initial H3 control-frame order,
 GREASE payload generation and per-request priority updates in JSON. Generated
 payloads retain the measured frame-N/length relationship; reused requests use
-actual stream IDs and current priorities. See [profile behavior](docs/profile-behavior.md#http3-dynamic-control-stream-unreleased-engine-1).
+actual stream IDs and current priorities. See [profile behavior](research/profile-behavior.md#http3-dynamic-control-stream-unreleased-engine-1).
 
 
 The same unreleased engine1 includes profile-owned initial HTTP/2 input scheduling. Chrome155/macOS uses
 `h2.read_loop_start: "first-headers"` so the first HPACK block is queued before
 peer SETTINGS are read; subsequent dynamic-table growth/shrink still follows the
-actual peer. See [profile behavior](docs/profile-behavior.md#initial-http2-input-scheduling-unreleased-engine-1).
+actual peer. See [profile behavior](research/profile-behavior.md#initial-http2-input-scheduling-unreleased-engine-1).
 
 
 ### Connection lifecycle
@@ -2700,7 +2715,7 @@ Chrome 155 on macOS, 2026-10-23):
   Chrome never shuts TLS down: `Client.Close`, an idle timeout and the CLI's
   close at request end (at run end for an explicit persistent profile) end with the TCP FIN alone;
   this intentionally deviates from TLS1.3 normal-shutdown requirements.
-  [Separate156 JSON variants](docs/support.md#intentional-standards-deviations-a12)
+  [Separate156 JSON variants](research/support.md#intentional-standards-deviations-a12)
   send close_notify. The same matrix documents the selected macOS ACK timing,
   early QUIC close and possible POST replay; these are explicit standards exceptions.
 - an idle HTTP/2 connection is kept until its server closes it
@@ -2715,8 +2730,8 @@ Chrome 155 on macOS, 2026-10-23):
   another connection, as a refused one does (below, «A request sent again»).
 
 A profile without these fields keeps the earlier behaviour. See
-[the field reference](docs/profile-behavior.md#connection-lifecycle-unreleased-engine-1)
-and [the PING](docs/profile-behavior.md#the-connections-own-ping-unreleased-engine-1).
+[the field reference](research/profile-behavior.md#connection-lifecycle-unreleased-engine-1)
+and [the PING](research/profile-behavior.md#the-connections-own-ping-unreleased-engine-1).
 
 ### Stream dependencies in HTTP/2
 
@@ -2727,7 +2742,7 @@ macOS, 2026-10-23): each on the most recently opened of the open streams of
 the lowest weight not below its own, so four `fetch()`es at once go as a
 chain 1←3←5←7, and a request with nothing else open depends on none. A
 profile without the field, or with `"root"`, keeps every stream on none. See
-[the field reference](docs/profile-behavior.md#stream-dependencies-in-headers-unreleased-engine-1).
+[the field reference](research/profile-behavior.md#stream-dependencies-in-headers-unreleased-engine-1).
 
 ### Answers a request goes on from unread
 
@@ -2752,7 +2767,7 @@ Before, a body that came late held the next request back as long. Each kind
 and protocol is a field of its own (`h1.dropped_body`, `h2.auth_body`, …,
 `http.drain_bytes`, `h1.unread_grace_us`); a profile without them reads as
 before. See
-[the field reference](docs/profile-behavior.md#answers-let-go-of-unread-unreleased-engine-1).
+[the field reference](research/profile-behavior.md#answers-let-go-of-unread-unreleased-engine-1).
 
 ### A request sent again
 
@@ -2781,7 +2796,7 @@ lost HTTP/1.1 connection's POST, and took a 408 as the answer. The fields are
 `h2.retries`, `h2.retry_errors`, `h2.retry_delay_ms`,
 `http.connection_error_retries`, `http.connection_error_methods` and
 `h1.request_timeout_resend`; a profile without them keeps the old rules. See
-[the field reference](docs/profile-behavior.md#requests-sent-again-unreleased-engine-1).
+[the field reference](research/profile-behavior.md#requests-sent-again-unreleased-engine-1).
 
 ### Encrypted Client Hello from DNS
 
@@ -2817,7 +2832,7 @@ Through a proxy nothing is looked up here, and GREASE ECH goes as before. The
 profile fields are `dns.resolver`, `dns.https_*` and `tls.ech_*`; a profile
 without them asks the machine's resolver for addresses alone and offers no
 ECH. See
-[the field reference](docs/profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1).
+[the field reference](research/profile-behavior.md#encrypted-client-hello-from-dns-https-records-unreleased-engine-1).
 
 ### HTTP/3 from DNS
 
@@ -2846,22 +2861,22 @@ over HTTP/3 as Chrome's goes (measured on Chrome 155 on macOS, 2026-10-25):
 Through a proxy, or with transport options of the caller's, nothing changes.
 The QUIC handshake is Chrome's, ALPS for `h3`
 offered and read as Chrome reads it
-([QUIC's handshake as Chrome's](docs/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1)),
+([QUIC's handshake as Chrome's](research/profile-behavior.md#quics-handshake-as-chromes-unreleased-engine-1)),
 and so is what the client sends after it: no packet marked for ECN, no path
 MTU probe, the server's first connection ID kept, the control stream in the
 datagram of the Finished, nothing more on a request stream the server resets
-([QUIC after the handshake as Chrome's](docs/profile-behavior.md#quic-after-the-handshake-as-chromes-unreleased-engine-1));
+([QUIC after the handshake as Chrome's](research/profile-behavior.md#quic-after-the-handshake-as-chromes-unreleased-engine-1));
 a request's PRIORITY_UPDATE, QPACK encoder instructions and HEADERS go in one
 packet, and the QPACK decoder's instructions only in packets sent for
 something else, a Stream Cancellation in the packet that acknowledges the
 server's reset
-([HTTP/3 writes in packets as Chrome's](docs/profile-behavior.md#http3-writes-in-packets-as-chromes-unreleased-engine-1)).
+([HTTP/3 writes in packets as Chrome's](research/profile-behavior.md#http3-writes-in-packets-as-chromes-unreleased-engine-1)).
 The profile fields are `dns.https_h3`, `quic.tcp_wait_*`,
 `quic.retry_over_tcp`, `quic.broken_*`, `quic.server_rtts_max` and
 `http.unused_idle_connection_timeout_ms`; a
 profile without them goes over HTTP/3 only when asked to
 (`WithProtocolRacing`). See
-[the field reference](docs/profile-behavior.md#http3-from-dns-https-records-unreleased-engine-1).
+[the field reference](research/profile-behavior.md#http3-from-dns-https-records-unreleased-engine-1).
 
 ### HTTP/3 from Alt-Svc
 
@@ -2880,7 +2895,7 @@ over HTTP/3 as Chrome's go (measured on Chrome 155 on macOS, 2026-10-25):
 
 The profile fields are `quic.alt_svc` and `quic.alt_svc_*`; a profile without
 them does not read `Alt-Svc`. See
-[the field reference](docs/profile-behavior.md#http3-from-an-answers-alt-svc-unreleased-engine-1).
+[the field reference](research/profile-behavior.md#http3-from-an-answers-alt-svc-unreleased-engine-1).
 
 ### Empty uploads and profile-owned Content-Length
 
@@ -2896,7 +2911,7 @@ Profile JSON selects `http.zero_content_length_methods` and
 Content-Length; PATCH with an explicit empty upload sends0; nonempty payloads
 send their actual byte length. The same mechanism serves H1/H2/H3. Other
 profiles retain explicit compatibility choices pending their own measurements.
-See [framing policy](docs/profile-behavior.md#request-body-presence-and-content-length).
+See [framing policy](research/profile-behavior.md#request-body-presence-and-content-length).
 
 
 Connection-pool ownership follows active requests and detached response
@@ -2958,8 +2973,8 @@ no fresh Chrome156 acceptance. Chrome155 Linux/Windows explicitly inherit the
 30 shared network policies from the macOS155 basis, with separate origins in
 `profile/provenance/chrome_155/`. OS timers, keepalive and negotiate-auth remain
 platform-specific. Native156 SETTINGS/QPACK validation is recorded separately
-in [the A8 acceptance report](docs/remediation/2026-10-29/A8.ru.md).
-See [the transfer evidence](docs/remediation/2026-10-29/A8-PLATFORMS.ru.md).
+in [the A8 acceptance report](research/remediation/2026-10-29/A8.ru.md).
+See [the transfer evidence](research/remediation/2026-10-29/A8-PLATFORMS.ru.md).
 
 
 The same pinned workflow accepts `h3=true, fixtures=false` for independent H3
@@ -3056,7 +3071,7 @@ failure allowances or invocation exclusions remain. Actual source skips remain
 explicit: utls1, fhttp36, QUIC3 and tls-client6 per local graph.
 
 The source-bound suites run644 utls,1886 fhttp,2566 QUIC and462 tls-client
-cases per graph. The [A11 report](docs/remediation/2026-10-30/A11.ru.md)
+cases per graph. The [A11 report](research/remediation/2026-10-30/A11.ru.md)
 contains native/root acceptance, commits and remaining measurement limits.
 
 Pool-lifetime fixtures that compare successive requests explicitly select one
@@ -3092,13 +3107,13 @@ A12 measurement error tests distinguish startup from the event being tested:
 redirect-context validation gets the existing30s fixture startup allowance;
 the no-report case cancels only after the stand-in completed its second
 navigation. The300ms silent-launch deadline remains a separate assertion.
-[Before/after controls](docs/remediation/2026-10-30/checks-a12-measurement.json)
+[Before/after controls](research/remediation/2026-10-30/checks-a12-measurement.json)
 retain the original Linux refusal and controlled delayed-launch reproduction.
 
 
 The A12 tls-client test peer sends the requested421 over H3; its regression
 checks actual status, protocol and body before Alt-Svc cache state. The
-[published test-only repair](docs/remediation/2026-10-30/checks-a12-altsvc.json)
+[published test-only repair](research/remediation/2026-10-30/checks-a12-altsvc.json)
 changes no runtime files or shipped profile bytes.
 
 
@@ -3114,16 +3129,16 @@ A12 completed native acceptance on published source `3faef706`:28/28 main jobs
 and8/8 fork gates passed. Actual Linux output covers the root plus all22 other
 packages exactly once under race, with20m per binary and40m per job unchanged.
 The fork graphs reported11118 test runs; every suite invocation exited zero,
-with capability skips recorded and no failure allowances or invocation exclusions. The [A12 report](docs/remediation/2026-10-30/A12.ru.md) and
-[final receipt](docs/remediation/2026-10-30/checks-a12-native.json) retain the
+with capability skips recorded and no failure allowances or invocation exclusions. The [A12 report](research/remediation/2026-10-30/A12.ru.md) and
+[final receipt](research/remediation/2026-10-30/checks-a12-native.json) retain the
 original failures, fixes, raw-evidence hashes and remaining A13/A14 boundaries.
 
 Profile names and User-Agent cannot select a uTLS implementation. A13 uses a
 neutral internal adapter ID, preventing `Golang`, `CustomInternal` and
 `Randomized*` metadata from bypassing profile data. See the
-[before/after checks](docs/remediation/2026-10-31/A13-identity.ru.md).
+[before/after checks](research/remediation/2026-10-31/A13-identity.ru.md).
 
-A13 adds an explicit [`tls_spec` profile representation](docs/profiles.md#declarative-tls-specifications-pending-engine-1--a13)
+A13 adds an explicit [`tls_spec` profile representation](research/profiles.md#declarative-tls-specifications-pending-engine-1--a13)
 for preset imports without captured keys or sessions. Its named generation
 sources, parameterized padding and explicit GREASE payloads are independent of
 profile name and User-Agent. This is an additional pending engine1 capability;
@@ -3132,15 +3147,15 @@ Profile-load errors identify the selected profile, including malformed TLS data.
 The missing-handshake error now names all three representations:
 `client_hello`, `tls_spec` and `base`.
 
-A13 network-hint research has [six headed156/macOS observations](docs/remediation/2026-10-31/A13-network-observations.ru.md)
+A13 network-hint research has [six headed156/macOS observations](research/remediation/2026-10-31/A13-network-observations.ru.md)
 with raw headers/NetLog and pinned Chromium/libc++ rules. The production
 network estimator and historical/platform acceptance remain open.
 
-The [A13 public-input follow-up](docs/remediation/2026-10-31/A13-network-public.ru.md)
+The [A13 public-input follow-up](research/remediation/2026-10-31/A13-network-public.ru.md)
 retains six additional Chrome processes and explains the different NetLog and
 latency-publication thresholds; production estimator acceptance remains open.
 
-[A13 status and continuation](docs/remediation/2026-10-31/A13.ru.md) records
+[A13 status and continuation](research/remediation/2026-10-31/A13.ru.md) records
 committed fixes, the separately archived TLS candidate and open catalogue/
 network-estimator criteria. Committed source retains published dependency pins.
 
@@ -3149,17 +3164,17 @@ without raising the decoder's independent 16 MiB ceiling. Other finite values
 above that ceiling remain rejected before I/O. This preserves catalogue data;
 it does not establish historical browser equivalence.
 
-A13's [network observer contract](docs/remediation/2026-10-31/A13-network-observer.ru.md)
+A13's [network observer contract](research/remediation/2026-10-31/A13-network-observer.ru.md)
 separates HTTP RTT, transport RTT, aggregate throughput, publication and network
 reset. It records pinned Chromium sources and the production inputs still
 missing from tls-forge; it does not claim that the estimator is implemented.
 
-The [A13 QUIC idle-close test correction](docs/remediation/2026-10-31/A13-idle-oracle.ru.md)
+The [A13 QUIC idle-close test correction](research/remediation/2026-10-31/A13-idle-oracle.ru.md)
 checks QUICHE's canonical elapsed-time units and bounded durations. It retains
 the original wire refusal, packet/timing assertions and two negative controls;
 runtime and profile timers are unchanged.
 
-The [A13 catalogue candidate](docs/remediation/2026-10-31/A13-catalogue-candidate.ru.md)
+The [A13 catalogue candidate](research/remediation/2026-10-31/A13-catalogue-candidate.ru.md)
 retains83 exported data entries and before/after wire evidence outside the
 working tree. Its normal regression gate passes; full race and native-QUIC
 data ownership remain open. The report keeps these limits separate from fork
@@ -3167,23 +3182,23 @@ gates, dependency publication and the unimplemented network estimator.
 Separate ignored capsules retain the raw catalogue evidence and pinned NQE
 observer sources; public reports carry hashes and bounded acceptance receipts.
 
-The [published A13 H3 fork pins](docs/remediation/2026-10-31/A13-published-forks.ru.md)
+The [published A13 H3 fork pins](research/remediation/2026-10-31/A13-published-forks.ru.md)
 build without local replacements and pass the complete root normal/race suites
 and coupled production fork gates. The owner has removed A13's research
 timebox; catalogue, native-QUIC policy and network-estimator work continue
 through implementation and acceptance. This dependency step does not close A13.
 
-The [A13 QUIC/JSON foundation](docs/remediation/2026-10-31/A13-foundation.ru.md)
+The [A13 QUIC/JSON foundation](research/remediation/2026-10-31/A13-foundation.ru.md)
 records accepted key generation, strict JSON and H3 fixture lifetime controls.
 Its full23normal/23race catalogue snapshot passes without changing wire checks
 or deadlines; complete native-QUIC/catalogue and network-estimator acceptance remains open.
 
-The [published QUIC runtime foundation](docs/remediation/2026-10-31/A13-public-foundation.ru.md)
+The [published QUIC runtime foundation](research/remediation/2026-10-31/A13-public-foundation.ru.md)
 pins independent QUIC factories, explicit transport/layout and ACK choices.
 Its dependency and root checks retain the original timing failures and their
 limits. Catalogue materialization and production network estimation continue.
 
-The [coordinated tls-client pin](docs/remediation/2026-10-31/A13-coordinated-pin.ru.md)
+The [coordinated tls-client pin](research/remediation/2026-10-31/A13-coordinated-pin.ru.md)
 also selects the implemented QUIC runtime in the fork's standalone graph.
 Its raw-wire regression rejects a configured source CID length that is ignored.
 
@@ -3193,35 +3208,35 @@ CID/layout, ACK selection, cache capacities and ordering reach the actual wire.
 Their handshake-only scope remains explicit, and source-export equivalence does
 not establish historical browser parity. Raw profiles require explicit generation
 rules; only explicit migration fills archived capabilities. See the
-[A13 catalogue acceptance](docs/remediation/2026-10-31/A13-catalogue-runtime.ru.md)
-and [profile format](docs/profiles.md#independent-quic-tls-and-explicit-transport-choices).
+[A13 catalogue acceptance](research/remediation/2026-10-31/A13-catalogue-runtime.ru.md)
+and [profile format](research/profiles.md#independent-quic-tls-and-explicit-transport-choices).
 
 The `networkquality` package supplies bounded weighted observation buffers and
 explicit libc++ host-hash primitives for the A13 estimator. Their independent
 oracles and provenance live in `networkquality/testdata`; this component alone
 does not activate network-hint generation.
 
-The [A13 response-ownership follow-up](docs/remediation/2026-10-31/A13-response-lifecycle.ru.md) records automatic-H2 before/after evidence and both full source-pinned fhttp graphs. Root publication and full F03 acceptance remain pending.
+The [A13 response-ownership follow-up](research/remediation/2026-10-31/A13-response-lifecycle.ru.md) records automatic-H2 before/after evidence and both full source-pinned fhttp graphs. Root publication and full F03 acceptance remain pending.
 
-The [A13 network estimator state component](docs/remediation/2026-10-31/A13-network-core.ru.md)
+The [A13 network estimator state component](research/remediation/2026-10-31/A13-network-core.ru.md)
 adds explicit JSON policies, bounded observations/windows/cache, typed network
 metadata and a browser-instance salt. Its race/100%/lint/fuzz evidence is component
 acceptance; root profile/SDK activation and complete browser acceptance remain pending.
 
-The [A13 network capability record](docs/remediation/2026-10-31/A13-network-capability.ru.md) preserves exact shared-registry acceptance; production estimator activation and browser acceptance remain pending.
+The [A13 network capability record](research/remediation/2026-10-31/A13-network-capability.ru.md) preserves exact shared-registry acceptance; production estimator activation and browser acceptance remain pending.
 
-The [A13 observation-policy follow-up](docs/remediation/2026-10-31/A13-network-delivery-policy.ru.md) records explicit identity and callback-delivery choices, with standalone validation and preserved source provenance.
+The [A13 observation-policy follow-up](research/remediation/2026-10-31/A13-network-delivery-policy.ru.md) records explicit identity and callback-delivery choices, with standalone validation and preserved source provenance.
 
 
-The [bounded Chrome156 acceptance](docs/remediation/2026-11-01/Network-hints-final.ru.md) records the current result; earlier A13 component reports retain their historical scope.
+The [bounded Chrome156 acceptance](research/remediation/2026-11-01/Network-hints-final.ru.md) records the current result; earlier A13 component reports retain their historical scope.
 
 Browser network hints (`RTT`, `Downlink`, `ECT`) now use the selected profile's
 measurement, host-noise and rounding policy after origin opt-in. Default isolated
 requests own fresh state; redirects and Critical-CH restarts retain that state
-within the same request. [JSON modes and metadata inputs](docs/profile-behavior.md#network-hints-from-current-observations-unreleased-engine-1)
+within the same request. [JSON modes and metadata inputs](research/profile-behavior.md#network-hints-from-current-observations-unreleased-engine-1)
 are explicit; captured estimates are not frozen into executable defaults.
 
-The [native CI follow-up](docs/remediation/2026-11-01/Network-hints-native.ru.md) records platform-specific acceptance. The unchanged AirPort regression lives in `network_environment_airport_darwin_test.go`, alongside the Darwin API it exercises.
+The [native CI follow-up](research/remediation/2026-11-01/Network-hints-native.ru.md) records platform-specific acceptance. The unchanged AirPort regression lives in `network_environment_airport_darwin_test.go`, alongside the Darwin API it exercises.
 
 The standalone Go example pins the same published transport dependencies as the engine and is checked with `GOWORK=off`.
 
@@ -3229,8 +3244,8 @@ The standalone Go example pins the same published transport dependencies as the 
 
 Native Linux network metadata checks cover both kernel route formats and TCP_INFO failure/measurement paths; production still uses the original OS calls, with parameter-based I/O seams for deterministic controls.
 
-The pinned Alt-Svc regression waits for publication in the client QUIC pool; the real-dial control preserves protocol and connection-count assertions. Native CI status and retained failures are in the [follow-up report](docs/remediation/2026-11-01/Network-hints-native.ru.md).
+The pinned Alt-Svc regression waits for publication in the client QUIC pool; the real-dial control preserves protocol and connection-count assertions. Native CI status and retained failures are in the [follow-up report](research/remediation/2026-11-01/Network-hints-native.ru.md).
 
 Release preparation runs the full workflow with `dry_run=true` on `development`. Its Linux race jobs partition the complete compiled root test/example/fuzz inventory across two runners and retain every other package. Independent manifests must prove disjoint, complete coverage of the same inventory before storage. Every binary retains20m; ordinary tests retain all three platforms with10m timeouts. Storing or publishing a set waits for all of them; see [RELEASING.md](RELEASING.md).
 
-Prepared1.0.0 release notes are in [CHANGELOG.md](CHANGELOG.md); its full unpublished development journal is preserved in [the history archive](docs/releases/1.0.0-development-history.md). The [release readiness receipt](docs/releases/1.0.0-readiness.ru.md) records the exact candidate, dry-run results and remaining limits.
+Prepared1.0.0 release notes are in [CHANGELOG.md](CHANGELOG.md); its full unpublished development journal is preserved in [the history archive](research/releases/1.0.0-development-history.md). The [release readiness receipt](research/releases/1.0.0-readiness.ru.md) records the exact candidate, dry-run results and remaining limits.

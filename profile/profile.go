@@ -1,16 +1,15 @@
-// Package profile describes one browser build completely enough to impersonate
-// it: the ClientHello, the HTTP/2 preamble, and the headers with their order.
+// Package profile reads and validates JSON for a selected browser build's
+// network behaviour: TLS, HTTP/1.1, HTTP/2, supported HTTP/3 choices and
+// request policy.
 //
-// A profile is data, not code. It serialises to JSON, so a profile measured on
-// one machine can be committed, reviewed, shipped and used on another — which
-// is the difference between "we support Chrome 151" and "we supported Chrome
-// 151 on the day someone hand-wrote this table".
+// A profile is data, not code. Its captured fields and explicit policy can be
+// committed, reviewed and used on another machine with the exact engine major
+// for which it was validated. Historical captures do not automatically
+// establish current browser equivalence on a different platform or path.
 //
-// The authoritative field is ClientHello: a real browser's ClientHello, captured
-// off the wire. utls turns those bytes back into a live handshake, regenerating
-// everything that must be fresh per connection — GREASE values, key shares, the
-// ECH payload, and for Chromium the length of that payload — so the result
-// matches the browser without being a recording of one connection.
+// Captured ClientHello bytes are one input to a live handshake. The engine
+// regenerates per-connection keys and other dynamic fields according to the
+// selected profile rather than replaying a captured connection.
 package profile
 
 import (
