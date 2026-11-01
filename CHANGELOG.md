@@ -11,6 +11,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Rework the landing around its primary workflows: `fetch` for HTML/API
+  collection and `proxy` for browser-profiled outbound requests from existing
+  clients, with SDKs, capture/compare, request diagnostics and clear limits.
+
 - Loosen landing headline tracking, use a self-hosted Inter Variable subset,
   and increase feature, workflow and FAQ reading text while retaining mobile
   and desktop Lighthouse 100. Use optional font display to avoid late swaps

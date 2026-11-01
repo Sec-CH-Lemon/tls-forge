@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#071019">
-  <meta name="description" content="TLS Forge is an open-source HTTP client with browser-measured TLS and HTTP profiles. Use the CLI, proxy, Go, Node.js or Python; capture and compare fingerprints locally.">
+  <meta name="description" content="TLS Forge is an open-source HTTP client for scraping and browser-profiled requests. Fetch HTML and APIs, run a local proxy, or use Go, Node.js and Python SDKs.">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://tls-forge.com/">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://tls-forge.com/">
   <meta property="og:title" content="TLS Forge — Browser-measured networking for your code">
-  <meta property="og:description" content="An open-source HTTP client, CLI and SDKs powered by browser-measured TLS and HTTP profiles.">
+  <meta property="og:description" content="Fetch pages for scraping, route existing apps through a browser-profiled proxy, and inspect TLS and HTTP behavior.">
   <meta property="og:image" content="https://tls-forge.com/og-card.png">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="1200">
@@ -18,14 +18,14 @@
   <meta property="og:image:alt" content="TLS Forge: browser-measured networking for your code">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="TLS Forge — Browser-measured networking for your code">
-  <meta name="twitter:description" content="An open-source HTTP client with browser-measured TLS and HTTP profiles.">
+  <meta name="twitter:description" content="Fetch pages, run a browser-profiled proxy, and use Go, Node.js and Python SDKs.">
   <meta name="twitter:image" content="https://tls-forge.com/og-card.png">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preload" href="fonts/inter-latin-v4.1.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
   <script src="motion.js" defer></script>
-  <title>TLS Forge — Browser-measured TLS &amp; HTTP client</title>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"TLS Forge","description":"Open-source HTTP client with browser-measured TLS and HTTP profiles, a CLI, proxy, and Go, Node.js and Python SDKs.","codeRepository":"https://github.com/Sec-CH-Lemon/tls-forge","license":"https://www.apache.org/licenses/LICENSE-2.0","programmingLanguage":["Go","JavaScript","Python"],"url":"https://tls-forge.com/"}</script>
+  <title>TLS Forge — Browser-profiled HTTP for scraping and proxying</title>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"TLS Forge","description":"Open-source HTTP client for fetching pages and APIs, running a browser-profiled proxy, and making requests from Go, Node.js and Python.","codeRepository":"https://github.com/Sec-CH-Lemon/tls-forge","license":"https://www.apache.org/licenses/LICENSE-2.0","programmingLanguage":["Go","JavaScript","Python"],"url":"https://tls-forge.com/"}</script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -59,12 +59,12 @@
         <div class="hero-inner">
           <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> OPEN SOURCE · APACHE 2.0</p>
           <h1 id="hero-title">A browser’s network fingerprint.<br><em>In your code.</em></h1>
-          <p class="hero-copy">TLS Forge brings browser-measured TLS and HTTP behavior to a CLI, proxy, and Go, Node.js and Python clients. Capture a real browser, keep its profile in JSON, and inspect the differences locally.</p>
+          <p class="hero-copy">Fetch HTML and APIs for scraping, run a local proxy for an existing app, or make requests from Go, Node.js and Python. Browser-measured JSON profiles shape the outbound TLS and HTTP traffic.</p>
           <div class="hero-actions">
             <a class="button button-primary" href="#get-started">Get started <span aria-hidden="true">↗</span></a>
             <a class="button button-secondary" href="https://github.com/Sec-CH-Lemon/tls-forge" target="_blank" rel="noopener noreferrer">Explore on GitHub <span aria-hidden="true">↗</span></a>
           </div>
-          <p class="hero-note">One measured identity across the network stack. No browser required to make requests.</p>
+          <p class="hero-note">Start with a shipped profile. No browser process is required to make requests.</p>
         </div>
         <figure class="network-panel" aria-labelledby="network-caption">
           <div class="network-panel-top" aria-hidden="true">
@@ -98,7 +98,7 @@
     </section>
 
     <section class="signal-strip" aria-label="Supported surfaces">
-      <div class="container signal-inner"><span class="signal-label">ONE PROFILE, MULTIPLE SURFACES</span><span>TLS ClientHello</span><span>HTTP/1.1</span><span>HTTP/2</span><span>CLI + SDKs</span></div>
+      <div class="container signal-inner"><span class="signal-label">ONE PROFILE, MULTIPLE WORKFLOWS</span><span>Fetch pages &amp; APIs</span><span>Local proxy</span><span>Go · Node.js · Python</span><span>Capture &amp; compare</span></div>
     </section>
 
     <section class="section why-section" id="why" aria-labelledby="why-title">
@@ -123,44 +123,42 @@
     <section class="section features-section" id="features" aria-labelledby="features-title">
       <span class="section-aura features-aura" data-parallax="55" aria-hidden="true"></span>
       <div class="container">
-        <div class="section-heading"><p class="eyebrow">02 / THE TOOLKIT</p><h2 id="features-title">Measured from the wire.<br><span class="text-gradient">Built for real requests.</span></h2><p>Each piece has a job: describe the identity, send the request, and make any mismatch visible.</p></div>
+        <div class="section-heading"><p class="eyebrow">02 / WHAT YOU CAN DO</p><h2 id="features-title">One profile.<br><span class="text-gradient">Several ways to work.</span></h2><p>Start with a CLI request or put an existing app behind the proxy. Use SDKs and measurement tools when you need more control.</p></div>
         <div class="feature-grid">
-          <article class="feature-card"><span class="feature-number">01 /</span><div class="feature-symbol" aria-hidden="true">◇</div><h3>Browser-measured TLS</h3><p>Profiles describe the ClientHello, including ordered cipher suites, extensions, ALPN and other handshake choices.</p></article>
-          <article class="feature-card"><span class="feature-number">02 /</span><div class="feature-symbol" aria-hidden="true">≡</div><h3>HTTP as part of the identity</h3><p>HTTP/1.1 header casing and order, HTTP/2 settings and ordered browser headers travel with the same profile.</p></article>
-          <article class="feature-card"><span class="feature-number">03 /</span><div class="feature-symbol" aria-hidden="true">{ }</div><h3>JSON-owned behavior</h3><p>Browser-specific values and policy live in inspectable JSON profiles, with an exact engine-major compatibility gate.</p></article>
-          <article class="feature-card"><span class="feature-number">04 /</span><div class="feature-symbol" aria-hidden="true">⌁</div><h3>Capture &amp; compare</h3><p>Measure a Chromium-based browser locally, then compare structural TLS and HTTP differences against your client.</p></article>
-          <article class="feature-card"><span class="feature-number">05 /</span><div class="feature-symbol" aria-hidden="true">›_</div><h3>One transport, many entry points</h3><p>Use the CLI, an intercepting proxy, or the Go, Node.js and Python SDKs backed by the same Go transport.</p></article>
-          <article class="feature-card"><span class="feature-number">06 /</span><div class="feature-symbol" aria-hidden="true">◎</div><h3>Inspect the journey</h3><p>Keep reports, trace events and packet captures when you need to understand how a request went out.</p></article>
+          <article class="feature-card feature-card-primary" id="fetch"><span class="feature-number">01 / FETCH</span><div class="feature-symbol" aria-hidden="true">›_</div><h3>Fetch for scraping</h3><p>Collect HTML pages or JSON API responses without launching a browser. <code>fetch</code> handles one URL or a batch, can retry, and flags responses missing expected text or a CSS selector.</p><div class="feature-command"><code>tls-forge fetch https://example.com/ &gt; page.html</code><a href="https://github.com/Sec-CH-Lemon/tls-forge/blob/development/README.md#fetch">Explore fetch options <span aria-hidden="true">↗</span></a></div></article>
+          <article class="feature-card feature-card-primary" id="proxy"><span class="feature-number">02 / PROXY</span><div class="feature-symbol" aria-hidden="true">⇄</div><h3>Proxy for existing apps</h3><p>Start a local HTTP/HTTPS proxy and point your client at it. TLS Forge terminates incoming HTTPS and makes a new outbound request with the selected browser-measured TLS and HTTP profile. HTTPS clients must trust the CA printed by the proxy.</p><div class="feature-command"><code>tls-forge proxy</code><a href="https://github.com/Sec-CH-Lemon/tls-forge/blob/development/README.md#proxy">Set up the proxy <span aria-hidden="true">↗</span></a></div></article>
+          <article class="feature-card"><span class="feature-number">03 / SDKs</span><div class="feature-symbol" aria-hidden="true">{ }</div><h3>Use it from your code</h3><p>Make profiled requests from Go, Node.js or Python without rewriting your application around the CLI.</p></article>
+          <article class="feature-card"><span class="feature-number">04 / PROFILES</span><div class="feature-symbol" aria-hidden="true">◇</div><h3>Capture &amp; compare</h3><p>Capture a Chromium-based browser locally, store its behavior in JSON, and compare measured TLS and HTTP details with your client.</p></article>
+          <article class="feature-card"><span class="feature-number">05 / DEBUG</span><div class="feature-symbol" aria-hidden="true">◎</div><h3>Inspect every request</h3><p>Keep the response, a report, logs, traces and optional packet captures to see what was sent and where it differed.</p></article>
         </div>
       </div>
     </section>
 
     <section class="section workflow-section" id="workflow" aria-labelledby="workflow-title">
       <span class="section-aura workflow-aura" data-parallax="-65" aria-hidden="true"></span>
-      <div class="container"><div class="section-heading"><p class="eyebrow">03 / THE WORKFLOW</p><h2 id="workflow-title">From observation<br><span class="text-gradient">to a repeatable request.</span></h2><p>A local measurement loop connects what the browser sent to what your code sends.</p></div>
+      <div class="container"><div class="section-heading"><p class="eyebrow">03 / THE WORKFLOW</p><h2 id="workflow-title">Start with a profile.<br><span class="text-gradient">Measure when you need to.</span></h2><p>Shipped profiles work immediately. Capture and comparison are there when you want to validate a profile against a real browser.</p></div>
         <ol class="steps">
-          <li><span class="step-index">01</span><div><h3>Observe a browser</h3><p><code>capture</code> records the raw ClientHello and HTTP behavior through a local echo server.</p></div></li>
-          <li><span class="step-index">02</span><div><h3>Store the profile</h3><p>Keep captured fields and explicit generation rules in a versioned JSON profile.</p></div></li>
-          <li><span class="step-index">03</span><div><h3>Send from your stack</h3><p>Select the profile in the CLI, proxy or an SDK. The transport rebuilds dynamic values for each connection.</p></div></li>
-          <li><span class="step-index">04</span><div><h3>Compare the result</h3><p><code>compare</code> reports structural differences, so a hash mismatch has something concrete behind it.</p></div></li>
+          <li><span class="step-index">01</span><div><h3>Choose a profile</h3><p>Use a shipped browser profile or select your own engine-pinned JSON profile.</p></div></li>
+          <li><span class="step-index">02</span><div><h3>Send a request</h3><p>Use <code>fetch</code>, the local <code>proxy</code> or an SDK to make outbound requests with that profile.</p></div></li>
+          <li><span class="step-index">03</span><div><h3>Capture when needed</h3><p>With Chromium installed, <code>capture</code> records a browser’s TLS and HTTP behavior locally.</p></div></li>
+          <li><span class="step-index">04</span><div><h3>Compare &amp; inspect</h3><p><code>compare</code> reports measured differences; logs, traces and captures help investigate them.</p></div></li>
         </ol>
       </div>
     </section>
 
     <section class="section start-section" id="get-started" aria-labelledby="start-title">
-      <div class="container start-grid"><div class="section-intro"><p class="eyebrow">04 / GET STARTED</p><h2 id="start-title">Your first request<br><span class="text-gradient">starts here.</span></h2><p>Install the CLI, make a request, then use the same transport from your preferred language. Browser installation is needed only for local <code>capture</code> and <code>compare</code>.</p><div class="start-links"><a class="text-link" href="https://github.com/Sec-CH-Lemon/tls-forge#install">All install options <span aria-hidden="true">↗</span></a><a class="text-link" href="https://github.com/Sec-CH-Lemon/tls-forge/blob/development/docs/support.md">Supported behavior &amp; limits <span aria-hidden="true">↗</span></a></div></div>
+      <div class="container start-grid"><div class="section-intro"><p class="eyebrow">04 / GET STARTED</p><h2 id="start-title">Your first request<br><span class="text-gradient">starts here.</span></h2><p>Install the CLI to collect a page or start the local proxy. Your app can also call the Go, Node.js and Python SDKs. A browser is needed only for local <code>capture</code> and <code>compare</code>.</p><div class="start-links"><a class="text-link" href="https://github.com/Sec-CH-Lemon/tls-forge#install">All install options <span aria-hidden="true">↗</span></a><a class="text-link" href="https://github.com/Sec-CH-Lemon/tls-forge/blob/development/docs/support.md">Supported behavior &amp; limits <span aria-hidden="true">↗</span></a></div></div>
         <div class="terminal"><div class="terminal-head"><span class="terminal-lights" aria-hidden="true"><i></i><i></i><i></i></span><span>terminal</span><span>QUICK START</span></div><div class="terminal-body"><p class="code-comment"># Install from the project’s Homebrew tap</p><pre><code>brew tap Sec-CH-Lemon/tap
 brew trust --formula Sec-CH-Lemon/tap/tls-forge
-brew install tls-forge</code></pre><p class="code-comment"># Send one request</p><pre><code>tls-forge fetch --print-body \
-  https://tls.browserleaks.com/json</code></pre></div><div class="terminal-foot"><span class="status-dot" aria-hidden="true"></span> Also available as Go, Node.js and Python SDKs</div></div>
+brew install tls-forge</code></pre><p class="code-comment"># Collect an HTML page</p><pre><code>tls-forge fetch https://example.com/ &gt; page.html</code></pre><p class="code-comment"># Or start the local proxy</p><pre><code>tls-forge proxy</code></pre></div><div class="terminal-foot"><span class="status-dot" aria-hidden="true"></span> For HTTPS, trust the CA path printed by the proxy in your client.</div></div>
       </div>
       <div class="container sdk-row" aria-label="Language documentation"><a href="https://github.com/Sec-CH-Lemon/tls-forge/blob/development/GO.md"><span>Go library</span><span>Docs ↗</span></a><a href="https://github.com/Sec-CH-Lemon/tls-forge/blob/development/node/README.md"><span>Node.js SDK</span><span>Docs ↗</span></a><a href="https://github.com/Sec-CH-Lemon/tls-forge/blob/development/python/README.md"><span>Python SDK</span><span>Docs ↗</span></a></div>
       <p class="container release-note">Feature descriptions follow the development branch. Check <a href="https://github.com/Sec-CH-Lemon/tls-forge/releases">Releases</a> for what is available in a published binary.</p>
     </section>
 
-    <section class="section boundaries-section" aria-labelledby="boundaries-title"><div class="container boundary-grid"><div><p class="eyebrow">A CLEAR SCOPE</p><h2 id="boundaries-title">Network behavior,<br><span class="text-gradient">with honest limits.</span></h2></div><div><p>TLS Forge models browser networking; it does not launch a browser, execute page JavaScript, load subresources or solve managed challenges and CAPTCHAs. Host TCP/IP behavior still comes from your operating system. HTTP/3 fidelity depends on the selected profile and remains an active area of work.</p><a class="text-link" href="https://github.com/Sec-CH-Lemon/tls-forge#limitations">Read the limitations <span aria-hidden="true">↗</span></a></div></div></section>
+    <section class="section boundaries-section" aria-labelledby="boundaries-title"><div class="container boundary-grid"><div><p class="eyebrow">A CLEAR SCOPE</p><h2 id="boundaries-title">Network behavior,<br><span class="text-gradient">with honest limits.</span></h2></div><div><p>TLS Forge models browser networking; it does not render pages, execute page JavaScript or solve managed challenges and CAPTCHAs. <code>fetch</code> does not load page subresources automatically; the proxy forwards requests your client actually sends. Host TCP/IP behavior still comes from your operating system. HTTP/3 fidelity depends on the selected profile and remains an active area of work.</p><a class="text-link" href="https://github.com/Sec-CH-Lemon/tls-forge#limitations">Read the limitations <span aria-hidden="true">↗</span></a></div></div></section>
 
-    <section class="section faq-section" id="faq" aria-labelledby="faq-title"><div class="container faq-grid"><div><p class="eyebrow">05 / COMMON QUESTIONS</p><h2 id="faq-title">Before you<br><span class="text-gradient">forge a request.</span></h2></div><div class="faq-list"><details><summary>Do I need Chrome to make requests?</summary><p>No. Fetching, proxying and the language SDKs do not require a browser. A Chromium-based browser is needed for local capture and comparison.</p></details><details><summary>Can changing a User-Agent do the same thing?</summary><p>No. A server can also observe the TLS handshake, HTTP/2 settings and header order. TLS Forge keeps these choices together in a profile.</p></details><details><summary>Does a matching fingerprint guarantee access?</summary><p>No. Sites can use JavaScript challenges, cookies, behavior and other signals. TLS Forge addresses the network fingerprint, not every access control.</p></details><details><summary>How do I check a profile?</summary><p>Run <code>tls-forge compare</code> with a Chromium-based browser installed. It measures both sides locally and reports the fields it can compare.</p></details><details><summary>What license does the project use?</summary><p>TLS Forge is open source under the <a href="https://github.com/Sec-CH-Lemon/tls-forge/blob/development/LICENSE">Apache License 2.0</a>.</p></details></div></div></section>
+    <section class="section faq-section" id="faq" aria-labelledby="faq-title"><div class="container faq-grid"><div><p class="eyebrow">05 / COMMON QUESTIONS</p><h2 id="faq-title">Before you<br><span class="text-gradient">forge a request.</span></h2></div><div class="faq-list"><details><summary>Can I use fetch for web scraping?</summary><p>Yes. It collects HTML or JSON, accepts URL lists, and can check expected text or selectors. Parsing the response into your own data model is up to your scraper.</p></details><details><summary>Can I route my app through the proxy?</summary><p>Yes. Start <code>tls-forge proxy</code>, point your HTTP(S) client at the local address, and trust its printed CA for HTTPS. The proxy creates a new outbound connection with the selected profile.</p></details><details><summary>Do I need Chrome to make requests?</summary><p>No. Fetching, proxying and the language SDKs do not require a browser. A Chromium-based browser is needed for local capture and comparison.</p></details><details><summary>Can changing a User-Agent do the same thing?</summary><p>No. A server can also observe the TLS handshake, HTTP/2 settings and header order. TLS Forge keeps these choices together in a profile.</p></details><details><summary>Does a matching fingerprint guarantee access?</summary><p>No. Sites can use JavaScript challenges, cookies, behavior and other signals. TLS Forge addresses the network fingerprint, not every access control.</p></details><details><summary>How do I check a profile?</summary><p>Run <code>tls-forge compare</code> with a Chromium-based browser installed. It measures both sides locally and reports the fields it can compare.</p></details><details><summary>What license does the project use?</summary><p>TLS Forge is open source under the <a href="https://github.com/Sec-CH-Lemon/tls-forge/blob/development/LICENSE">Apache License 2.0</a>.</p></details></div></div></section>
 
     <section class="closing-section" aria-labelledby="closing-title"><span class="section-aura closing-aura" data-parallax="70" aria-hidden="true"></span><div class="container closing-inner"><p class="eyebrow">BUILD WITH TLS FORGE</p><h2 id="closing-title">See the request<br><span class="text-gradient">the server sees.</span></h2><p>Explore the code, inspect the profiles and run your own local comparison.</p><div class="hero-actions"><a class="button button-primary" href="https://github.com/Sec-CH-Lemon/tls-forge" target="_blank" rel="noopener noreferrer">View on GitHub <span aria-hidden="true">↗</span></a><a class="button button-secondary" href="https://github.com/Sec-CH-Lemon/tls-forge#quick-start">Read the docs <span aria-hidden="true">↗</span></a></div></div></section>
   </main>
