@@ -3260,8 +3260,7 @@ previous profile bytes and field-scoped witnesses are in
 [the hint-build derivation inventory](profile/provenance/release-hint-builds.json);
 all earlier capture/policy hashes remain unchanged. The Windows browser gate
 uses a separately measured Windows auth oracle rather than macOS SSPI bytes.
-All228 scenarios remain mandatory. NTLM/Negotiate product support remains
-unimplemented and outside this release preparation.
+All228 scenarios remain mandatory. [The Windows reference](testdata/chrome156-windows-requests.json) changes only the two measured auth cases; [its provenance](testdata/chrome156-windows-auth-provenance.json) pins both cohorts, Chrome binary hash and Windows build26100. Common226 scenarios remain unchanged. NTLM/Negotiate product support is currently unimplemented; this browser-oracle calibration adds no authentication capability.
 
 Release-oracle calibration uses the manual-only [release-oracle workflow](.github/workflows/release-oracle.yml): two independent Windows cohorts of the two auth scenarios, encrypted evidence, exact OS/browser/source identity. `go run scripts/record-release-requests.go --browser PATH --fixture FILE` records every explicitly listed scenario and refuses incomplete results. The fixture's optional `observation_ms` map selects fixed windows of15–60s, never shorter than the original; an actual opening request is required before the window starts. Strict release measurement always selects the whole catalogue, without platform exclusions. The registered `capture.yml` entry point accepts `release-auth-oracle=true` and `evidence-certificate` to call the same diagnostic while its new standalone workflow is absent from the default branch.
 

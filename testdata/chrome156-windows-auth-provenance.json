@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "kind": "browser-versus-fixture release oracle calibration; no product auth capability claim",
+  "original_fixture": {
+    "path": "testdata/chrome155-requests.json",
+    "sha256": "f5cc1d0741d6a32b33dde598465639a151aec62423970883c335d5ca63f04332",
+    "scenarios": 228
+  },
+  "output_fixture": {
+    "path": "testdata/chrome156-windows-requests.json",
+    "sha256": "43c942b187c19600683d87c402eecd078b26ea2d3552227a7ddddd90b3f6218a",
+    "scenarios": 228
+  },
+  "changed_scenarios": [
+    "auth-digest-negotiate",
+    "auth-digest-ntlm"
+  ],
+  "unchanged_scenarios": 226,
+  "observation_ms": {
+    "auth-digest-negotiate": 15000
+  },
+  "comparison_source": "internal/harness/compare.go unchanged from b26bb10f",
+  "run": 41332815788,
+  "cohorts": [
+    {
+      "cohort": 1,
+      "metadata": {
+        "source": "044c48f30977602624430e9bc2d7c45f16fcca0a",
+        "cohort": "1",
+        "run": "41332815788",
+        "chrome": "Google Chrome 156.0.8078.80",
+        "chrome_sha256": "46461accbdc87dc88a5bdd6d611be095dd6147db009863d794f742ca90662efa",
+        "os_caption": "Microsoft Windows Server 2025 Datacenter",
+        "os_version": "10.0.26100",
+        "os_build": "26100",
+        "os_arch": "64-bit",
+        "plan_sha256": "d8d803734db42a2a6c5d537eba7ad9be2dd027ef9b540a813b0a4b7535818fdc",
+        "mode": "headless=new, lang=en-US, no-sandbox; fresh profile per scenario/protocol"
+      },
+      "requests_sha256": "6ab639fffc032935917cd25c35e7276d9348beabc8ae9575b6da9b009a7855b1",
+      "metadata_sha256": "090943b64f367c871f3b7e2a91753450bfb39c0d5bee2c81359546e6535946bd",
+      "artifact": "release-oracle-windows-1",
+      "new_profiles": 4,
+      "request_counts": {
+        "auth-digest-negotiate": {
+          "h1": 2,
+          "h2": 2
+        },
+        "auth-digest-ntlm": {
+          "h1": 2,
+          "h2": 2
+        }
+      }
+    },
+    {
+      "cohort": 2,
+      "metadata": {
+        "source": "044c48f30977602624430e9bc2d7c45f16fcca0a",
+        "cohort": "2",
+        "run": "41332815788",
+        "chrome": "Google Chrome 156.0.8078.80",
+        "chrome_sha256": "46461accbdc87dc88a5bdd6d611be095dd6147db009863d794f742ca90662efa",
+        "os_caption": "Microsoft Windows Server 2025 Datacenter",
+        "os_version": "10.0.26100",
+        "os_build": "26100",
+        "os_arch": "64-bit",
+        "plan_sha256": "d8d803734db42a2a6c5d537eba7ad9be2dd027ef9b540a813b0a4b7535818fdc",
+        "mode": "headless=new, lang=en-US, no-sandbox; fresh profile per scenario/protocol"
+      },
+      "requests_sha256": "fb2af0ef026867c0d4b567ba98793488cdcf8d8796c1dbd12b78c29ce4291cb3",
+      "metadata_sha256": "7f6db251e96020b4fca7b55c2fafb6885313911788a5955601cf8cd39794946a",
+      "artifact": "release-oracle-windows-2",
+      "new_profiles": 4,
+      "request_counts": {
+        "auth-digest-negotiate": {
+          "h1": 2,
+          "h2": 2
+        },
+        "auth-digest-ntlm": {
+          "h1": 2,
+          "h2": 2
+        }
+      }
+    }
+  ],
+  "authorization_classification": "SSPI Type1 version/flags are scoped to Windows10.0.26100 and the measured Chrome build; compare full bytes exactly, no new normalization. No Type3/server challenge is exercised by this peer. Common machine/build fields retain the existing explicit comparator policy."
+}

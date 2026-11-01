@@ -416,6 +416,7 @@ jobs:
       contents: write
     env:
       RESULT: ${{ matrix.result }}
+      REQUEST_FIXTURE: ${{ matrix.platform == 'windows' && 'testdata/chrome156-windows-requests.json' || 'testdata/chrome155-requests.json' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -448,7 +449,7 @@ jobs:
         env:
           IDENTITY: ${{ needs.set.outputs.identity }}
         run: |
-          gate=(go run ./internal/pinned --browser "$CHROME" --commit "$GITHUB_SHA" --set "$IDENTITY" --out "set/$RESULT")
+          gate=(go run ./internal/pinned --browser "$CHROME" --commit "$GITHUB_SHA" --set "$IDENTITY" --requests "$REQUEST_FIXTURE" --out "set/$RESULT")
           # --no-sandbox on Linux and Windows, as drift.yml says why: without
           # it Chrome starts, loads no page and says nothing. A Linux runner
           # has no display, and the profile is held to Chrome with a window.

@@ -138,3 +138,13 @@ Windows auth cohorts against the owned loopback peer, with exact source,
 browser binary hash and OS version/build. Raw evidence is encrypted to the
 supplied public certificate. No auth token normalization or automatic fixture
 promotion is allowed. The original macOS fixture remains unchanged.
+
+Windows auth calibration41332815788 accepted both independent cohorts on
+source044c48f3, Google Chrome156.0.8078.80, Windows Server2025/10.0.26100.
+Eight fresh profiles,16target requests: two per scenario/protocol/cohort.
+Complete request arrays agree exactly. The Windows reference replaces only
+the two auth scenarios;226common scenarios remain deeply equal to the original
+macOS fixture, which is unchanged. All228request scenarios and174decodings
+still run perOS. Type1/SPNEGO bytes are scoped environment-derived values,
+compared in full, without a new normalization. This peer does not exercise
+Type3 or completion of a real NTLM/Negotiate authentication exchange.

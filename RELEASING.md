@@ -110,7 +110,12 @@ network hints are checked against the JSON-selected renderer, including numeric
 syntax, bounds and quantization; it does not require captured network literals.
 The Windows auth oracle must be measured on Windows: SSPI and the portable
 macOS implementation produce different requests. Every scenario still runs,
-with exact authorization bytes and no platform exclusion. A fixture may select
+with exact authorization bytes and no platform exclusion. The Windows job
+selects `testdata/chrome156-windows-requests.json`: only two auth records differ
+from the unchanged macOS fixture. Both independent native Chrome156.0.8078.80
+cohorts on Windows10.0.26100 agree exactly; the provenance file pins raw hashes
+and the browser binary. A different SSPI/OS version still fails until measured.
+A fixture may select
 a fixed `observation_ms` window of15–60s instead of an end page Chrome never
 requests; it cannot shorten the original window and starts only after the page
 actually opens. Calibration is manual-only in `release-oracle.yml`, two native

@@ -40,6 +40,10 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 
 ### Added and changed
 
+- Use a Windows release-browser reference for the two measured SSPI auth
+  scenarios: two independent Chrome156.0.8078.80/Windows26100 cohorts agree
+  exactly. Preserve the other226scenarios, all228perOS and all174decodings;
+  token/request mutations remain strict failures. Original macOS fixture unchanged.
 - Allow the registered capture workflow to call the same release-auth oracle
   explicitly; default capture and every strict release gate remain unchanged.
 - Calibrate Windows release-browser auth fixtures in two native cohorts,
