@@ -309,6 +309,17 @@ func TestReloadedIsTheRequestThatReloadsThePage(t *testing.T) {
 		{"nor one whose answer's address cannot be read",
 			Request{URL: "https://a.example/", Header: NewHeader("Authorization", "Bearer t")},
 			&Response{URL: "v", Method: "GET"}, Request{URL: "v", Reload: true}},
+		{"a reload of a reload back at the origin asked for keeps them",
+			Request{URL: "https://b.example/landing", asked: "https://a.example/start",
+				Header: NewHeader("Authorization", "Bearer t")},
+			&Response{URL: "https://a.example/back", Method: "GET"},
+			Request{URL: "https://a.example/back", asked: "https://a.example/start",
+				Header: NewHeader("Authorization", "Bearer t"), Reload: true}},
+		{"a reload of a reload away from the origin asked for leaves them, whatever origin it was at",
+			Request{URL: "https://b.example/landing", asked: "https://a.example/start",
+				Header: NewHeader("Authorization", "Bearer t")},
+			&Response{URL: "https://b.example/again", Method: "GET"},
+			Request{URL: "https://b.example/again", asked: "https://a.example/start", Reload: true}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			kept := tc.req.Browser
@@ -316,9 +327,15 @@ func TestReloadedIsTheRequestThatReloadsThePage(t *testing.T) {
 			if kept != nil {
 				before = *kept
 			}
+			// A page reloaded remembers the URL the caller asked for: the
+			// request's own, where it says no other.
+			want := tc.want
+			if want.Reload && tc.res != nil && want.asked == "" {
+				want.asked = tc.req.URL
+			}
 			got := tc.req.Reloaded(tc.res)
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("%+v\nwant %+v", got, tc.want)
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("%+v\nwant %+v", got, want)
 			}
 			if kept != nil && *kept != before {
 				t.Errorf("the request's browser context became %+v", *kept)
@@ -517,4 +534,139 @@ func tlsSite(t *testing.T, h2 bool, handler http.Handler) *httptest.Server {
 	server.StartTLS()
 	t.Cleanup(server.Close)
 	return server
+}
+
+// TestAReloadAtAnotherHostCarriesNothingTheCallerGaveForItsOwn: what a caller
+// gives for the URL it asks for, the request's cookies and fields and the
+// client's warmed cookies and fields, stays with that URL's host. The reload
+// of a page a redirect took to another host carries none of it, nor does the
+// reload of that reload; the reload of a page back at the origin asked for
+// carries all of it again. Cookies are a host's whatever its port, so the
+// other site is at another host (localhost), not another port.
+func TestAReloadAtAnotherHostCarriesNothingTheCallerGaveForItsOwn(t *testing.T) {
+	for _, h2 := range []bool{false, true} {
+		for _, given := range []string{"request", "client"} {
+			t.Run(fmt.Sprintf("h2=%v/%s", h2, given), func(t *testing.T) {
+				var mu sync.Mutex
+				landed := map[string][]http.Header{}
+				keep := func(w http.ResponseWriter, r *http.Request) {
+					mu.Lock()
+					landed[r.Host+r.URL.Path] = append(landed[r.Host+r.URL.Path], r.Header.Clone())
+					mu.Unlock()
+				}
+				var home string
+				other := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					keep(w, r)
+					if r.URL.Path == "/bounce" {
+						http.Redirect(w, r, home+"/back", http.StatusFound)
+						return
+					}
+					w.WriteHeader(http.StatusForbidden)
+				}))
+				other.EnableHTTP2 = h2
+				atLocalhost(t, other).StartTLS()
+				t.Cleanup(other.Close)
+				away := strings.Replace(other.URL, "127.0.0.1", "localhost", 1)
+				first := tlsSite(t, h2, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					keep(w, r)
+					switch r.URL.Path {
+					case "/start":
+						http.Redirect(w, r, away+"/landing", http.StatusFound)
+					case "/hop":
+						http.Redirect(w, r, away+"/bounce", http.StatusFound)
+					default:
+						w.WriteHeader(http.StatusForbidden)
+					}
+				}))
+				home = first.URL
+				opts := []Option{WithProfile("chrome_156_macos"), WithInsecureSkipVerify()}
+				ask := func(path string) Request { return Request{URL: first.URL + path} }
+				if given == "client" {
+					opts = append(opts, WithCookies([]Cookie{{Name: "w", Value: "SECRET"}}),
+						WithHeaders(NewHeader("Authorization", "Bearer SECRET")))
+				} else {
+					ask = func(path string) Request {
+						return Request{URL: first.URL + path, Cookies: []Cookie{{Name: "s", Value: "SECRET"}},
+							Header: NewHeader("Authorization", "Bearer SECRET")}
+					}
+				}
+				client, err := New(opts...)
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = client.Close() })
+				do := func(req Request) Request {
+					t.Helper()
+					res, err := client.Do(&req)
+					if err != nil || res.Status != http.StatusForbidden {
+						t.Fatalf("%v %v", res, err)
+					}
+					return req.Reloaded(res)
+				}
+				// carried is what of the caller's each request to where carried.
+				carried := func(where string) [][]string {
+					t.Helper()
+					mu.Lock()
+					defer mu.Unlock()
+					var out [][]string
+					for _, header := range landed[where] {
+						var names []string
+						for _, name := range []string{"Cookie", "Authorization"} {
+							if strings.Contains(header.Get(name), "SECRET") {
+								names = append(names, name)
+							}
+						}
+						out = append(out, names)
+					}
+					return out
+				}
+				awayHost := strings.TrimPrefix(away, "https://")
+				homeHost := strings.TrimPrefix(first.URL, "https://")
+
+				both := []string{"Cookie", "Authorization"}
+				reload := do(ask("/start"))
+				if got := carried(homeHost + "/start"); !reflect.DeepEqual(got, [][]string{both}) {
+					t.Fatalf("the request asked for carried %v, want %v", got, [][]string{both})
+				}
+				reload = do(reload)
+				do(reload)
+				if got := carried(awayHost + "/landing"); !reflect.DeepEqual(got, [][]string{nil, nil, nil}) {
+					t.Errorf("the hop and two reloads at another host carried %v of the caller's, want nothing", got)
+				}
+
+				// Back at the origin asked for: the hop carries the jar's
+				// cookie of its host, and none of the caller's fields, which
+				// left the origin; the reload of its page carries both again.
+				do(do(ask("/hop")))
+				want := [][]string{{"Cookie"}, both}
+				if got := carried(homeHost + "/back"); !reflect.DeepEqual(got, want) {
+					t.Errorf("the hop back and the reload at the origin asked for carried %v, want %v", got, want)
+				}
+			})
+		}
+	}
+}
+
+// TestAReloadOfARequestWhoseURLDoesNotReadSeedsNoCookie: the caller's cookies
+// were given for a URL that does not read; the reload, at the URL its answer
+// was at, files none of them where they could go, rather than guess.
+func TestAReloadOfARequestWhoseURLDoesNotReadSeedsNoCookie(t *testing.T) {
+	var got []string
+	site := tlsSite(t, true, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = append(got, r.Header.Get("Cookie"))
+	}))
+	client, err := New(WithProfile("chrome_156_macos"), WithInsecureSkipVerify(),
+		WithCookies([]Cookie{{Name: "w", Value: "SECRET"}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+	req := Request{URL: "https://[nowhere", Cookies: []Cookie{{Name: "s", Value: "SECRET"}}}
+	again := req.Reloaded(&Response{URL: site.URL + "/"})
+	if _, err := client.Do(&again); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0] != "" {
+		t.Errorf("the reload carried %q, want no cookie", got)
+	}
 }

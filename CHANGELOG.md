@@ -11,6 +11,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Security: keep what a caller gave at the origin it asked for when a page is
+  reloaded. `Request.Reloaded`, and so `fetch --retry-as-browser`, reloaded a
+  page that a redirect had taken to another host. It then filed the request's
+  cookies and the client's warmed ones (`Request.Cookies`, `WithCookies`, `-b`)
+  for that host, and sent the client's credential fields (`WithHeaders`)
+  there. The redirect's own hop had carried none of them. A reload now
+  remembers the URL first asked for, through reloads of reloads; a reload back
+  at that origin carries them again.
+
 - Correct the landing at phone and tablet widths: contain the GitHub badge in
   the header, complete feature and footer rows, wrap terminal commands, and
   tighten the limits heading. Verify screenshots and open-menu/FAQ states.

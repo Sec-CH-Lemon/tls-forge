@@ -287,3 +287,50 @@ func TestTheRunSaysHowARequestIsAskedForAgain(t *testing.T) {
 		}
 	}
 }
+
+// TestFetchReloadsAPageAtAnotherHostWithNothingTheRunWasGiven: --retry-as-browser
+// reloads the page a redirect took to another host with none of what the run
+// was given for the URL it asked for: -b's cookie, -H's Authorization and
+// Cookie. The redirect's hop carried none of it either.
+func TestFetchReloadsAPageAtAnotherHostWithNothingTheRunWasGiven(t *testing.T) {
+	var mu sync.Mutex
+	var landed, asked []http.Header
+	other := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		landed = append(landed, r.Header.Clone())
+		mu.Unlock()
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	atLocalhost(t, other).StartTLS()
+	t.Cleanup(other.Close)
+	away := strings.Replace(other.URL, "127.0.0.1", "localhost", 1)
+	first := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		asked = append(asked, r.Header.Clone())
+		mu.Unlock()
+		http.Redirect(w, r, away+"/landing", http.StatusFound)
+	}))
+	t.Cleanup(first.Close)
+	code, _, stderr := execWorkflow(t, "fetch", "--insecure", "-b", "w=SECRET",
+		"-H", "Authorization: Bearer SECRET", "-H", "Cookie: c=SECRET",
+		"--retry", "1", "--retry-as-browser", first.URL+"/start")
+	if code != 0 {
+		t.Fatalf("exit %d: %s", code, stderr)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(asked) != 1 || !strings.Contains(asked[0].Get("Cookie"), "w=SECRET") ||
+		!strings.Contains(asked[0].Get("Authorization"), "SECRET") {
+		t.Fatalf("the URL asked for was sent %v, want the run's cookie and field", asked)
+	}
+	if len(landed) != 2 {
+		t.Fatalf("%d requests landed at the other host, want the hop's and the reload's", len(landed))
+	}
+	for i, header := range landed {
+		for _, name := range []string{"Cookie", "Authorization"} {
+			if got := header.Get(name); strings.Contains(got, "SECRET") {
+				t.Errorf("request %d at the other host carried %s: %q", i+1, name, got)
+			}
+		}
+	}
+}

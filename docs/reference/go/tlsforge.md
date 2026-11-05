@@ -662,6 +662,8 @@ type Request struct {
 	// With request scope, no state from an earlier call is retained; select
 	// explicit client scope for a reload within a persistent browser.
 	Reload bool
+
+	// Has unexported fields.
 }
     Request is one HTTP request.
 

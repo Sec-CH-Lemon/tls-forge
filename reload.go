@@ -2,6 +2,7 @@ package tlsforge
 
 import (
 	"cmp"
+	"net/url"
 	"strings"
 
 	fhttp "github.com/igor-lemon/fhttp"
@@ -25,8 +26,14 @@ func (req Request) Reloaded(res *Response) Request {
 	}
 	// A redirect that took the page to another origin left the caller's
 	// credentials behind on its way there, and the reload of that page keeps
-	// them behind: they stay within the origin the caller gave them for.
-	if crossedOrigin(req.URL, res.URL) {
+	// them behind: they stay within the origin the caller gave them for, the
+	// one it asked for, which a reload of a reload remembers. The caller's
+	// cookies stay with that URL's host (seedingURL), the client's fields
+	// with its origin (typedNavigation).
+	if req.asked == "" {
+		req.asked = req.URL
+	}
+	if crossedOrigin(req.asked, res.URL) {
 		req.Header = req.Header.without(redirectCredentialHeaders...)
 	}
 	req.URL = res.URL
@@ -56,4 +63,20 @@ func crossedOrigin(from, to string) bool {
 		return true
 	}
 	return originOf(a.url()) != originOf(b.url())
+}
+
+// seedingURL is the URL the caller's cookies, the request's and the client's
+// warmed ones, are filed against: the request's own, parsed; or for a reload,
+// the URL the caller asked for (Request.asked), whose host they were given
+// for, wherever a redirect took the page. Nil when that URL does not read:
+// they are then filed nowhere, rather than where the redirect sent the page.
+func (c *Client) seedingURL(req *Request, parsed *url.URL) *url.URL {
+	if req.asked == "" {
+		return parsed
+	}
+	asked, err := requestURL(req.asked, nil, c.behavior())
+	if err != nil {
+		return nil
+	}
+	return asked
 }

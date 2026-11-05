@@ -88,6 +88,12 @@ func (c *Client) typedNavigation(req *Request, method string, target *url.URL) (
 	r.implicit = true
 	// The client's own fields, but those the request gives itself.
 	given := append(c.given.without(req.Header.Names()...), req.Header...)
+	// They were given for the origin the caller asked for: a reload at
+	// another origin carries none of the credentials among them, as the
+	// redirect's hop that took the page there did not (Reloaded).
+	if req.asked != "" && crossedOrigin(req.asked, target.String()) {
+		given = given.without(redirectCredentialHeaders...)
+	}
 	// A Host it was given names the origin its requests to the URL's go to.
 	if hosts := given.Values("host"); len(hosts) > 0 {
 		r.host, r.hostFor = hosts[len(hosts)-1], originOf(target)

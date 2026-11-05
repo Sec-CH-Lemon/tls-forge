@@ -175,6 +175,12 @@ type Request struct {
 	// With request scope, no state from an earlier call is retained; select
 	// explicit client scope for a reload within a persistent browser.
 	Reload bool
+
+	// asked is the URL the caller asked for, which a reload keeps (Reloaded):
+	// what the caller gave, its cookies and fields and the client's, was given
+	// for that URL's host and origin, not for wherever a redirect took the
+	// page (seedingURL, typedNavigation).
+	asked string
 }
 
 // Cookie is one cookie, as a jar holds it and as a session is written down.
@@ -642,8 +648,10 @@ func (c *Client) do(req *Request, r *requestLog) (*Response, error) {
 	// The warmed session, filed against this request's URL once. Re-seeding it on
 	// every request would overwrite a value the server had refreshed in the jar
 	// with the stale value loaded at construction.
-	c.session.seedWarm(parsed)
-	c.session.seed(parsed, req.Cookies)
+	if at := c.seedingURL(req, parsed); at != nil {
+		c.session.seedWarm(at)
+		c.session.seed(at, req.Cookies)
+	}
 	// A request asks the pool for a connection: what is idle too long goes,
 	// but at its own address, whose round trip cleans up once it has asked
 	// whether there is a connection, as Chromium's main job asks its socket
