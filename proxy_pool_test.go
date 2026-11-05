@@ -156,6 +156,53 @@ func TestProxyPoolSharesCONNECTWithBothOriginCredentialModes(t *testing.T) {
 	}
 }
 
+// A CONNECT over the proxy's HTTP/2 connection is the dial's, not the origin
+// request's: the request's Trace and log see its own fields alone, never the
+// CONNECT's Proxy-Authorization, and its own connection once.
+func TestACONNECTOverAProxysHTTP2IsNoPartOfTheRequestsTrace(t *testing.T) {
+	origin := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "page")
+	}))
+	origin.EnableHTTP2 = true
+	origin.StartTLS()
+	defer origin.Close()
+	via, events, mu := ownedH2Proxy(t, origin.URL)
+	var log bytes.Buffer
+	c := newTestClient(t, WithProxy(strings.Replace(via.URL, "://", "://owned:synthetic@", 1)), WithInsecureSkipVerify(),
+		WithTimeout(2*time.Second), WithLogger(slog.New(slog.NewJSONHandler(&log, &slog.HandlerOptions{Level: LevelTrace}))))
+	defer c.Close()
+	var wrote [][]string
+	var got, first int
+	trace := &Trace{
+		WroteRequest: func(sent Header, _ error) { wrote = append(wrote, sent.Names()) },
+		GotConn:      func(ConnInfo) { got++ },
+		FirstByte:    func() { first++ },
+	}
+	res, err := c.Do(&Request{URL: origin.URL + "/page", Trace: trace})
+	if err != nil || res.Status != 200 || string(res.Body) != "page" {
+		t.Fatalf("%+v %v", res, err)
+	}
+	mu.Lock()
+	if len(*events) != 1 || (*events)[0].method != "CONNECT" || (*events)[0].auth == "" {
+		t.Errorf("the proxy saw %+v", *events)
+	}
+	mu.Unlock()
+	if len(wrote) != 1 || got != 1 || first != 1 {
+		t.Fatalf("the trace saw %d requests written (%v), %d connections and %d first bytes", len(wrote), wrote, got, first)
+	}
+	for _, name := range wrote[0] {
+		if strings.EqualFold(name, "proxy-authorization") || name == ":protocol" {
+			t.Errorf("the request's fields have %s: %v", name, wrote[0])
+		}
+	}
+	if !slices.Contains(wrote[0], ":path") {
+		t.Errorf("the fields written are not the request's: %v", wrote[0])
+	}
+	if n := strings.Count(log.String(), `"msg":"request sent"`); n != 1 || strings.Contains(strings.ToLower(log.String()), "proxy-authorization: basic") {
+		t.Errorf("the log has %d requests sent:\n%s", n, log.String())
+	}
+}
+
 func TestCONNECTDeadlineAndCloseAffectOnlyTheirStream(t *testing.T) {
 	via, events, mu := ownedH2Proxy(t, "")
 	u, _ := url.Parse(via.URL)

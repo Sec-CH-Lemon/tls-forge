@@ -27,6 +27,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   given with no scheme (`//user:password@host/`). Both now say the username
   alone.
 
+- Fix a CONNECT over an HTTPS proxy's HTTP/2 connection counting as part of
+  the request it opened a tunnel for. The request's `Trace` and log saw the
+  CONNECT's connection and first byte as their own (two `GotConn`, two
+  `FirstByte`), its fields could reach the request's hooks, and its retries
+  spent the request's `h2.retries`. The CONNECT now has a context of its own.
+
 - Fix `fetch` deleting or overwriting the profile it wears.
   `--clear-output-dir` emptied an `--output` directory that held the
   `--profile` file, or the profiles directory's, and `--trace`, `--report`,

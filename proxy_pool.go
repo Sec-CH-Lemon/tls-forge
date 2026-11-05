@@ -376,7 +376,11 @@ func (d *connectDialer) openProxyStream(ctx context.Context, p *proxyH2Conn, add
 	// Dial cancellation applies through the CONNECT response, as for
 	// net.DialContext. Afterwards the stream belongs to the returned Conn.
 	// Cancelling the first origin request must not destroy a reusable tunnel.
-	streamCtx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+	// The stream is the dial's and none of the origin request's: nothing of
+	// its context goes with it, not its trace and log hooks, which would see
+	// the CONNECT's connection, first byte and Proxy-Authorization as the
+	// request's, nor its count of requests sent again.
+	streamCtx, cancel := context.WithCancel(context.Background())
 	// The proxy CONNECT has its own measured priority (weight 147), not
 	// the origin request's navigation/fetch priority on the inner channel.
 	streamCtx = http2.WithHeaderPriority(streamCtx, priorityFrom(d.identity.profile.RuntimeBehavior(), "proxy.connect_priority"))
