@@ -20,6 +20,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix an HTTP/2 connection whose peer stops reading holding up every HTTP/2
+  request of the client, other hosts' included. fhttp (97f9b95) held the
+  connection's lock while a request's HEADERS waited for a write the peer did
+  not take. A failed preface PING then could not free that write, and the
+  pool, which asks each connection under its own lock, waited too. Header
+  blocks now take turns without that lock. A request waiting for its turn
+  ends with its own context. A failed PING gives the connection up, and its
+  requests go again as `h2.retries` says. The request right behind the held
+  write still ends only once the PING fails.
+
 - Correct the landing at phone and tablet widths: contain the GitHub badge in
   the header, complete feature and footer rows, wrap terminal commands, and
   tighten the limits heading. Verify screenshots and open-menu/FAQ states.

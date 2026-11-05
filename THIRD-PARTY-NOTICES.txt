@@ -384,7 +384,7 @@ github.com/ebitengine/purego v0.10.2
    limitations under the License.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/fhttp v0.6.10-0.20261101183935-f88cd25a32bc
+github.com/igor-lemon/fhttp v0.6.10-0.20261105183213-97f9b956de4a
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
