@@ -20,6 +20,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Security: keep a URL's password out of the log where a header field quotes
+  it. A redirect's `Location` (and `Referer`, `Content-Location`, `:path`) had
+  its query masked but its `user:password@` written as it came, in the
+  library's log and `fetch`'s run log; so did the `location` of a redirect
+  given with no scheme (`//user:password@host/`). Both now say the username
+  alone.
+
 - Fix `fetch` deleting or overwriting the profile it wears.
   `--clear-output-dir` emptied an `--output` directory that held the
   `--profile` file, or the profiles directory's, and `--trace`, `--report`,

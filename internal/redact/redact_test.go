@@ -58,6 +58,14 @@ func TestURL(t *testing.T) {
 		{"special in a longer scheme", "xhttps:/bob:hunter2@x.test", "xhttps:/bob:hunter2@x.test"},
 		{"a long s", "httpſ:/bob:hunter2@x.test", "httpſ:/bob:hunter2@x.test"},
 		{"no colon", "https", "https"},
+		// One with no scheme and an authority is read with a special one: a
+		// Location or a Referer may be one, and a browser sends its userinfo.
+		{"no scheme", "//alice:s3cr3t@example.com/a?token=t", "//alice@example.com/a?token=***"},
+		{"no scheme, backslashes", `\\alice:s3cr3t@example.com\a`, `\\alice@example.com\a`},
+		{"no scheme, both ways", `/\\alice:s3cr3t@example.com`, `/\\alice@example.com`},
+		{"no scheme, a username alone", "//alice@example.com/", "//alice@example.com/"},
+		{"no scheme, no userinfo", "//example.com/a@b", "//example.com/a@b"},
+		{"a path", "/alice:s3cr3t@example.com", "/alice:s3cr3t@example.com"},
 	} {
 		if got := URL(tc.given); got != tc.want {
 			t.Errorf("%s: URL(%q) = %q, want %q", tc.name, tc.given, got, tc.want)
@@ -182,6 +190,11 @@ func TestValue(t *testing.T) {
 		{"Referer", "https://a.example/?api_key=k&ok=1#f", "https://a.example/?api_key=***&ok=1#f"},
 		{"location", "/next?session_token=s", "/next?session_token=***"},
 		{"Content-Location", "/x?password=p&a=b", "/x?password=***&a=b"},
+		// and its password, which a redirect's Location hands on to its hop
+		{"Location", "https://alice:s3cr3t@b.example/x?token=t", "https://alice@b.example/x?token=***"},
+		{"location", "//alice:s3cr3t@b.example/x", "//alice@b.example/x"},
+		{"Referer", "https:/alice:s3cr3t@a.example/", "https:/alice@a.example/"},
+		{":path", "/a@b.example/c", "/a@b.example/c"},
 		{":authority", "example.com", "example.com"},
 		{"Keep-Alive", "timeout=5", "timeout=5"},
 		{"upgrade-insecure-requests", "1", "1"},

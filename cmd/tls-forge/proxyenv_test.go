@@ -268,6 +268,10 @@ func TestAURLsPasswordIsWrittenNowhere(t *testing.T) {
 			w.WriteHeader(http.StatusUnauthorized)
 		case r.URL.Path == "/r":
 			http.Redirect(w, r, "/a", http.StatusFound)
+		case r.URL.Path == "/l":
+			// A Location that hands the credentials on, with no scheme.
+			w.Header().Set("Location", "//u:"+secret+"@"+r.Host+"/a")
+			w.WriteHeader(http.StatusFound)
 		default:
 			_, _ = fmt.Fprint(w, "the page")
 		}
@@ -280,6 +284,7 @@ func TestAURLsPasswordIsWrittenNowhere(t *testing.T) {
 	}{
 		"lines":       {[]string{"--json", asked + "/a", asked + "/r"}, `"url":"https://u@`},
 		"status line": {[]string{"-i", "--print-body", asked + "/r"}, "200 " + server.URL + "/a\n"},
+		"a Location":  {[]string{"--json", asked + "/l"}, `"url":"https://u@`},
 	} {
 		t.Run(name, func(t *testing.T) {
 			dir := t.TempDir()

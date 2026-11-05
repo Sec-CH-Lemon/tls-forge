@@ -20,6 +20,12 @@ const Masked = "***"
 
 // URL is a URL without the password in it, its username kept.
 func URL(raw string) string {
+	// One with no scheme of its own and an authority, as a Location or a
+	// Referer may be ("//host/", and with backslashes, as a browser reads it
+	// after a special scheme), has the userinfo of the scheme it is read with.
+	if schemeRelative(raw) {
+		return strings.TrimPrefix(URL("https:"+raw), "https:")
+	}
 	// The URL Standard's reading takes out what a browser reads as the
 	// password; what is left is still read as Go reads it, so that what does
 	// not parse goes whole, a password with a "/" in it among it.
@@ -55,6 +61,13 @@ func URL(raw string) string {
 		safe = strings.TrimPrefix(safe, "proxy://")
 	}
 	return safe
+}
+
+// schemeRelative says whether raw begins as a URL with no scheme and an
+// authority does: two slashes, either of them a backslash.
+func schemeRelative(raw string) bool {
+	slash := func(c byte) bool { return c == '/' || c == '\\' }
+	return len(raw) >= 2 && slash(raw[0]) && slash(raw[1])
 }
 
 // Error is what an error says, with the password of the proxy it went through
@@ -299,8 +312,9 @@ func Value(name, value string) string {
 		return Masked
 	case carriesURL(lower):
 		// A URL's query is where a token often travels: HTTP/2 writes the
-		// request's own as :path, and a Referer or Location quotes another's.
-		return queries(value)
+		// request's own as :path, and a Referer or Location quotes another's,
+		// a password too, which a redirect may hand on.
+		return URL(value)
 	}
 	return value
 }

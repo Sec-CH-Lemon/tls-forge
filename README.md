@@ -1117,6 +1117,9 @@ signature, credential or session id in any spelling (`X-Amz-Signature`,
 `jwt` as a word of it, an OAuth `code` too; `keyword`, `pageToken` and
 `country_code` are left as they are. A URL's fragment is read as its query, for
 the token an OAuth implicit flow returns there (`#access_token=...`).
+A header field that quotes a URL (`Location`, `Referer`, `Content-Location`,
+HTTP/2's `:path`) loses the URL's password too, its username kept, with a
+scheme or without one (`//user:password@host/`, as a redirect may hand it on).
 A pcap masks cleartext proxy credentials across request heads and write cuts,
 including repeated forward HTTP requests, preserving byte lengths and bodies.
 The explicit content outputs and decrypted application data in a pcap still

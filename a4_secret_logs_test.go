@@ -20,6 +20,14 @@ func TestSecretQueriesStayOutOfTheLogOverBothProtocols(t *testing.T) {
 				switch r.URL.Path {
 				case "/start":
 					http.Redirect(w, r, "/next?api_key=NEVER-KEEP-2&ok=1", http.StatusFound)
+				case "/away":
+					// A Location's password, with a scheme and without one,
+					// as a redirect may hand it on to its hop.
+					w.Header().Set("Location", "https://alice:NEVER-KEEP-5@"+r.Host+"/relative")
+					w.WriteHeader(http.StatusFound)
+				case "/relative":
+					w.Header().Set("Location", "//alice:NEVER-KEEP-6@"+r.Host+"/next")
+					w.WriteHeader(http.StatusFound)
 				case "/auth":
 					if r.Header.Get("Authorization") == "" {
 						w.Header().Set("WWW-Authenticate", `Basic realm="r"`)
@@ -42,6 +50,7 @@ func TestSecretQueriesStayOutOfTheLogOverBothProtocols(t *testing.T) {
 			for _, target := range []string{
 				site.URL + "/start?access_token=NEVER-KEEP-1&ok=1",
 				strings.Replace(site.URL, "https://", "https://u:p@", 1) + "/auth?access_token=NEVER-KEEP-4&ok=1",
+				site.URL + "/away",
 			} {
 				res, err := client.Do(&Request{URL: target})
 				if err != nil || res.Status != http.StatusOK {
@@ -52,12 +61,13 @@ func TestSecretQueriesStayOutOfTheLogOverBothProtocols(t *testing.T) {
 				}
 			}
 			written := log.String()
-			for _, secret := range []string{"NEVER-KEEP-1", "NEVER-KEEP-2", "NEVER-KEEP-3", "NEVER-KEEP-4"} {
+			for _, secret := range []string{"NEVER-KEEP-1", "NEVER-KEEP-2", "NEVER-KEEP-3", "NEVER-KEEP-4",
+				"NEVER-KEEP-5", "NEVER-KEEP-6"} {
 				if strings.Contains(written, secret) {
 					t.Errorf("the log wrote %s", secret)
 				}
 			}
-			for _, kept := range []string{"ok=1", "challenge answered", "/next?", "/kept?"} {
+			for _, kept := range []string{"ok=1", "challenge answered", "/next?", "/kept?", "//alice@"} {
 				if !strings.Contains(written, kept) {
 					t.Errorf("the log lost %q", kept)
 				}
