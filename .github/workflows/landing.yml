@@ -4,22 +4,12 @@ name: website
 # the last approved landing-v tag's static landing source, so a branch push
 # cannot publish an unapproved landing edit.
 on:
+  # A push to development runs nothing (owner, 2026-11-05): documentation from
+  # development is published by hand (workflow_dispatch on the branch), with
+  # the latest tagged landing source; a landing-v tag publishes its own.
   push:
     tags: ['landing-v*']
-    branches: [development]
-    paths:
-      - docs/**
-      - mkdocs.yml
-      - docs-requirements.txt
-      - scripts/generate-docs.py
-      - scripts/check-docs-html-links.py
-      - '**/*.go'
-      - engine/version.json
-      - profile/data/**
-      - node/index.d.ts
-      - python/src/tlsforge/**
-      - web/landing/**
-      - .github/workflows/landing.yml
+  workflow_dispatch:
   pull_request:
     branches: [development]
     paths:
@@ -78,7 +68,7 @@ jobs:
           set -euo pipefail
           site="$RUNNER_TEMP/tls-forge-site"
           mkdir -p "$site/docs"
-          if [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REF_TYPE" == branch ]]; then
+          if [[ "$GITHUB_EVENT_NAME" != pull_request && "$GITHUB_REF_TYPE" == branch ]]; then
             approved=$(git tag --list 'landing-v*' --sort=-version:refname | head -n 1)
             if [[ -z "$approved" ]]; then
               echo 'A landing-v tag is required before documentation can publish at the apex.' >&2
@@ -88,7 +78,7 @@ jobs:
             git archive "$approved" web/landing | tar -x -C "$RUNNER_TEMP/approved-landing"
             cp -R "$RUNNER_TEMP/approved-landing/web/landing/." "$site/"
           else
-            if [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REF_TYPE" == tag ]]; then
+            if [[ "$GITHUB_REF_TYPE" == tag ]]; then
               git fetch --no-tags origin development
               if ! git merge-base --is-ancestor HEAD FETCH_HEAD; then
                 echo 'A landing-v tag must point to a development commit.' >&2
@@ -142,12 +132,12 @@ jobs:
           }
           NODE
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         with:
           path: ${{ runner.temp }}/tls-forge-site
 
   deploy:
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     needs: build-and-audit
     runs-on: ubuntu-latest
     timeout-minutes: 10

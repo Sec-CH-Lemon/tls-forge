@@ -3,8 +3,10 @@ name: fork-regression-gates
 # Eight macOS jobs of up to 40 minutes: they run when what they gate changes,
 # the fork pins in go.mod and go.sum, the inventory or the gate, and by hand.
 on:
+  # A push to development runs nothing (owner, 2026-11-05): run this by hand
+  # (workflow_dispatch) after a pin moves.
   push:
-    branches: [main, development]
+    branches: [main]
     paths:
       - go.mod
       - go.sum

@@ -112,9 +112,11 @@ FAQ, when changing its layout.
 the documentation with strict links, checks all four landing Lighthouse
 categories at 100 on mobile and desktop, then publishes one GitHub Pages
 artifact with the approved static landing and `/docs/`. A `landing-v*` tag on
-`development` approves new landing source. Documentation/source changes on
-`development` republish the latest tagged landing source with fresh docs;
-the landing source itself does not change on that branch push. Configure the
+`development` approves new landing source. A push to `development` runs no
+workflow: documentation from `development` is published by running the
+workflow by hand on the branch (`gh workflow run landing.yml --ref
+development`), with fresh docs and the latest tagged landing source, which
+does not change that way. Configure the
 repository's Pages source as **GitHub Actions** and custom domain as
 `tls-forge.com` before changing the apex DNS
 to [GitHub Pages](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site).

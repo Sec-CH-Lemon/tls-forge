@@ -1,8 +1,10 @@
 name: ci
 
 on:
+  # A push to development runs nothing (owner, 2026-11-05): run this by hand
+  # (workflow_dispatch) on the commit to check.
   push:
-    branches: [main, development]
+    branches: [main]
   pull_request:
     branches: [main, development]
   workflow_dispatch:

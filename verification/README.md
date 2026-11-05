@@ -54,8 +54,9 @@ denial probes before any suite runs. Native macOS26 produced sendmsg EPERM for
 these owned dual-stack loopback tests; the macOS15 positive preflight also
 rejected the host before any suite ran. Both are preserved as unsupported
 measurement environments, not added to the109 debt exceptions. The gate
-runs on main/development only when `go.mod`, `go.sum`, `verification/` or
-`scripts/fork_gate.py` change, or by hand; it cancels obsolete runs. Its raw
+runs on a push to main only when `go.mod`, `go.sum`, `verification/` or
+`scripts/fork_gate.py` change, or by hand; a push to development runs
+nothing, so dispatch it after a pin moves; it cancels obsolete runs. Its raw
 evidence stays on the runner by default, and its log has the gate's summary
 line. An explicit diagnostic dispatch may select `forks`/`graphs` JSON lists
 and supply `evidence-certificate` (base64 PEM public certificate). Only then
