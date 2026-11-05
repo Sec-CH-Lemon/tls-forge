@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/Sec-CH-Lemon/tls-forge/cookie"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // planned is one file of a plan in a test: what names it, its path, and what
@@ -62,6 +63,20 @@ func written(t *testing.T, path, content string) string {
 		t.Fatalf("WriteFile: %v", err)
 	}
 	return path
+}
+
+// aProfileAt is a file at path holding a profile the run can wear.
+func aProfileAt(t *testing.T, path string) string {
+	t.Helper()
+	p, err := profile.Get("chrome_156_macos")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	data, err := p.Save()
+	if err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	return written(t, path, string(data))
 }
 
 // linkedTo is a symbolic link at path to target, or a skipped test where none
@@ -344,6 +359,22 @@ func sameContents(t *testing.T, dir string, before map[string]string) {
 	}
 }
 
+// The file the worn profile was read from is one the run reads: another flag
+// may read it too, and none may write it.
+func TestTheProfileTheRunWearsIsAFileItReads(t *testing.T) {
+	worn := aProfileAt(t, filepath.Join(t.TempDir(), "mine.json"))
+	if err := (fetchFiles{profile: worn, exitHeaders: worn}).plan(io.Discard, io.Discard).check(); err != nil {
+		t.Errorf("read by two flags: %v", err)
+	}
+	err := (fetchFiles{profile: worn, trace: worn}).plan(io.Discard, io.Discard).check()
+	if !errors.Is(err, errUsage) || !strings.Contains(err.Error(), "--trace "+worn+" is the file --profile names") {
+		t.Errorf("written: %v", err)
+	}
+	if reads := (fetchFiles{profile: worn}).reads(); reads["--profile"] != worn {
+		t.Errorf("reads %v", reads)
+	}
+}
+
 func TestFetchRefusesTwoFlagsForOneFileAndTouchesNothing(t *testing.T) {
 	server, asked := replying(t, 200)
 	dir := t.TempDir()
@@ -354,6 +385,7 @@ func TestFetchRefusesTwoFlagsForOneFileAndTouchesNothing(t *testing.T) {
 	report := written(t, filepath.Join(dir, "report.html"), "<!doctype html>the last run")
 	link := linkedTo(t, list, filepath.Join(dir, "link.txt"))
 	hard := hardLinkedTo(t, session, filepath.Join(dir, "hard.json"))
+	worn := aProfileAt(t, filepath.Join(dir, "mine.json"))
 	before := contentsOf(t, dir)
 	out, x := filepath.Join(dir, "out"), filepath.Join(dir, "x")
 
@@ -369,6 +401,10 @@ func TestFetchRefusesTwoFlagsForOneFileAndTouchesNothing(t *testing.T) {
 		{[]string{"--cookies", session, "--report=" + hard, server.URL}, "--report " + hard + " is the file --cookies names"},
 		{[]string{"--exit-headers", fields, "--save-cookies", fields, server.URL},
 			"--save-cookies " + fields + " is the file --exit-headers names"},
+		{[]string{"--profile", worn, "--trace", worn, server.URL}, "--trace " + worn + " is the file --profile names"},
+		{[]string{"--profile", worn, "--report=" + worn, server.URL}, "--report " + worn + " is the file --profile names"},
+		{[]string{"--profile", worn, "--save-cookies", worn, server.URL},
+			"--save-cookies " + worn + " is the file --profile names"},
 		{[]string{"--trace", trace, "--report=" + trace, server.URL}, "--report " + trace + " is the file --trace names"},
 		{[]string{"--save-cookies", report, "--report=" + report, server.URL},
 			"--report " + report + " is the file --save-cookies names"},

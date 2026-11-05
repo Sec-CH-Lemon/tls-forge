@@ -13,6 +13,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // tree writes files under dir, each a path relative to it, with the directories
@@ -169,6 +171,19 @@ func TestClearOutputDirRefusesADirectoryWhoseLossIsADisaster(t *testing.T) {
 			}
 			return []string{"-o", tmp, "--exit-headers", fields, server.URL}, tmp
 		}, "holds --exit-headers"},
+		{"the profile it wears", func(t *testing.T, tmp string) ([]string, string) {
+			worn := aProfileAt(t, filepath.Join(tmp, "a", "mine.json"))
+			return []string{"-o", tmp, "--profile", worn, server.URL}, tmp
+		}, "holds --profile "},
+		{"the profile it wears from the profiles directory", func(t *testing.T, tmp string) ([]string, string) {
+			dir := filepath.Join(tmp, "a", "profiles")
+			previous := profile.Default.Dir()
+			t.Setenv("TLSFORGE_PROFILES", dir)
+			profile.Default.SetDir(dir)
+			t.Cleanup(func() { profile.Default.SetDir(previous) })
+			aProfileAt(t, filepath.Join(dir, "mine.json"))
+			return []string{"-o", tmp, "--profile", "mine", server.URL}, tmp
+		}, string(filepath.Separator) + filepath.Join("a", "profiles", "mine.json") + ", which the run reads"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			tmp := resolve(t.TempDir())

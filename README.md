@@ -910,7 +910,8 @@ and without removing anything, a directory whose loss would be a disaster
 rather than a clean slate: the root of the file system, the home directory or
 one that holds it, the directory the command runs in or one that holds it
 (`-o .`), one with a git repository in it, one holding a file the run reads
-(`--input`, `--cookies`, `--exit-headers`, and a `.json` `--save-cookies`,
+(`--input`, `--cookies`, `--exit-headers`, the profile it wears, and a `.json`
+`--save-cookies`,
 which a run reads to add its session to the ones there), and one holding the
 file standard output or error is redirected to. A directory is known by what
 it is, whatever it is called: through a link, in other capitals where names
@@ -1791,7 +1792,8 @@ cannot go through it.
 
 Before it reads the list, empties a directory or opens a file, a run checks
 every file its flags name together: what it reads (`--input`, `--cookies`,
-`--exit-headers`), what it writes (`--trace`, `--log`, `--keylog`, `--report`,
+`--exit-headers`, and the file of the profile it wears, a `--profile` path or
+one of the profiles directory's), what it writes (`--trace`, `--log`, `--keylog`, `--report`,
 `--save-cookies`), and the files its standard output and error are
 redirected to. These are usage errors, with exit code 2 and the reason, before
 anything is emptied, opened, made or asked:

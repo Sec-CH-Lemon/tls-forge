@@ -690,7 +690,7 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	started := now()
 	common.run.id, common.run.started = stamp(started), started
 	files := fetchFiles{
-		input: *input, cookies: *common.cookieFile, exitHeaders: *exitHeaders,
+		input: *input, cookies: *common.cookieFile, exitHeaders: *exitHeaders, profile: worn.Source(),
 		saveCookies: *common.saveCookies, trace: *again.trace,
 		log:     runLogPath(*logging.path, *output, started),
 		keylog:  *logging.keylog,
@@ -1169,9 +1169,13 @@ func (r *fetchRun) finish(records []result, failures int, failed error) error {
 // and the directory it keeps its requests in.
 type fetchFiles struct {
 	input, cookies, exitHeaders, saveCookies, trace, log, keylog string
-	reports                                                      []reportFile
-	output                                                       string
-	cleared                                                      bool
+	// profile is the file the profile the run wears was read from: --profile
+	// as given, or one of the profiles directory's; none for a profile that
+	// ships.
+	profile string
+	reports []reportFile
+	output  string
+	cleared bool
 }
 
 // plan is those files in one plan: what the run reads, then what it writes,
@@ -1183,6 +1187,7 @@ func (f fetchFiles) plan(stdout, stderr io.Writer) *filePlan {
 	plan.add("--input", f.input, readsFile)
 	plan.add(flagCookies, f.cookies, readsFile)
 	plan.add("--exit-headers", f.exitHeaders, readsFile)
+	plan.add("--profile", f.profile, readsFile)
 	plan.add(flagSaveCookies, f.saveCookies, writesFile)
 	plan.add("--trace", f.trace, writesFile)
 	plan.add("--log", f.log, writesFile)
@@ -1199,7 +1204,8 @@ func (f fetchFiles) plan(stdout, stderr io.Writer) *filePlan {
 // out of the directory it empties: a .json --save-cookies among them, since a
 // run adds its session to those already there.
 func (f fetchFiles) reads() map[string]string {
-	reads := map[string]string{"--input": f.input, flagCookies: f.cookies, "--exit-headers": f.exitHeaders}
+	reads := map[string]string{"--input": f.input, flagCookies: f.cookies, "--exit-headers": f.exitHeaders,
+		"--profile": f.profile}
 	if !netscapeFile(f.saveCookies) {
 		reads[flagSaveCookies] = f.saveCookies
 	}

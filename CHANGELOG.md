@@ -20,6 +20,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix `fetch` deleting or overwriting the profile it wears.
+  `--clear-output-dir` emptied an `--output` directory that held the
+  `--profile` file, or the profiles directory's, and `--trace`, `--report`,
+  `--log` or `--save-cookies` could name that file and write over it. The
+  profile's file is now one the run reads: such a run is a usage error (exit
+  2) before anything is removed or written.
+
 - Fix an HTTP/2 connection whose peer stops reading holding up every HTTP/2
   request of the client, other hosts' included. fhttp (97f9b95) held the
   connection's lock while a request's HEADERS waited for a write the peer did
