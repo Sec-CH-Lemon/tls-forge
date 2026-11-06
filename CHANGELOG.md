@@ -27,6 +27,44 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   a closed one waited out its minute and could be handed a request, which then
   went again on another.
 
+- Fix HTTP/2 streams reset other than Chrome resets them. A response body let
+  go of (a redirect's, a 401's or a preflight's, and the timer of its drain)
+  was closed twice, and each close sent RST_STREAM(CANCEL): two where Chrome
+  sends one. A request given up while its body was going sent none, as fhttp's
+  test had been turned round since 2021. A server's reset and a body closed at
+  the same moment raced. fhttp 2b67fc1.
+
+- Fix an HTTP/2 request sent again with an empty body. A request whose attempt
+  had closed its body (its HEADERS refused by a connection that went away)
+  went out again on another connection with nothing in it, and waited for an
+  answer. Only an attempt on a connection that took no stream sends the body
+  again now; any other says to define `Request.GetBody`.
+
+- Fix HTTP/3 connections and requests that outlived what they were for. A
+  connection a request failed on was closed by neither `Close` nor
+  `CloseIdleConnections` and stayed up, with no CONNECTION_CLOSE, until its
+  idle timeout. A request given up while its connection was dialed kept that
+  connection from counting as idle. A request on a connection still shaking
+  hands (0-RTT) waited for good when the handshake failed. A trailer section
+  that waited for an insert went on waiting after its body was closed. And
+  every request read to its end left a decoding context as long-lived as its
+  own context. quic-go-utls 301d6b0c.
+
+- QPACK feedback as quiche's: with `h3.qpack.decoder_feedback: on-section`
+  (the Chrome 155 and 156 profiles), an Insert Count Increment follows each
+  section for the inserts no acknowledgement told of, a section of the static
+  table alone too, as QpackDecoder::OnDecodingCompleted sends it. Before, such
+  a section told the encoder nothing, so it could not refer to those inserts.
+
+- TLS 1.3 alerts a protocol the server says it chose and the client did not
+  offer with the profile's `tls.alpn_mismatch_alert` (illegal_parameter in
+  every Chrome profile, as BoringSSL), as TLS 1.2 did. crypto/tls sent
+  no_application_protocol whatever the profile said. utls 4b8e3e1.
+
+- A request forwarded through an HTTP proxy says the profile's
+  `proxy.connection_value` in `Proxy-Connection`, as the CONNECT already did.
+  It said `keep-alive` whatever the profile said. tls-client 55381c2.
+
 - Fix `compare` holding HTTP/1.1 to what the echo server made of a request
   rather than to how it was written. Spaces around a value were taken off, a
   line ending in LF alone read as one ending in CRLF, and the target's form
