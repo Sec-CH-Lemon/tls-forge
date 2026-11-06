@@ -60,7 +60,8 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   was closed twice, and each close sent RST_STREAM(CANCEL): two where Chrome
   sends one. A request given up while its body was going sent none, as fhttp's
   test had been turned round since 2021. A server's reset and a body closed at
-  the same moment raced. fhttp 2b67fc1.
+  the same moment raced. A stream ended on both sides gets none, as Chrome
+  sends none for a stream it has closed. fhttp 2b67fc1, 64d6de4.
 
 - Fix an HTTP/2 request sent again with an empty body. A request whose attempt
   had closed its body (its HEADERS refused by a connection that went away)

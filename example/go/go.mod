@@ -10,10 +10,10 @@ require (
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/ebitengine/purego v0.10.2 // indirect
-	github.com/igor-lemon/fhttp v0.6.10-0.20261106034415-2b67fc1ee17e // indirect
+	github.com/igor-lemon/fhttp v0.6.10-0.20261106105301-64d6de4e4e13 // indirect
 	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261106040259-301d6b0ce994 // indirect
-	github.com/igor-lemon/tls-client v1.15.2-0.20261106094619-55381c2cfd94 // indirect
-	github.com/igor-lemon/utls v1.7.8-barnius.0.20261106034922-4b8e3e1fbd8d // indirect
+	github.com/igor-lemon/tls-client v1.15.2-0.20261106124849-ef58241568a3 // indirect
+	github.com/igor-lemon/utls v1.7.8-barnius.0.20261106111523-61d479ef1205 // indirect
 	github.com/igor-lemon/websocket v1.5.6-barnius.0.20261026204638-961b3d7db465 // indirect
 	github.com/klauspost/compress v1.20.0 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
