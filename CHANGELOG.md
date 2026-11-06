@@ -409,6 +409,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   type, default and description, and raised errors link to their sections.
   `scripts/generate-docs.py` fails on a construct it cannot read rather than
   leaving it out. Two code blocks in a row no longer touch on wide screens.
+- Lay the documentation out on a grid of 12px. Sizes and spaces had grown
+  from Material's defaults and ours one value at a time: menu entries of
+  35.6px, a 56px header over 44px tabs, paddings of 6.4, 9.6 and 13.6px,
+  text on lines of 26px, and every border adding a pixel to its box. Now
+  every height, margin, padding, gap and line height is a multiple of 12px:
+  the header is a 60px panel and 48px tabs, menu entries are 36px and 12px
+  apart, text runs on lines of 24px, code panels have a 48px title row, and
+  the search results, tables, cards and the phone menu follow the same
+  steps. Borders and dividers are drawn as outlines and inset shadows, which
+  take no room. Hovering anything moves nothing.
 
 ## [1.0.0] - Unreleased
 
