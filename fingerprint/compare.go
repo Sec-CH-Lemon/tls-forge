@@ -42,8 +42,8 @@ type Report struct {
 	Unchecked []Difference `json:",omitempty"`
 }
 
-// OK reports a candidate indistinguishable from the reference on every field
-// compared, with nothing left that could not be.
+// OK reports a candidate that matches the reference on every field compared,
+// with nothing left that could not be: of the two captures compared alone.
 func (r Report) OK() bool { return len(r.Differences) == 0 && len(r.Unchecked) == 0 }
 
 func (r Report) String() string {

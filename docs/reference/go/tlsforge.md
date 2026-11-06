@@ -294,8 +294,9 @@ func CompareVisitorAt(ctx context.Context, server *echo.Server, opts ...Option) 
     out rather than reported as a difference.
 
 func (c *Comparison) OK() bool
-    OK reports a client indistinguishable from the browser on every field
-    compared, with nothing left that could not be compared.
+    OK reports a client that matches the browser on every field compared,
+    with nothing left that could not be compared: of the hellos and the first
+    requests measured, which says nothing of later connections and requests.
 
 func (c *Comparison) String() string
 

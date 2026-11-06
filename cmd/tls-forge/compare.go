@@ -134,8 +134,10 @@ func printComparison(out *printer, result *tlsforge.Comparison, pal palette, ful
 	}
 
 	if result.OK() {
-		out.printf("%severy field matches; the client is indistinguishable from the browser.%s\n",
-			pal.match, pal.reset)
+		out.printf("%severy field compared matches.%s\n", pal.match, pal.reset)
+		out.println()
+		out.println("That is one cold ClientHello and the first request of each protocol: later")
+		out.println("connections, resumed handshakes and later requests are not compared here.")
 		out.println()
 		out.println("JA3 is deliberately not compared: Chrome shuffles its extension order per")
 		out.println("connection, so its own JA3 differs from request to request.")

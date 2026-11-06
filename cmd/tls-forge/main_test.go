@@ -1050,7 +1050,7 @@ func TestCompareMatches(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit code = %d\nstdout: %s\nstderr: %s", code, stdout, stderr)
 	}
-	if !strings.Contains(stdout, "indistinguishable") {
+	if !strings.Contains(stdout, "every field compared matches.") || !strings.Contains(stdout, "later\nconnections, resumed handshakes") {
 		t.Errorf("stdout = %q", stdout)
 	}
 	// The diff shows both sides, field by field, and every line agrees.
@@ -1268,7 +1268,7 @@ func TestComparePrintsWhatVariesAndWhatIsNotChecked(t *testing.T) {
 			t.Errorf("no %q in:\n%s", want, buf.String())
 		}
 	}
-	if strings.Contains(buf.String(), "indistinguishable") || strings.Contains(buf.String(), "field(s) differ") {
+	if strings.Contains(buf.String(), "every field compared matches") || strings.Contains(buf.String(), "field(s) differ") {
 		t.Errorf("a verdict was given:\n%s", buf.String())
 	}
 }

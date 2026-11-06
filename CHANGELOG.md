@@ -20,6 +20,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix `compare` saying more than it shows. A match said "the client is
+  indistinguishable from the browser", of one cold ClientHello and the first
+  request of each protocol. It now says every field compared matches, and
+  that later connections, resumed handshakes and later requests are not
+  compared there.
+
 - Fix `compare` taking a key it cannot check for a match. A key share of a
   group it reads no key of (X448, say), or an ECH key of a length no KEM has,
   was shown as `not checked` on both sides and counted as alike. Both sides

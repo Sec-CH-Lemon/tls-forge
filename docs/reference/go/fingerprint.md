@@ -545,8 +545,8 @@ func CompareTLS(reference, candidate *ClientHello) Report
     real browser's. TLSFields says what is compared, and what is not.
 
 func (r Report) OK() bool
-    OK reports a candidate indistinguishable from the reference on every field
-    compared, with nothing left that could not be.
+    OK reports a candidate that matches the reference on every field compared,
+    with nothing left that could not be: of the two captures compared alone.
 
 func (r Report) String() string
 

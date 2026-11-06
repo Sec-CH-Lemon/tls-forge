@@ -337,8 +337,9 @@ func requestKind(fields map[string]string) string {
 		fields["sec-fetch-mode"], fields["sec-fetch-dest"], fields["sec-fetch-site"])
 }
 
-// OK reports a client indistinguishable from the browser on every field
-// compared, with nothing left that could not be compared.
+// OK reports a client that matches the browser on every field compared, with
+// nothing left that could not be compared: of the hellos and the first
+// requests measured, which says nothing of later connections and requests.
 func (c *Comparison) OK() bool { return c.TLS.OK() && c.HTTP1.OK() && c.HTTP2.OK() }
 
 func (c *Comparison) String() string {
