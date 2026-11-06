@@ -875,6 +875,7 @@
     "tls.trust_anchor_order": "process-shuffle",
     "tls.unsolicited_extension_alert": 110,
     "tls.validate_encrypted_extensions": true,
+    "tls.validate_server_hello_extensions": true,
     "url.blocked_ports": [
       0,
       1,

@@ -27,6 +27,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   a closed one waited out its minute and could be handed a request, which then
   went again on another.
 
+- Refuse a ServerHello with an extension BoringSSL does not take of it, as
+  Chrome refuses it: one the client did not offer, one of TLS 1.2 in a TLS 1.3
+  ServerHello, one twice, or a list that does not read, each with the
+  profile's alert, in a record of the version as BoringSSL writes it. A
+  ServerHello whose legacy version is not TLS 1.2 is that version, whatever
+  supported_versions says. crypto/tls passed over what it does not parse, so
+  a server could tell tls-forge from Chrome by an extension it took. The
+  Chrome profiles say `tls.validate_server_hello_extensions`. utls e05e87a,
+  b2148a9, 5d680c3.
+
 - Keep a TLS session by the host and port it came from, as Chrome keeps it,
   over TCP, QUIC and a websocket. A ticket a server gave on one port was
   offered on another of its name, which Chrome never does. The Chrome

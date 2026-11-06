@@ -419,6 +419,7 @@ Generated from the 18 bundled JSON profile files. This is an inventory of fields
 | `behavior["tls.trust_anchor_order"]` | str |
 | `behavior["tls.unsolicited_extension_alert"]` | int |
 | `behavior["tls.validate_encrypted_extensions"]` | bool |
+| `behavior["tls.validate_server_hello_extensions"]` | bool |
 | `behavior["url.blocked_ports"]` | array |
 | `client_hello` | str |
 | `client_hints` | array |

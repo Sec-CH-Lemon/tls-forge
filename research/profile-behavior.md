@@ -399,6 +399,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `tls.trust_anchor_order` | `"captured"` |
 | `tls.unsolicited_extension_alert` | `110` |
 | `tls.validate_encrypted_extensions` | `true` |
+| `tls.validate_server_hello_extensions` | `true` |
 | `url.blocked_ports` | `[0,1,7,9,11,13,15,17,19,20,21,22,23,25,37,42,43,53,69,77,79,87,95,101,102,103,104,109,110,111,113,115,117,119,123,135,137,139,143,161,179,389,427,465,512,513,514,515,526,530,531,532,540,548,554,556,563,587,601,636,989,990,993,995,1719,1720,1723,2049,3659,4045,5060,5061,6000,6566,6665,6666,6667,6668,6669,6697,10080]` |
 
 ## Values added after the release (review 2026-11-05)
@@ -419,6 +420,7 @@ values; no browser verdict is new for them.
 | `tls.session_cache_sessions_per_entry`, `quic.session_cache_sessions_per_entry` | How many sessions the TLS and the QUIC session cache keep for a key, as Chromium's SSLClientSessionCache::Entry and quiche's QuicClientSessionCache::Entry keep two: a single-use (TLS 1.3) session put where another is moves that one behind it, a reusable one takes its place, and a connection takes the newest. Without them, one. `2` and `2`. |
 | `h3.server_bidi_stream_close_reason` | The reason a connection is closed with, H3_STREAM_CREATION_ERROR (0x103), at a server's first bidirectional stream, which HTTP/3 lets no server open (RFC 9114, section 6.1), as quiche's QuicSpdyClientSession::ShouldCreateIncomingStream closes it (QUIC_HTTP_SERVER_INITIATED_BIDIRECTIONAL_STREAM). Without it the stream is passed over and the connection stays. `"154:Server created bidirectional stream."`. |
 | `tls.session_cache_key`, `quic.session_cache_key` | What the TLS and the QUIC session cache keep a session by: `host-port`, the host and port its connection was dialed for, as Chromium's SSLClientSessionCache::Key keys it by HostPortPair and quiche's QuicServerId by host and port (a QUIC connection made for an alternative is its origin's); `server-name`, the name sent in SNI, as crypto/tls keys it, so that a ticket of one port is offered on another. Without them, `server-name`. `"host-port"` and `"host-port"`. |
+| `tls.validate_server_hello_extensions` | A ServerHello's extensions held to those BoringSSL takes of it (tls13_client.cc, ssl_parse_extensions, ssl_scan_serverhello_tlsext): before the version is known, the list read and supported_versions alone, in a record of TLS 1.0; then, in a record of the version, of TLS 1.3 supported_versions, a key_share where the client sent shares and pre_shared_key where it offered one, each once, of a HelloRetryRequest cookie, key_share, supported_versions and encrypted_client_hello, of TLS 1.2 those of BoringSSL's kExtensions the client offered. Another is the profile's `tls.unsolicited_extension_alert`, one twice its `tls.duplicate_extension_alert`, a list that does not read its `tls.malformed_extension_alert`; a legacy version other than TLS 1.2 is the version. Without it, crypto/tls's reading, which passes over what it does not parse. `true`. |
 
 ## URL host encoding integrity
 
