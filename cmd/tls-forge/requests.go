@@ -407,6 +407,10 @@ type runner struct {
 	// noLookup asks nothing to learn where a request came out, for
 	// --no-exit-lookup: what its proxy said is all that is known.
 	noLookup bool
+	// ownConnections is a profile's http.instance_scope of request: each
+	// request goes out on connections of its own, which no probe after it can
+	// share, so none is asked.
+	ownConnections bool
 	// check is what an answer has to have to be the page, when
 	// --wait-for-element or --wait-for names it; nil asks nothing of it.
 	check *pageCheck

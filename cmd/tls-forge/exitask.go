@@ -37,12 +37,30 @@ func (b runner) cameOut(ctx context.Context, client *tlsforge.Client, proxy stri
 	case b.noLookup:
 	case found.IP == "" && found.Hash != "" && field.Resolve != nil:
 		return b.names.resolve(ctx, b.clients.flags, proxy, found, *field.Resolve, lane), ""
+	case why != "" && res != nil && b.ownConnections:
+		if b.probed(res) != nil {
+			// A probe would go on connections of its own, and say where they
+			// came out: another exit's, through a proxy that gives each
+			// connection one. It is not asked.
+			why += "; no probe of the site: each request goes on connections of its own"
+		}
 	case why != "" && res != nil:
 		if probed := b.probe(ctx, client, res, tries[len(tries)-1].Conn.Tunnel, lane, log); probed.Known() {
 			return probed, ""
 		}
 	}
 	return found, why
+}
+
+// probed is the first probe the file has for a site whose answer res is, or
+// nil.
+func (b runner) probed(res *tlsforge.Response) *exitProbe {
+	for i, p := range b.exits.Probes {
+		if len(res.Header[strings.ToLower(p.When)]) > 0 {
+			return &b.exits.Probes[i]
+		}
+	}
+	return nil
 }
 
 // probe asks the site a request went to where it came from, for a site the

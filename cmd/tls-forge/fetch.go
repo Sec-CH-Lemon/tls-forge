@@ -1035,6 +1035,8 @@ func (r *fetchRun) execute(ctx context.Context) (records []result, failures int,
 		},
 		exits: r.exits, names: &resolver{}, noLookup: r.noExitLookup,
 		counts: r.counts, trace: r.trace, log: r.log.logger(),
+		// A request of its own connections shares none with a probe after it.
+		ownConnections: r.worn.RuntimeBehavior().Text("http.instance_scope") == "request",
 		// Every try is written down for a report, and for the log and the trace
 		// each request is kept with.
 		detailed: len(r.formats) > 0 || r.output != "",

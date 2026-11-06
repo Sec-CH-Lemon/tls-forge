@@ -107,9 +107,10 @@ func TestNoExitLookupProbesNoSite(t *testing.T) {
 		t.Errorf("the request came out of %+v, %q", r.Exit, r.ExitError)
 	}
 
-	// With the opt-in, the site is probed for a run that says
-	// where its requests came out.
-	if code, _, stderr := exec(t, "fetch", "--exit-lookup", "--proxy", "http://"+via.addr, "--insecure", "--report="+report,
+	// With the opt-in, the site is probed for a run that says where its
+	// requests came out, through a profile whose requests share connections
+	// a probe can go on (TestNoProbeIsAskedWhereEachRequestHasConnectionsOfItsOwn).
+	if code, _, stderr := execWorkflow(t, "fetch", "--exit-lookup", "--proxy", "http://"+via.addr, "--insecure", "--report="+report,
 		"--report-format", "json", site.URL+"/page"); code != 0 || seen("/cdn-cgi/trace") != 1 {
 		t.Errorf("without the flag: exit %d, probed %d\n%s", code, seen("/cdn-cgi/trace"), stderr)
 	}

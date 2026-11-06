@@ -20,6 +20,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix `fetch --exit-lookup` asking a site's probe (`/cdn-cgi/trace`) it could
+  never believe. With a profile whose `http.instance_scope` is `request`,
+  every shipped one, each request has connections of its own, so the probe
+  never went over the request's connection and its answer was thrown away,
+  but the site was still sent a request no browser makes. No probe is asked
+  then, and the exit's reason says why.
+
 - Fix the log's `redirect not followed` saying a `limit` of 20 for every
   request: a navigation, a form and a request without a browser context
   follow 19 redirects, `fetch()` and an XHR 20, and the record now says the

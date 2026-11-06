@@ -1727,7 +1727,10 @@ When the proxy says nothing, or says only a name, the file can say what to
 ask, and only where nothing but the same exit can answer:
 
 - `probes` are asked of the site itself, over the very connection the request
-  went out on. The example asks a site behind Cloudflare, one whose response
+  went out on. A profile whose `http.instance_scope` is `request`, every
+  shipped one, gives each request connections of its own, which no probe after
+  it can go on: none is asked, and the run says so where it says why the exit
+  is not known. The example asks a site behind Cloudflare, one whose response
   came with `cf-ray`, for `/cdn-cgi/trace`, which every such site answers with
   `ip=` and `loc=`: where the request came from, and so where it came out. The
   answer is believed only when it came back over the same tunnel, which the

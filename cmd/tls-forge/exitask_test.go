@@ -69,6 +69,38 @@ func cloudflareSite(t *testing.T) *httptest.Server {
 	return server
 }
 
+// With a profile whose http.instance_scope is request, every shipped one,
+// a request goes out on connections of its own, which a probe after it
+// cannot share: none is asked, and the run says why where it came out is not
+// known. Without a site's probe, as before, whatever the scope.
+func TestNoProbeIsAskedWhereEachRequestHasConnectionsOfItsOwn(t *testing.T) {
+	for _, tc := range []struct {
+		run    func(*testing.T, ...string) (int, string, string)
+		header http.Header
+		said   string
+	}{
+		{exec, http.Header{"Cf-Ray": {"8f1c0d9e2b4a7f8e-AMS"}},
+			"the proxy did not say; no probe of the site: each request goes on connections of its own"},
+		{exec, nil, "the proxy did not say"},
+		{execWorkflow, nil, "the proxy did not say"},
+	} {
+		site, seen := countingSite(t, tc.header)
+		via := startProxy(t)
+		report := filepath.Join(t.TempDir(), "run.json")
+		code, _, stderr := tc.run(t, "fetch", "--exit-lookup", "--proxy", "http://"+via.addr, "--insecure",
+			"--report="+report, "--report-format", "json", site.URL+"/page")
+		if code != 0 {
+			t.Fatalf("exit code = %d\n%s", code, stderr)
+		}
+		if seen("/cdn-cgi/trace") != 0 || seen("/page") != 1 {
+			t.Errorf("the site was asked %d probes and %d pages", seen("/cdn-cgi/trace"), seen("/page"))
+		}
+		if got := decoded(t, []byte(reportOf(t, report))).Requests[0]; got.Exit != nil || got.ExitError != tc.said {
+			t.Errorf("came out of %+v: %q, want %q", got.Exit, got.ExitError, tc.said)
+		}
+	}
+}
+
 func TestASiteSaysWhereARequestCameFromOverTheSameConnection(t *testing.T) {
 	// A proxy that says nothing, in front of a site behind Cloudflare, which
 	// says where a visitor comes from: asked over the connection the request
