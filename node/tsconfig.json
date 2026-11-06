@@ -1,0 +1,25 @@
+{
+  // The package's sources, its tests and its compile script, type-checked as
+  // one program and emitting nothing: the tests and the script run as they
+  // are written, Node stripping their types. tsconfig.build.json compiles the
+  // sources alone into dist/.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    // What Node can run with its types stripped: imports named as the files
+    // are, which the compiler writes as .js; no syntax with a meaning of its
+    // own, such as an enum; and every type-only import said to be one.
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true
+  },
+  "include": ["src", "test", "scripts/*.ts"]
+}

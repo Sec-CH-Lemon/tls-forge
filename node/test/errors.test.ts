@@ -4,13 +4,13 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chmodSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, unlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import * as tlsforge from '../index.js';
-import * as errors from '../errors.js';
+import * as tlsforge from '../src/index.ts';
+import * as errors from '../src/errors.ts';
 import {
   BinaryNotFound,
   Client,
@@ -21,13 +21,14 @@ import {
   Timeout,
   TransportError,
   Unsupported,
-} from '../index.js';
+  type ClientOptions,
+} from '../src/index.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 delete process.env.TLSFORGE_BIN;
 const wrapperDir = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-errors-'));
 const configuredDaemon = process.env.TLSFORGE_TEST_DAEMON;
-let wrapper;
+let wrapper: string;
 if (configuredDaemon) {
   wrapper = path.resolve(configuredDaemon);
 } else if (process.platform === 'win32') {
@@ -38,8 +39,11 @@ if (configuredDaemon) {
   chmodSync(wrapper, 0o755);
 }
 
+// An error class of the package's, or of JavaScript's, made as theirs are.
+type ErrorClass = new (message?: string, options?: { cause?: unknown }) => Error;
+
 // The classes, each under the one it extends.
-const TREE = [
+const TREE: [ErrorClass, ErrorClass][] = [
   [TLSForgeError, Error],
   [BinaryNotFound, TLSForgeError],
   [TransportError, TLSForgeError],
@@ -58,31 +62,18 @@ test('each error is an Error named as its class, under the one it extends', () =
     assert.equal(err.name, kind.name);
     assert.equal(err.message, 'tlsforge: what happened');
     assert.equal(err.cause, cause);
-    assert.match(err.stack, new RegExp(`^${kind.name}: tlsforge: what happened\\n`));
+    assert.match(err.stack ?? '', new RegExp(`^${kind.name}: tlsforge: what happened\\n`));
     assert.equal(new kind('without one').cause, undefined);
   }
 });
 
-test('the package exports every error class, and errors.js nothing else', () => {
+test('the package exports every error class, and errors.ts nothing else', () => {
   assert.deepEqual(Object.keys(errors).sort(), TREE.map(([kind]) => kind.name).sort());
-  for (const [name, kind] of Object.entries(errors)) assert.equal(tlsforge[name], kind, name);
-});
-
-test('the package ships every module it imports', () => {
-  // A module the manifest leaves out is missing from the tarball, and the
-  // package cannot be imported where it is installed.
-  const root = path.join(here, '..');
-  const { files } = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
-  for (const file of files.filter((name) => name.endsWith('.js'))) {
-    const source = readFileSync(path.join(root, file), 'utf8');
-    for (const [, imported] of source.matchAll(/from '\.\/([^']+)'/g)) {
-      assert.ok(files.includes(imported), `${file} imports ${imported}, which package.json does not list`);
-    }
-  }
+  for (const [name, kind] of Object.entries(errors)) assert.equal((tlsforge as Record<string, unknown>)[name], kind, name);
 });
 
 // withEnv runs body with the variables set, and restores them after.
-async function withEnv(env, body) {
+async function withEnv<T>(env: Record<string, string>, body: () => Promise<T>): Promise<T> {
   const saved = Object.fromEntries(Object.keys(env).map((name) => [name, process.env[name]]));
   Object.assign(process.env, env);
   try {
@@ -95,8 +86,22 @@ async function withEnv(env, body) {
   }
 }
 
+// A failure a client can meet: how it is met, with what binary, options and
+// environment, and what it is rejected with.
+interface Failure {
+  name: string;
+  ask: (client: Client) => Promise<unknown>;
+  kind: ErrorClass;
+  says: RegExp;
+  cause?: ErrorClass;
+  options?: ClientOptions;
+  env?: Record<string, string>;
+  binary?: () => string;
+  before?: (binary: string) => void;
+}
+
 // Each failure a client can meet, what it is rejected with, and what that says.
-const FAILURES = [
+const FAILURES: Failure[] = [
   { name: 'a request the far end failed', ask: (c) => c.get('https://error/'), kind: RequestFailed,
     says: /^upstream refused$/ },
   { name: 'no answer in time', options: { timeout: 300 }, ask: (c) => c.get('https://silent/'), kind: Timeout,
@@ -162,7 +167,7 @@ for (const failure of FAILURES) {
       const client = new Client({ binary, timeout: 5_000, ...failure.options });
       failure.before?.(binary);
       try {
-        await assert.rejects(() => failure.ask(client), (err) => {
+        await assert.rejects(() => failure.ask(client), (err: Error) => {
           assert.ok(err instanceof failure.kind, `${err.name}: ${err.message}`);
           assert.ok(err instanceof TLSForgeError);
           assert.match(err.message, failure.says);
@@ -178,7 +183,7 @@ for (const failure of FAILURES) {
 }
 
 test('an install problem is BinaryNotFound', () => {
-  assert.throws(() => new Client({ binary: path.join(wrapperDir, 'no-such-binary') }), (err) => {
+  assert.throws(() => new Client({ binary: path.join(wrapperDir, 'no-such-binary') }), (err: Error) => {
     assert.ok(err instanceof BinaryNotFound);
     assert.match(err.message, /^tls-forge: no binary at /);
     return true;
@@ -186,14 +191,19 @@ test('an install problem is BinaryNotFound', () => {
 });
 
 test('a mistake in the call is a TypeError or a RangeError, and none of the package\'s', async () => {
-  const isMistake = (kind, says) => (err) => err instanceof kind && !(err instanceof TLSForgeError) && says.test(err.message);
+  const isMistake = (kind: ErrorClass, says: RegExp) => (err: Error) =>
+    err instanceof kind && !(err instanceof TLSForgeError) && says.test(err.message);
   assert.throws(() => new Client({ binary: wrapper, timeout: 0 }), isMistake(RangeError, /positive finite/));
+  // @ts-expect-error -- what is no function
   assert.throws(() => new Client({ binary: wrapper, onStderr: 'log' }), isMistake(TypeError, /must be a function/));
   assert.throws(() => new Client({ binary: wrapper, cookieSet: 'eu' }), isMistake(TypeError, /requires cookieFile/));
   const client = new Client({ binary: wrapper });
   try {
+    // @ts-expect-error -- a request with no url
     await assert.rejects(() => client.request({}), isMistake(TypeError, /needs a url/));
+    // @ts-expect-error -- a body of neither text nor bytes
     await assert.rejects(() => client.post('https://ok/', 7), isMistake(TypeError, /must be a string, Buffer/));
+    // @ts-expect-error -- a value JSON has no way to write
     await assert.rejects(() => client.get('https://ok/', { headers: { n: 10n } }), isMistake(TypeError, /JSON/));
     await assert.rejects(() => client.post('https://ok/', 'x'.repeat(MAX_REQUEST_BYTES)),
       isMistake(RangeError, /send a smaller body/));

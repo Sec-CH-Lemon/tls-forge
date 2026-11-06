@@ -18,42 +18,50 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { BinaryNotFound } from './errors.js';
+import { BinaryNotFound } from './errors.ts';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
+// The package's root: this module is in src/ as it is written and in dist/ as
+// it is compiled, one directory below the root either way.
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 
 /** The platform package for the machine this is running on. */
 // npm calls the Windows `os` value win32, but that spelling triggered the
 // registry's package-name spam detector. Only the package name uses windows;
 // its manifest still declares `os: ["win32"]`, so npm selects it correctly.
-export function platformPackageName(platform, arch) {
+export function platformPackageName(platform: string, arch: string): string {
   const packagePlatform = platform === 'win32' ? 'windows' : platform;
   return `tls-forge-${packagePlatform}-${arch}`;
 }
 
 export const platformPackage = platformPackageName(process.platform, process.arch);
 
-/** The executable's name, which is the command's name, not the package's. */
-export const exeName = {
+// The executable of each supported platform, and the program that finds one on
+// its PATH: `which` is not on every Windows image and `where` is not on every
+// Unix one. No other platform has either.
+const executables: Partial<Record<NodeJS.Platform, string>> = {
   darwin: 'tls-forge',
   linux: 'tls-forge',
   win32: 'tls-forge.exe',
-}[process.platform];
+};
+const finders: Partial<Record<NodeJS.Platform, string>> = { darwin: 'which', linux: 'which', win32: 'where' };
+
+/** The executable's name, which is the command's name, not the package's. */
+export const exeName = executables[process.platform];
 
 /** The default place `npm run build` puts a locally built binary. */
 // String(undefined) is intentional: on an unsupported platform this becomes a
 // harmless non-existent candidate rather than making path.join throw during
 // module import, so an explicit path or TLSFORGE_BIN can still work.
-export const builtBinary = path.join(here, 'vendor', String(exeName));
+export const builtBinary = path.join(root, 'vendor', String(exeName));
 
 /**
- * Resolve the transport binary.
- *
- * @param {string} [explicit] a path to use as given
- * @returns {string}
+ * The transport binary: the one given, TLSFORGE_BIN, the platform package, a
+ * local build, or the one on PATH, in that order.
+ * @throws {BinaryNotFound} none of them is there, or the one given or named by
+ * TLSFORGE_BIN is not a file
  */
-export function resolveBinary(explicit) {
+export function resolveBinary(explicit?: string): string {
   const candidate = explicit || process.env.TLSFORGE_BIN;
   if (candidate) {
     if (!isFile(candidate)) {
@@ -81,19 +89,17 @@ export function resolveBinary(explicit) {
   );
 }
 
-/**
- * The binary from the optional dependency for this platform, if npm installed
- * one.
- *
- * Two resolution bases are tried, and the second is not defensive padding. A
- * `file:` dependency, `npm link` and most monorepo layouts install this package
- * as a SYMLINK, and `import.meta.url` then points into the original checkout
- * rather than into the tree the platform package was installed in — so
- * module-relative resolution looks in the wrong place and finds nothing. That
- * was measured, not imagined: installing the assembled packages into a scratch
- * project failed exactly this way before the cwd base was added.
- */
-function fromPlatformPackage() {
+// The binary from the optional dependency for this platform, if npm installed
+// one.
+//
+// Two resolution bases are tried, and the second is not defensive padding. A
+// `file:` dependency, `npm link` and most monorepo layouts install this package
+// as a SYMLINK, and `import.meta.url` then points into the original checkout
+// rather than into the tree the platform package was installed in — so
+// module-relative resolution looks in the wrong place and finds nothing. That
+// was measured, not imagined: installing the assembled packages into a scratch
+// project failed exactly this way before the cwd base was added.
+function fromPlatformPackage(): string | null {
   const bases = [require, createRequire(path.join(process.cwd(), 'package.json'))];
   for (const resolver of bases) {
     try {
@@ -113,12 +119,11 @@ function fromPlatformPackage() {
   return null;
 }
 
-function lookPath(name) {
-  // `which` is not on every Windows image and `where` is not on every Unix one,
-  // so a failure here means "not found", not "broken install".
+function lookPath(name: string): string | null {
+  // A failure here means "not found", not "broken install": a finder that is
+  // not there, or none for this platform, which execFileSync refuses.
   try {
-    const finder = { darwin: 'which', linux: 'which', win32: 'where' }[process.platform];
-    const found = execFileSync(finder, [name], { encoding: 'utf8' })
+    const found = execFileSync(finders[process.platform]!, [name], { encoding: 'utf8' })
       .split('\n')[0]
       .replace('\r', '')
       .trim();
@@ -128,7 +133,7 @@ function lookPath(name) {
   }
 }
 
-function isFile(candidate) {
+function isFile(candidate: string): boolean {
   try {
     return statSync(candidate).isFile();
   } catch {

@@ -5,7 +5,7 @@ COVER   ?= coverage.out
 PYTHON  ?= python3
 VENV    ?= .venv
 
-.PHONY: all build test cover lint vet fmt node-test python-test python-typecheck docs-check docs-generate docs-site-check docs-serve generated-check workflows-check wrapper-smoke release-test check dist capture compare notices report-css docker docker-check clean
+.PHONY: all build test cover lint vet fmt node-deps node-test python-test python-typecheck docs-check docs-generate docs-site-check docs-serve generated-check workflows-check wrapper-smoke release-test check dist capture compare notices report-css docker docker-check clean
 
 all: check
 
@@ -43,8 +43,19 @@ fmt:
 lint:
 	golangci-lint run
 
-# A gate, like `cover`: 100% of lines, functions and branches.
-node-test:
+# The Node package's TypeScript and its types for Node, as its lockfile pins
+# them: what node-test, the release scripts and the reference need.
+NODE_DEPS := node/node_modules/.package-lock.json
+
+$(NODE_DEPS): node/package.json node/package-lock.json
+	cd node && npm ci --ignore-scripts
+
+node-deps: $(NODE_DEPS)
+
+# A gate, like `cover`: the package and its tests type-checked, and 100% of
+# lines, functions and branches. The tests run as they are written, so Node
+# 22.18 or newer, which strips their types.
+node-test: $(NODE_DEPS)
 	cd node && npm test
 
 # A gate too, and a stricter one than Node's: 100% of lines AND branches.
@@ -75,10 +86,10 @@ docs-check:
 # and SDK references. The website workflow runs the same generator before deploy.
 DOCS_MKDOCS ?= .venv-docs/bin/mkdocs
 
-docs-generate:
+docs-generate: $(NODE_DEPS)
 	python3 scripts/generate-docs.py --write
 
-docs-site-check:
+docs-site-check: $(NODE_DEPS)
 	$(PYTHON) -m unittest discover -s scripts -p test_generate_docs.py
 	python3 scripts/generate-docs.py --check
 	$(DOCS_MKDOCS) build --strict --clean
@@ -114,7 +125,7 @@ workflows-check:
 wrapper-smoke: build
 	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
 	@$(VENV)/bin/pip install -q -e 'python[test]'
-	cd node && TLSFORGE_REAL_BIN=$(abspath $(BIN)) node --test test/real-daemon.test.js
+	cd node && TLSFORGE_REAL_BIN=$(abspath $(BIN)) node --test test/real-daemon.test.ts
 	cd python && TLSFORGE_REAL_BIN=$(abspath $(BIN)) ../$(VENV)/bin/python -m pytest -q tests/test_real_daemon.py
 
 # Release helpers are outside the language SDKs, so keep their regression tests
@@ -123,7 +134,7 @@ wrapper-smoke: build
 # gate as well: every line, branch and function of them covered, as in the
 # SDKs. The Python one is measured by coverage.py, its data kept out of the
 # checkout.
-release-test:
+release-test: $(NODE_DEPS)
 	node --test --experimental-test-coverage \
 		--test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 \
 		--test-coverage-include='scripts/release-*.mjs' --test-coverage-include='scripts/check-release-packages.mjs' \
@@ -153,7 +164,7 @@ check: vet lint test cover node-test python-test python-typecheck docs-check gen
 # holds. The version is the engine's (engine/version.json), the only one
 # release-build.mjs builds a set of. See RELEASING.md.
 RELEASE_VERSION ?= $(VERSION)
-dist:
+dist: $(NODE_DEPS)
 	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
 	@$(VENV)/bin/pip install -q build wheel
 	rm -rf dist
@@ -206,5 +217,5 @@ report-css:
 	cd tools/report-css && npm install --silent && npm run build
 
 clean:
-	rm -rf bin dist $(COVER) node/vendor tools/report-css/node_modules $(VENV) \
+	rm -rf bin dist $(COVER) node/vendor node/dist node/node_modules tools/report-css/node_modules $(VENV) \
 		python/.coverage python/src/*.egg-info python/src/tlsforge/bin

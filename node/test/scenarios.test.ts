@@ -11,13 +11,13 @@ import readline from 'node:readline';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { Client } from '../index.js';
+import { Client } from '../src/index.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixtures = path.join(here, '..', '..', 'testdata', 'protocol');
 const table = JSON.parse(readFileSync(path.join(here, '..', '..', 'testdata', 'fake-daemon', 'scenarios.json'), 'utf8'));
 const configuredDaemon = process.env.TLSFORGE_TEST_DAEMON;
-let wrapper;
+let wrapper: string;
 if (configuredDaemon) {
   wrapper = path.resolve(configuredDaemon);
 } else if (process.platform === 'win32') {
@@ -30,7 +30,7 @@ if (configuredDaemon) {
 
 // ask writes one line to a fake started with env and args, and is its first
 // answer.
-async function ask(line, env = {}, args = []) {
+async function ask(line: object, env: Record<string, string> = {}, args: string[] = []) {
   const child = spawn(wrapper, ['daemon', ...args], {
     stdio: ['pipe', 'pipe', 'ignore'],
     env: { ...process.env, TLSFORGE_PROTOCOL_FIXTURES: fixtures, ...env },

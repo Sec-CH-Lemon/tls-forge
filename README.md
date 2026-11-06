@@ -419,9 +419,9 @@ try {
 }
 ```
 
-See the [Node.js SDK documentation](node/README.md); the package ships its
-TypeScript types. Runnable projects are in [`example/node/`](example/node/) and
-[`example/typescript/`](example/typescript/).
+See the [Node.js SDK documentation](node/README.md); the package is written in
+TypeScript and ships its types. Runnable projects are in
+[`example/node/`](example/node/) and [`example/typescript/`](example/typescript/).
 
 ### Python
 
@@ -456,7 +456,7 @@ part is checked, and where it is known not to be; and
 ```bash
 make test             # Go race tests
 make cover            # 100% Go statement coverage gate
-make node-test        # 100% Node line/function/branch coverage gate
+make node-test        # Node types in strict mode, 100% line/function/branch coverage
 make python-test      # 100% Python statement/branch coverage gate
 make python-typecheck # the Python package's types, mypy in strict mode
 make docs-check       # every relative link in the documentation leads somewhere

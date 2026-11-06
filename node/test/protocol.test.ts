@@ -18,21 +18,21 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { Client } from '../index.js';
+import { Client } from '../src/index.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixtures = path.join(here, '..', '..', 'testdata', 'protocol');
 const fakeDaemon = path.join(here, 'fake-daemon.js');
 
-const load = (name) => JSON.parse(readFileSync(path.join(fixtures, name), 'utf8'));
+const load = (name: string) => JSON.parse(readFileSync(path.join(fixtures, name), 'utf8'));
 process.env.TLSFORGE_PROTOCOL_FIXTURES = fixtures;
 
-// The fake is injected as the binary, the same way client.test.js does it, so
+// The fake is injected as the binary, the same way client.test.ts does it, so
 // the fixture travels the real spawn/pipe/readline path rather than being
 // handed straight to a parser.
 const wrapperDir = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-protocol-'));
 const configuredDaemon = process.env.TLSFORGE_TEST_DAEMON;
-let wrapper;
+let wrapper: string;
 if (configuredDaemon) {
   wrapper = path.resolve(configuredDaemon);
 } else if (process.platform === 'win32') {
@@ -103,7 +103,7 @@ test('a failure in the committed wire format rejects with its error', async () =
   try {
     await assert.rejects(
       () => client.get('https://fixture-error/'),
-      (err) => err.message === fixture.error,
+      (err: Error) => err.message === fixture.error,
     );
   } finally {
     await client.close();

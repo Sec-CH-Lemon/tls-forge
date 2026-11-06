@@ -18,6 +18,16 @@ const venvPython = process.platform === 'win32'
 
 try {
   await run('go', ['build', '-o', daemon, './testdata/fake-daemon'], { cwd: root });
+  // The examples take the package from node/ as a file: dependency, which is
+  // what it is published as: dist/, compiled from its TypeScript.
+  await run(npmCommand(), ['ci', '--ignore-scripts'], {
+    cwd: path.join(root, 'node'),
+    shell: process.platform === 'win32',
+  });
+  await run(npmCommand(), ['run', 'compile'], {
+    cwd: path.join(root, 'node'),
+    shell: process.platform === 'win32',
+  });
   for (const example of ['node', 'typescript']) {
     await run(npmCommand(), ['ci', '--omit=optional'], {
       cwd: path.join(root, 'example', example),

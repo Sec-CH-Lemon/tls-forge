@@ -24,6 +24,7 @@ junk=(
   .venv/pyvenv.cfg
   python/.venv-3.13/pyvenv.cfg
   node/node_modules/left/index.js
+  node/dist/index.js
   example/node/node_modules/left/index.js
   example/typescript/node_modules/left/index.js
   python/src/tlsforge/bin/tls-forge

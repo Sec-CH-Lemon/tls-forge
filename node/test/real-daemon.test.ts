@@ -8,9 +8,16 @@ import net from 'node:net';
 import { test } from 'node:test';
 import zlib from 'node:zlib';
 
-import { Client, MAX_REQUEST_BYTES, RequestFailed } from '../index.js';
+import { Client, MAX_REQUEST_BYTES, RequestFailed, type BrowserContext, type RequestOptions } from '../src/index.ts';
 
 const binary = process.env.TLSFORGE_REAL_BIN;
+
+// portOf is the port a listening server was given.
+function portOf(server: net.Server): number {
+  const address = server.address();
+  assert.ok(address !== null && typeof address === 'object', 'not listening on a port');
+  return address.port;
+}
 
 test('the Node wrapper decodes bytes emitted by the real Go daemon', { skip: !binary }, async () => {
   const want = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0xff, 0xd8, 0xff]);
@@ -18,12 +25,11 @@ test('the Node wrapper decodes bytes emitted by the real Go daemon', { skip: !bi
     response.setHeader('set-cookie', ['a=1', 'b=2']);
     response.end(want);
   });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
 
   const client = new Client({ binary });
   try {
-    const address = server.address();
-    const response = await client.get(`http://127.0.0.1:${address.port}/binary`);
+    const response = await client.get(`http://127.0.0.1:${portOf(server)}/binary`);
     assert.deepEqual(response.content, want);
     assert.deepEqual(response.headers['set-cookie'], ['a=1', 'b=2']);
   } finally {
@@ -40,11 +46,11 @@ test('a deflate page from the real Go daemon arrives decoded, its fields describ
     response.setHeader('content-encoding', 'deflate');
     response.end(zlib.deflateSync(page));
   });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
 
   const client = new Client({ binary, timeout: 10_000 });
   try {
-    const response = await client.get(`http://127.0.0.1:${server.address().port}/page`);
+    const response = await client.get(`http://127.0.0.1:${portOf(server)}/page`);
     assert.equal(response.body, page);
     assert.equal(response.headers['content-encoding'], undefined);
     assert.equal(response.headers['content-length'], undefined);
@@ -58,8 +64,8 @@ test('a request the real Go daemon cannot make rejects', { skip: !binary }, asyn
   // A port that was listening a moment ago and is not any more: refused at
   // once, on every platform, without reaching anything outside this machine.
   const closed = net.createServer();
-  await new Promise((resolve) => closed.listen(0, '127.0.0.1', resolve));
-  const { port } = closed.address();
+  await new Promise<void>((resolve) => closed.listen(0, '127.0.0.1', resolve));
+  const port = portOf(closed);
   await new Promise((resolve) => closed.close(resolve));
 
   const client = new Client({ binary });
@@ -76,7 +82,7 @@ test('the real Go daemon follows nineteen redirects and stops at the twentieth',
   let ends = 0;
   const server = http.createServer((request, response) => {
     requests += 1;
-    const left = Number(request.url.slice('/chain/'.length));
+    const left = Number(request.url!.slice('/chain/'.length));
     if (left === 0) {
       ends += 1;
       response.end('landed');
@@ -88,8 +94,8 @@ test('the real Go daemon follows nineteen redirects and stops at the twentieth',
   await listen(server);
   const client = new Client({ binary, timeout: 10_000 });
   try {
-    const base = `http://127.0.0.1:${server.address().port}`;
-    for (const [redirects, landed] of [[19, true], [20, false], [21, false]]) {
+    const base = `http://127.0.0.1:${portOf(server)}`;
+    for (const [redirects, landed] of [[19, true], [20, false], [21, false]] as [number, boolean][]) {
       requests = 0;
       ends = 0;
       const asked = client.get(`${base}/chain/${redirects}`);
@@ -107,16 +113,16 @@ test('the real Go daemon follows nineteen redirects and stops at the twentieth',
 });
 
 // listen starts a server on a port of its own on this machine.
-async function listen(server) {
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+async function listen<T extends net.Server>(server: T): Promise<T> {
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   return server;
 }
 
 // tunnelling is a proxy that opens a tunnel for a CONNECT that says who it is
 // with the right password, and turns away any other, as a paid proxy does. It
 // keeps where each tunnel went.
-async function tunnelling(user, password) {
-  const tunnels = [];
+async function tunnelling(user: string, password: string) {
+  const tunnels: string[] = [];
   const proxy = http.createServer((request, response) => {
     const expected = `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`;
     if (request.headers['proxy-authorization'] !== expected) {
@@ -124,15 +130,15 @@ async function tunnelling(user, password) {
       response.end();
       return;
     }
-    const target = new URL(request.url);
+    const target = new URL(request.url!);
     assert.equal(target.protocol, 'http:');
     assert.equal(target.hostname, '127.0.0.1');
     tunnels.push(target.host);
-    const headers = { ...request.headers, connection: 'close' };
+    const headers: http.OutgoingHttpHeaders = { ...request.headers, connection: 'close' };
     delete headers['proxy-authorization'];
     delete headers['proxy-connection'];
     const upstream = http.request(target, { method: request.method, headers }, (answer) => {
-      response.writeHead(answer.statusCode, answer.headers);
+      response.writeHead(answer.statusCode!, answer.headers);
       answer.pipe(response);
     });
     upstream.on('error', () => response.destroy());
@@ -144,8 +150,8 @@ async function tunnelling(user, password) {
       socket.end('HTTP/1.1 407 Proxy Authentication Required\r\nContent-Length: 0\r\n\r\n');
       return;
     }
-    tunnels.push(request.url);
-    const [host, port] = request.url.split(':');
+    tunnels.push(request.url!);
+    const [host, port] = request.url!.split(':');
     const upstream = net.connect(Number(port), host, () => {
       socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
       upstream.write(head);
@@ -156,7 +162,7 @@ async function tunnelling(user, password) {
     socket.on('error', () => upstream.destroy());
   });
   await listen(proxy);
-  return { proxy, tunnels, url: `http://${user}:${password}@127.0.0.1:${proxy.address().port}` };
+  return { proxy, tunnels, url: `http://${user}:${password}@127.0.0.1:${portOf(proxy)}` };
 }
 
 test('the real Go daemon goes through the proxy its input names', { skip: !binary }, async () => {
@@ -171,9 +177,9 @@ test('the real Go daemon goes through the proxy its input names', { skip: !binar
   const { proxy, tunnels, url } = await tunnelling('alice', 's3cret');
   const client = new Client({ binary, proxy: url, timeout: 10_000 });
   try {
-    const response = await client.get(`http://127.0.0.1:${origin.address().port}/`);
+    const response = await client.get(`http://127.0.0.1:${portOf(origin)}/`);
     assert.equal(response.body, 'through the proxy');
-    assert.deepEqual(tunnels, [`127.0.0.1:${origin.address().port}`]);
+    assert.deepEqual(tunnels, [`127.0.0.1:${portOf(origin)}`]);
     assert.equal(asked, 1);
   } finally {
     client.close();
@@ -185,7 +191,7 @@ test('the real Go daemon goes through the proxy its input names', { skip: !binar
 test('a proxy the real Go daemon turns down says why without its password', { skip: !binary }, async () => {
   const origin = await listen(http.createServer((_request, response) => response.end('never')));
   const { proxy, tunnels } = await tunnelling('alice', 's3cret');
-  const port = proxy.address().port;
+  const port = portOf(proxy);
   for (const url of [
     // One that will not parse: quoted back whole by whatever tried to read it.
     'http://alice:s3cret-never-shown@[bad',
@@ -194,7 +200,7 @@ test('a proxy the real Go daemon turns down says why without its password', { sk
   ]) {
     const client = new Client({ binary, proxy: url, timeout: 10_000 });
     try {
-      await assert.rejects(() => client.get(`http://127.0.0.1:${origin.address().port}/`), (err) => {
+      await assert.rejects(() => client.get(`http://127.0.0.1:${portOf(origin)}/`), (err: Error) => {
         assert.ok(!err.message.includes('s3cret-never-shown'), err.message);
         return true;
       });
@@ -209,7 +215,7 @@ test('a proxy the real Go daemon turns down says why without its password', { sk
   // What the daemon itself says of the one it cannot read, as the client
   // starts it: its answer to the init line and its last words, read here to
   // the end.
-  const started = spawnSync(binary, ['daemon', '--proxy-stdin'], {
+  const started = spawnSync(binary!, ['daemon', '--proxy-stdin'], {
     input: JSON.stringify({ id: 1, engine_major: 1, control: 'init', proxy: 'http://alice:s3cret-never-shown@[bad' }) + '\n',
     encoding: 'utf8',
   });
@@ -223,7 +229,7 @@ test('a proxy the real Go daemon turns down says why without its password', { sk
 test('the real Go daemon reads a request as long as the limit, and keeps its session past one longer', { skip: !binary }, async () => {
   // The limit this client refuses a request at has to be the daemon's, to the
   // byte: one byte under it, and the daemon would end, its session with it.
-  let seen = null;
+  let seen: { cookie: string; length: number } | null = null;
   const origin = await listen(http.createServer((request, response) => {
     if (request.url === '/set') {
       response.setHeader('set-cookie', 'visitor=42; Path=/');
@@ -231,20 +237,20 @@ test('the real Go daemon reads a request as long as the limit, and keeps its ses
       return;
     }
     let length = 0;
-    request.on('data', (chunk) => { length += chunk.length; });
+    request.on('data', (chunk: Buffer) => { length += chunk.length; });
     request.on('end', () => {
       seen = { cookie: request.headers.cookie ?? '', length };
       response.end('seen');
     });
   }));
-  const base = `http://127.0.0.1:${origin.address().port}`;
+  const base = `http://127.0.0.1:${portOf(origin)}`;
   const client = new Client({ binary, timeout: 60_000 });
   try {
     await client.get(`${base}/set`);
     const url = `${base}/echo`;
     // As a page's script posts: a request without a browser context is a
     // navigation typed into the address bar, which posts nothing.
-    const browserContext = { kind: 'fetch', initiator: `${base}/` };
+    const browserContext: BrowserContext = { kind: 'fetch', initiator: `${base}/` };
     const overhead = Buffer.byteLength(JSON.stringify({
       url, body: '', method: 'POST', browser: browserContext, id: 3, engine_major: 1,
     }) + '\n');
@@ -265,13 +271,13 @@ test('the real Go daemon keeps no cookie of an answer to a request without crede
   // fetch() with credentials omit carries no cookies and keeps none its
   // answer sets, as Chrome's; one with the page's own credentials keeps them.
   const server = http.createServer((request, response) => {
-    response.setHeader('Set-Cookie', `${request.url.slice(1)}=1; Path=/`);
+    response.setHeader('Set-Cookie', `${request.url!.slice(1)}=1; Path=/`);
     response.end('ok');
   });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const client = new Client({ binary });
   try {
-    const base = `http://127.0.0.1:${server.address().port}`;
+    const base = `http://127.0.0.1:${portOf(server)}`;
     const from = `${base}/page`;
     const omitted = await client.get(`${base}/omitted`, {
       browserContext: { kind: 'fetch', initiator: from, credentials: 'omit' },
@@ -287,8 +293,8 @@ test('the real Go daemon keeps no cookie of an answer to a request without crede
 
 test('the real Go daemon applies a browser context, CORS and all', { skip: !binary }, async () => {
   // Two servers, two origins: the page's, and another one CORS answers for.
-  const serve = (answer) => {
-    const seen = [];
+  const serve = (answer: http.RequestListener) => {
+    const seen: { method?: string; url?: string; headers: http.IncomingHttpHeaders }[] = [];
     const server = http.createServer((request, response) => {
       seen.push({ method: request.method, url: request.url, headers: request.headers });
       answer(request, response);
@@ -300,16 +306,17 @@ test('the real Go daemon applies a browser context, CORS and all', { skip: !bina
     response.statusCode = 403;
     response.end();
   });
-  await Promise.all([page, other].map(({ server }) => new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))));
+  await Promise.all([page, other].map(({ server }) => new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))));
   const client = new Client({ binary });
   try {
-    const base = `http://127.0.0.1:${page.server.address().port}`;
-    const elsewhere = `http://127.0.0.1:${other.server.address().port}`;
+    const base = `http://127.0.0.1:${portOf(page.server)}`;
+    const elsewhere = `http://127.0.0.1:${portOf(other.server)}`;
     assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' });
     const from = `${base}/page`;
     const response = await client.get(`${base}/api`, { browserContext: { kind: 'fetch', initiator: from } });
     assert.equal(response.status, 200);
     const api = page.seen.find((hit) => hit.url === '/api');
+    assert.ok(api);
     assert.equal(api.headers['sec-fetch-mode'], 'cors');
     assert.equal(api.headers['sec-fetch-site'], 'same-origin');
     assert.equal(api.headers.accept, '*/*');
@@ -330,12 +337,14 @@ test('the real Go daemon applies a browser context, CORS and all', { skip: !bina
     // the protocol does not have is refused before it is asked.
     const before = page.seen.length;
     await assert.rejects(
+      // @ts-expect-error -- a kind the daemon does not send
       client.get(`${base}/x`, { browserContext: { kind: 'websocket', initiator: from } }),
-      (err) => err instanceof RequestFailed && /kind "websocket" is not navigation, form, fetch or xhr/.test(err.message),
+      (err: Error) => err instanceof RequestFailed && /kind "websocket" is not navigation, form, fetch or xhr/.test(err.message),
     );
     await assert.rejects(
+      // @ts-expect-error -- a key the protocol does not have
       client.get(`${base}/x`, { browserContext: { kind: 'fetch', initiator: from, frame: 'top' } }),
-      (err) => err instanceof TypeError && /browserContext has no key "frame"/.test(err.message),
+      (err: Error) => err instanceof TypeError && /browserContext has no key "frame"/.test(err.message),
     );
     assert.equal(page.seen.length, before);
   } finally {
@@ -348,18 +357,18 @@ test('the real Go daemon applies a browser context, CORS and all', { skip: !bina
 test('invalid profile semantics fail before real daemon origin or proxy I/O', { skip: !binary }, async () => {
   let connections = 0;
   const server = net.createServer((socket) => { connections += 1; socket.destroy(); });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const dir = mkdtempSync(join(tmpdir(), 'tlsforge-a6-'));
   const profile = JSON.parse(readFileSync(new URL('../../profile/data/chrome_155/macos.json', import.meta.url), 'utf8'));
   profile.name = 'sdk-semantic-negative';
   profile.http2.settings = [{ id: 5, value: 1 }];
   const file = join(dir, 'renamed.json');
   writeFileSync(file, JSON.stringify(profile));
-  const address = `127.0.0.1:${server.address().port}`;
+  const address = `127.0.0.1:${portOf(server)}`;
   try {
     for (const proxy of [undefined, `http://${address}`, `https://${address}`, `socks5://${address}`]) {
-      let diagnostic;
-      const seen = new Promise((resolve) => { diagnostic = resolve; });
+      let diagnostic = (): void => {};
+      const seen = new Promise<void>((resolve) => { diagnostic = resolve; });
       const client = new Client({ binary, profile: file, proxy, timeout: 2_000, onStderr: (line) => {
         if (line.includes('http2.settings[0].value') && line.includes('sdk-semantic-negative')) diagnostic();
       } });
@@ -390,7 +399,7 @@ test('the real daemon rejects invalid UTF-8 URL hosts before transport', { skip:
 });
 
 test('each Node request through the real daemon owns a cold browser', { skip: !binary }, async () => {
-  const peers = [], cookies = [];
+  const peers: (number | undefined)[] = [], cookies: string[] = [];
   const origin = await listen(http.createServer((request, response) => {
     peers.push(request.socket.remotePort);
     cookies.push(request.headers.cookie ?? '');
@@ -400,9 +409,9 @@ test('each Node request through the real daemon owns a cold browser', { skip: !b
   }));
   const client = new Client({ binary });
   try {
-    const base = `http://127.0.0.1:${origin.address().port}`;
+    const base = `http://127.0.0.1:${portOf(origin)}`;
     for (let i = 1; i <= 4; i++) {
-      const options = i <= 2 ? {} : { browserContext: { kind: 'fetch', initiator: `${base}/start` } };
+      const options: RequestOptions = i <= 2 ? {} : { browserContext: { kind: 'fetch', initiator: `${base}/start` } };
       assert.equal((await client.get(`${base}/page`, options)).body, `body-${i}`);
     }
     assert.deepEqual(cookies, ['', '', '', '']);
@@ -416,7 +425,7 @@ test('each Node request through the real daemon owns a cold browser', { skip: !b
 test('typed network metadata selects JSON estimator seeds in the real daemon', {skip:!binary}, async()=>{
  const p=JSON.parse(readFileSync(new URL('../../profile/data/chrome_156/macos.json',import.meta.url),'utf8'));
  const policy=JSON.parse(readFileSync(new URL('../../networkquality/testdata/chromium156-nqe-source-candidate.json',import.meta.url),'utf8'));
- p.client_hints=p.client_hints.filter((h)=>!['rtt','downlink','ect'].includes(h.name));p.headers=p.headers.filter((h)=>!['rtt','downlink','ect'].includes(h.name));
+ p.client_hints=p.client_hints.filter((h: {name: string})=>!['rtt','downlink','ect'].includes(h.name));p.headers=p.headers.filter((h: {name: string})=>!['rtt','downlink','ect'].includes(h.name));
  policy.cache.enabled=false;policy.cache.read_after_bootstrap=false;policy.compute.sparse_rtt_cap_ms=0;policy.compute.use_end=false;policy.compute.transport_lower=0;
  policy.noise.salt_min=1;policy.noise.salt_max=1;policy.noise.buckets=1;policy.noise.base=1;policy.noise.step=0;policy.noise.rtt_quantum_ms=10;
  for(const seed of policy.seeds){seed.http_ms={value:seed.type==='wifi'?1110:2220,available:true};seed.transport_ms={value:0,available:false};seed.downlink_kbps={value:0,available:false}}
@@ -424,10 +433,10 @@ test('typed network metadata selects JSON estimator seeds in the real daemon', {
  const dir=mkdtempSync(join(tmpdir(),'tls-forge-nqe-'));const path=join(dir,'profile.json');writeFileSync(path,JSON.stringify(p));
  let requests=0;
  const server=http.createServer((request,response)=>{requests++;response.setHeader('Accept-CH','rtt');response.setHeader('Critical-CH','rtt');response.setHeader('Cache-Control','no-store');response.end(request.headers.rtt??'');});
- await new Promise((resolve)=>server.listen(0,'127.0.0.1',resolve));
+ await new Promise<void>((resolve)=>server.listen(0,'127.0.0.1',resolve));
  const c=new Client({binary,profile:path});
  try{
-  const url=`http://127.0.0.1:${server.address().port}/`;
+  const url=`http://127.0.0.1:${portOf(server)}/`;
   const wifi=await c.get(url,{networkContext:{type:'wifi',id:'wifi-a',generation:1,signal:0}});
   const unknown=await c.get(url,{networkContext:{type:'unknown',id:'unknown-b',generation:2,signal:null}});
   assert.equal(wifi.body,'1110');assert.equal(unknown.body,'2220');assert.equal(requests,4);

@@ -89,7 +89,7 @@ func fixtureRequest() Request {
 // Python callers silently received no cookies at all.
 //
 // The same two files are asserted against by python/tests/test_protocol.py and
-// node/test/protocol.test.js, so one rename now breaks all three.
+// node/test/protocol.test.ts, so one rename now breaks all three.
 func TestProtocolFixture(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
@@ -124,7 +124,7 @@ func TestProtocolFixture(t *testing.T) {
 			if string(encoded) != string(want) {
 				t.Errorf("the wire format changed.\n got:\n%s\nwant:\n%s\n\n"+
 					"If this is deliberate, update every implementation of the "+
-					"protocol — python/src/tlsforge/_client.py and node/index.js — "+
+					"protocol — python/src/tlsforge/_client.py and node/src/index.ts — "+
 					"and then regenerate with:\n"+
 					"    go test ./daemon/ -run TestProtocolFixture -update",
 					encoded, want)

@@ -3,6 +3,13 @@
 /dist/
 /site/
 /node/vendor/
+# The Node package compiled from its TypeScript, and what compiling it in
+# place leaves beside the sources (CI's Node 20.12 leg, which cannot strip
+# types, runs the suite so).
+/node/dist/
+/node/src/*.js
+/node/scripts/compile.js
+/node/test/*.test.js
 # `go build ./cmd/tls-forge` from the root drops the binary here, named after
 # the module, right next to the source.
 /tls-forge

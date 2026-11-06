@@ -21,6 +21,8 @@ tls-forge
 # Dependencies and environments, wherever a package or an example keeps them.
 **/node_modules
 node/vendor
+# The Node package compiled from its TypeScript.
+node/dist
 **/.venv*
 **/__pycache__
 **/*.egg-info

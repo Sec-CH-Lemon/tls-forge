@@ -1,0 +1,12 @@
+{
+  // The package as it is published: dist/, its JavaScript and declarations,
+  // which carry the doc comments scripts/generate-docs.py reads.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true
+  },
+  "include": ["src"]
+}

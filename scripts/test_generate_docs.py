@@ -183,6 +183,46 @@ class NodeTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             GENERATOR.jsdoc("/** Text.\n * @deprecated */")
 
+    # What tsc emits: declare, a class's #private, and names another module declares.
+    EMITTED = "\n".join((
+        "/** Max. */",
+        "export declare const MAX: number;",
+        "/** A client. */",
+        "export declare class Client {",
+        "    #private;",
+        "    /** Make one. */",
+        "    constructor(options?: {",
+        "        cause?: unknown;",
+        "    });",
+        "    close(): void;",
+        "}",
+        "export { find } from './binary.js';",
+        "export { Gone, Base } from './errors.js';",
+        "export default Client;",
+    ))
+    MODULES = {
+        "binary": "/** Not exported. */\nexport declare function other(): string;\n/** Where it is. */\nexport declare function find(at?: string): string;",
+        "errors": "/** The base. */\nexport declare class Base extends Error {\n}\n/** Gone. */\nexport declare class Gone extends Base {\n}",
+    }
+
+    def test_compiled_declarations_are_read_with_what_they_re_export(self):
+        source = GENERATOR.node_reexported(self.EMITTED, self.MODULES.__getitem__)
+        page = GENERATOR.node_page(source)
+        headings = [line for line in page.split("\n") if line.startswith("#")]
+        self.assertEqual(headings, [
+            "# Node.js API", "## MAX { .tf-symbol }", "## Client { .tf-symbol }",
+            "### new Client() { .tf-member }", "### Client.close() { .tf-member }",
+            "## find() { .tf-symbol }", "## Base { .tf-symbol }", "## Gone { .tf-symbol }"])
+        self.assertIn("new Client(options?: { cause?: unknown })", page)
+        self.assertNotIn("other", page)
+        self.assertNotIn("#private", page)
+        self.assertIn("The package's default export is `Client`.", page)
+
+    def test_a_name_another_module_does_not_declare_is_refused(self):
+        with self.assertRaises(RuntimeError) as refused:
+            GENERATOR.node_reexported("export { lost } from './binary.js';", self.MODULES.__getitem__)
+        self.assertIn("binary.d.ts declares no lost", str(refused.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

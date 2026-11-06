@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { test, type TestContext } from 'node:test';
 import {
   chmodSync,
   copyFileSync,
@@ -17,10 +17,21 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 
-import { BinaryNotFound, Client, MAX_REQUEST_BYTES, SessionReset, TLSForgeError, resolveBinary } from '../index.js';
-import { builtBinary, exeName, platformPackage, platformPackageName } from '../binary.js';
+import {
+  BinaryNotFound,
+  Client,
+  MAX_REQUEST_BYTES,
+  SessionReset,
+  TLSForgeError,
+  resolveBinary,
+  type ClientOptions,
+  type Response,
+} from '../src/index.ts';
+import { builtBinary, exeName, platformPackage, platformPackageName } from '../src/binary.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+// The tests run on a platform the package ships a binary for.
+const exe = exeName ?? assert.fail(`no executable for ${process.platform}`);
 
 // Not the developer's: a TLSFORGE_BIN set in the shell that runs the tests
 // would answer every resolution these tests are about. A file is a process of
@@ -38,7 +49,7 @@ process.env.TLSFORGE_PROTOCOL_FIXTURES = path.join(here, '..', '..', 'testdata',
 // readline plumbing — which is where the interesting failures live.
 const wrapperDir = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-test-'));
 const configuredDaemon = process.env.TLSFORGE_TEST_DAEMON;
-let wrapper;
+let wrapper: string;
 if (configuredDaemon) {
   wrapper = path.resolve(configuredDaemon);
 } else if (process.platform === 'win32') {
@@ -49,7 +60,7 @@ if (configuredDaemon) {
   chmodSync(wrapper, 0o755);
 }
 
-function fake(options = {}) {
+function fake(options: ClientOptions = {}) {
   return new Client({ binary: wrapper, ...options });
 }
 
@@ -65,7 +76,7 @@ const COLD_START = 5_000;
 // be COLD_START and cost nothing. Nothing is in flight when ask is made: the
 // test's clearTimeout does not clear a deadline set on the real clock, which
 // would pass later. The real clock is back for what follows.
-function pastDeadline(t, ask) {
+function pastDeadline<T>(t: TestContext, ask: () => T): T {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   try {
     const asked = ask();
@@ -83,7 +94,7 @@ function pastDeadline(t, ask) {
 // when ask is made, as for pastDeadline. Every deadline still set once ask is
 // answered passes then, as it would later on the real clock: putting the
 // test's clock away would drop it unseen.
-async function untimed(t, ask) {
+async function untimed<T>(t: TestContext, ask: () => Promise<T>): Promise<T> {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const late = setInterval(() => t.mock.timers.runAll(), COLD_START);
   try {
@@ -145,12 +156,15 @@ test('headers, order and cookies reach the transport', async () => {
 test('a request with a field it does not have is refused unsent', async () => {
   const c = fake();
   for (const [asked, says] of [
+    // @ts-expect-error -- a proxy, which is the client's
     [() => c.get('https://ok/x', { proxy: 'http://proxy:8080' }),
       /^tlsforge: a request has no field "proxy"; a proxy is the client's: new Client\(\{ proxy \}\); it takes url, method/],
+    // @ts-expect-error -- a timeout, which is the client's
     [() => c.request({ url: 'https://ok/x', timeout: 5 }), /^tlsforge: a request has no field "timeout"; it takes url, method, headers/],
+    // @ts-expect-error -- the Python package's name of a field
     [() => c.post('https://ok/x', 'b', { browser_context: { kind: 'fetch' } }), /no field "browser_context"/],
-  ]) {
-    await assert.rejects(asked(), (err) => {
+  ] as [() => Promise<Response>, RegExp][]) {
+    await assert.rejects(asked(), (err: Error) => {
       assert.ok(err instanceof TypeError && !(err instanceof TLSForgeError), err.name);
       assert.match(err.message, says);
       return true;
@@ -180,7 +194,7 @@ test('client options become daemon arguments', async () => {
 
 // withEnv sets environment variables of this process for one test, and puts
 // back what was there, including nothing.
-async function withEnv(values, body) {
+async function withEnv<T>(values: Record<string, string | undefined>, body: () => Promise<T>): Promise<T> {
   const before = Object.fromEntries(Object.keys(values).map((name) => [name, process.env[name]]));
   for (const [name, value] of Object.entries(values)) {
     if (value === undefined) delete process.env[name];
@@ -210,7 +224,7 @@ test("a proxy reaches its own process on its input, and nowhere else", async () 
         one.get('https://ok/x'), two.get('https://ok/x'), plain.get('https://ok/x'),
       ]);
       for (const [response, proxy] of [[first, 'http://alice:s3cret-one@proxy.test:8080'],
-        [second, 'socks5://bob:s3cret-two@proxy.test:1080']]) {
+        [second, 'socks5://bob:s3cret-two@proxy.test:1080']] as [Response, string][]) {
         const echoed = JSON.parse(response.body);
         assert.equal(echoed.proxy, proxy);
         assert.equal(echoed.env.TLSFORGE_PROXY, null);
@@ -219,7 +233,7 @@ test("a proxy reaches its own process on its input, and nowhere else", async () 
       }
       const echoed = JSON.parse(third.body);
       assert.equal(echoed.env.TLSFORGE_PROXY, null);
-      assert.ok(!echoed.argv.some((arg) => arg.startsWith('--proxy')));
+      assert.ok(!echoed.argv.some((arg: string) => arg.startsWith('--proxy')));
       assert.equal(process.env.TLSFORGE_PROXY, undefined);
     } finally {
       one.close();
@@ -237,7 +251,7 @@ test("a variable this process has is not a proxy unless the client names one", a
     const proxied = fake({ proxy: 'http://mine.test:8080' });
     try {
       const inherited = JSON.parse((await plain.get('https://ok/x')).body);
-      assert.ok(!inherited.argv.some((arg) => arg.startsWith('--proxy')));
+      assert.ok(!inherited.argv.some((arg: string) => arg.startsWith('--proxy')));
       const own = JSON.parse((await proxied.get('https://ok/x')).body);
       assert.equal(own.proxy, 'http://mine.test:8080');
       assert.equal(process.env.TLSFORGE_PROXY, 'http://someone:else@elsewhere.test:3128');
@@ -277,11 +291,11 @@ test('a transport that will not take its proxy starts no session, and says why',
     ['exit', /^tlsforge: transport exited \(code 3\)$/],
     ['silent', /^tlsforge: request timed out$/],
     ['garbage', /^tlsforge: bad response: /],
-  ]) {
+  ] as [string, RegExp][]) {
     await withEnv({ TLSFORGE_TEST_INIT: mode }, async () => {
       const c = fake({ proxy: 'http://alice:s3cret@proxy.test:8080', timeout: COLD_START });
       // Unanswered, the init line is ended by its deadline, which passes at once.
-      const settle = (ask) => (mode === 'silent' ? pastDeadline(t, ask) : ask());
+      const settle = <T>(ask: () => T): T => (mode === 'silent' ? pastDeadline(t, ask) : ask());
       try {
         const [first, second] = await settle(() => Promise.allSettled([c.get('https://ok/a'), c.get('https://ok/b')]));
         const third = await settle(() => Promise.allSettled([c.get('https://ok/c')]));
@@ -341,7 +355,7 @@ test('a transport that refuses its arguments without a proxy says only that', as
   await withEnv({ TLSFORGE_TEST_REFUSE: 'always' }, async () => {
     const c = fake();
     try {
-      await assert.rejects(() => c.get('https://ok/a'), (err) => {
+      await assert.rejects(() => c.get('https://ok/a'), (err: Error) => {
         assert.match(err.message, /refused its arguments \(code 2\)$/);
         return true;
       });
@@ -373,6 +387,7 @@ test('an error field becomes a rejection', async () => {
 
 test('a request with no url is rejected without spawning anything', async () => {
   const c = fake();
+  // @ts-expect-error -- a request with no url
   await assert.rejects(() => c.request({}), /needs a url/);
   c.close();
 });
@@ -409,7 +424,7 @@ for (const behaviour of [
 }
 
 test('an answer for a different id is ignored, not mistaken for this one', async () => {
-  const notes = [];
+  const notes: string[] = [];
   const c = fake({ onStderr: (line) => notes.push(line) });
   const res = await c.get('https://wrong-id/x');
   // The stray line carried body "stray"; the real answer did not.
@@ -464,7 +479,7 @@ test('a request leaves no deadline set, however it ends', async (t) => {
   // transport is the process that answers the next request, or why none did.
   const transport = () => c.get('https://ok/next').then(
     (res) => JSON.parse(res.body).pid,
-    (err) => `${err.name}: ${err.message}`,
+    (err: Error) => `${err.name}: ${err.message}`,
   );
   try {
     const started = JSON.parse((await untimed(t, () => c.get('https://ok/start'))).body).pid;
@@ -475,8 +490,8 @@ test('a request leaves no deadline set, however it ends', async (t) => {
       ['an answer of the wrong shape', () => c.get('https://bad-status/x'), /^tlsforge: bad response: field "status"/],
       ['a line that is not JSON', () => c.get('https://garbage/x'), /^tlsforge: bad response: /],
       ['an answer to hello', () => c.hello(), /^answered$/],
-    ]) {
-      const outcome = await untimed(t, () => ask().then(() => 'answered', (err) => err.message));
+    ] as [string, () => Promise<unknown>, RegExp][]) {
+      const outcome = await untimed(t, () => ask().then(() => 'answered', (err: Error) => err.message));
       assert.match(outcome, says, ending);
       assert.equal(await transport(), started, ending);
     }
@@ -535,7 +550,7 @@ test('a transport that dies while nobody asks it anything tells the next request
 // sized is a POST whose line is exactly size bytes as the transport reads it,
 // made as the id-th request of its client, with a body of one character
 // repeated: ASCII is a byte each, "я" two.
-function sized(size, id, char = 'x') {
+function sized(size: number, id: number, char = 'x') {
   const url = 'https://ok/sized';
   const overhead = Buffer.byteLength(JSON.stringify({ url, body: '', method: 'POST', id, engine_major: 1 }) + '\n');
   const each = Buffer.byteLength(char);
@@ -550,7 +565,7 @@ test('a request is measured as the transport reads it, and one too long is not s
   try {
     const first = JSON.parse((await c.get('https://ok/first')).body).pid;
     let id = 2;
-    for (const [size, char] of [[MAX_REQUEST_BYTES - 1, 'x'], [MAX_REQUEST_BYTES, 'x'], [MAX_REQUEST_BYTES, 'я']]) {
+    for (const [size, char] of [[MAX_REQUEST_BYTES - 1, 'x'], [MAX_REQUEST_BYTES, 'x'], [MAX_REQUEST_BYTES, 'я']] as [number, string][]) {
       const { url, body } = sized(size, ++id, char);
       const echoed = JSON.parse((await c.post(url, body)).body);
       assert.equal(echoed.bodyLength, body.length);
@@ -585,6 +600,7 @@ test('requests on either side of one too long are made in the same session', asy
     ]);
     assert.equal(refused.status, 'rejected');
     assert.ok(refused.reason instanceof RangeError);
+    assert.ok(before.status === 'fulfilled' && after.status === 'fulfilled');
     assert.equal(JSON.parse(before.value.body).pid, JSON.parse(after.value.body).pid);
   } finally {
     c.close();
@@ -592,7 +608,7 @@ test('requests on either side of one too long are made in the same session', asy
 });
 
 test('stderr is forwarded to the callback', async () => {
-  const notes = [];
+  const notes: string[] = [];
   const c = fake({ onStderr: (line) => notes.push(line) });
   await c.get('https://stderr/x');
   assert.ok(notes.some((line) => line.includes('a note on stderr')));
@@ -600,7 +616,7 @@ test('stderr is forwarded to the callback', async () => {
 });
 
 test('stderr chunks are reassembled into logical lines', async () => {
-  const notes = [];
+  const notes: string[] = [];
   const c = fake({ onStderr: (line) => notes.push(line) });
   await c.get('https://stderr-chunks/x');
   assert.deepEqual(notes, ['one logical line', 'second line']);
@@ -645,10 +661,10 @@ test('null response fields are normalised to the public response shape', async (
 
 test('an unencodable request does not block the queue', async () => {
   const c = fake();
-  const headers = {};
+  const headers: Record<string, unknown> = {};
   headers.circular = headers;
   await assert.rejects(
-    () => c.get('https://ok/bad', { headers }),
+    () => c.get('https://ok/bad', { headers: headers as never }),
     /request cannot be encoded as JSON/,
   );
   assert.equal((await c.get('https://ok/after')).status, 200);
@@ -656,7 +672,7 @@ test('an unencodable request does not block the queue', async () => {
 });
 
 test('unsolicited malformed and anonymous lines are ignored when idle', async () => {
-  const notes = [];
+  const notes: string[] = [];
   const c = fake({ onStderr: (line) => notes.push(line) });
   await c.get('https://trailing-lines/x');
   await new Promise((resolve) => setTimeout(resolve, 30));
@@ -701,7 +717,8 @@ test('an idle client does not keep a Node program alive without close()', async 
   // requests, its proxy's init line among them, end in every way a running
   // transport ends one, and in an exit, and their deadline is far past the
   // wait: one an ending left set would hold the child beyond it.
-  const moduleURL = new URL('../index.js', import.meta.url).href;
+  // The package's module, as this file is run: written, or compiled in place.
+  const moduleURL = new URL(`../src/index${path.extname(fileURLToPath(import.meta.url))}`, import.meta.url).href;
   const script = `
     import { Client } from ${JSON.stringify(moduleURL)};
     const client = new Client({
@@ -714,12 +731,12 @@ test('an idle client does not keep a Node program alive without close()', async 
     }
     process.stdout.write('answered\\n');
   `;
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     const child = spawn(process.execPath, ['--input-type=module', '--eval', script], {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     let stderr = '';
-    let timer;
+    let timer: NodeJS.Timeout | undefined;
     child.stderr.on('data', (chunk) => { stderr += chunk; });
     // From its answer, an exit takes milliseconds, under load too.
     child.stdout.once('data', () => {
@@ -748,6 +765,7 @@ for (const timeout of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
 }
 
 test('onStderr must be a function', () => {
+  // @ts-expect-error -- what is no function
   assert.throws(() => new Client({ binary: wrapper, onStderr: 'log' }), /must be a function/);
 });
 
@@ -807,11 +825,11 @@ test('resolveBinary uses a local build before PATH', (t) => {
 // platform, each declaring `os` and `cpu`, so npm installs only the matching
 // one. These tests build that layout for real rather than stubbing the
 // resolver, because the thing worth checking is that Node's resolution finds it.
-function installPlatformPackage(t, { withBinary = true } = {}) {
+function installPlatformPackage(t: TestContext, { withBinary = true } = {}) {
   const dir = path.join(here, '..', 'node_modules', platformPackage);
   mkdirSync(path.join(dir, 'bin'), { recursive: true });
   writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: platformPackage, version: '0.0.0' }));
-  const binary = path.join(dir, 'bin', exeName);
+  const binary = path.join(dir, 'bin', exe);
   if (withBinary) {
     writeFileSync(binary, '#!/bin/sh\n');
     chmodSync(binary, 0o755);
@@ -860,6 +878,7 @@ test('the not-found message names the platform package', () => {
     // A binary on PATH or a local build is a perfectly normal state for a
     // checkout, and not what this test is about.
   } catch (err) {
+    assert.ok(err instanceof BinaryNotFound);
     assert.match(err.message, /tls-forge-/);
     assert.match(err.message, new RegExp(`${process.platform}-${process.arch}`));
   } finally {
@@ -965,15 +984,15 @@ test('a package linked into a project finds the binary that project installed', 
     else process.env.TLSFORGE_BIN = previous.bin;
     rmSync(scratch, { recursive: true, force: true });
   });
-  const install = (root) => {
+  const install = (root: string) => {
     const dir = path.join(root, 'node_modules', platformPackage);
     mkdirSync(path.join(dir, 'bin'), { recursive: true });
     writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: platformPackage, version: '0.0.0' }));
-    writeFileSync(path.join(dir, 'bin', exeName), '#!/bin/sh\n');
-    chmodSync(path.join(dir, 'bin', exeName), 0o755);
-    return path.join(dir, 'bin', exeName);
+    writeFileSync(path.join(dir, 'bin', exe), '#!/bin/sh\n');
+    chmodSync(path.join(dir, 'bin', exe), 0o755);
+    return path.join(dir, 'bin', exe);
   };
-  const project = (dir) => {
+  const project = (dir: string) => {
     mkdirSync(dir, { recursive: true });
     writeFileSync(path.join(dir, 'package.json'), '{"name":"app","version":"0.0.0"}');
     return dir;
@@ -999,7 +1018,7 @@ test('the binary is found on PATH when nothing else has one', (t) => {
   const sterile = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-path-'));
   writeFileSync(path.join(sterile, 'package.json'), '{"name":"sterile","version":"0.0.0"}');
 
-  const onPath = path.join(sterile, exeName);
+  const onPath = path.join(sterile, exe);
   writeFileSync(onPath, '#!/bin/sh\n');
   chmodSync(onPath, 0o755);
 
@@ -1124,6 +1143,7 @@ test('a request body that is neither text nor bytes is refused', async () => {
   const client = fake();
   try {
     await assert.rejects(
+      // @ts-expect-error -- a body of neither text nor bytes
       client.post('https://ok/', { not: 'a body' }),
       /must be a string, Buffer or Uint8Array/,
     );

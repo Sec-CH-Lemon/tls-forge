@@ -437,7 +437,7 @@ def go_pages(env: dict[str, str]) -> dict[str, str]:
     return pages
 
 
-# Node.js, from index.d.ts.
+# Node.js, from the declarations tsc emits from node/src.
 
 def jsdoc(comment: str) -> tuple[list[str], list[Row]]:
     """A /** */ comment's paragraphs and its @throws."""
@@ -448,7 +448,7 @@ def jsdoc(comment: str) -> tuple[list[str], list[Row]]:
         if tag:
             kind = re.match(r"^\{(\w+)\}\s*(.*)$", tag.group(2))
             if tag.group(1) != "throws" or not kind:
-                raise RuntimeError(f"index.d.ts: a tag it does not know: {line.strip()!r}")
+                raise RuntimeError(f"Node.js declarations: a tag it does not know: {line.strip()!r}")
             throws.append(Row(name=kind.group(1), text=kind.group(2)))
         elif throws:
             throws[-1].text += " " + line.strip()
@@ -489,7 +489,7 @@ def statements(source: str) -> list[tuple[str, str]]:
             end = source.find("\n", i)
             i = len(source) if end < 0 else end
         else:
-            block = re.match(r"(export )?(interface|class) ", source[i:]) is not None
+            block = re.match(r"(export )?(declare )?(interface|class) ", source[i:]) is not None
             depth, j = 0, i
             while j < len(source):
                 char = source[j]
@@ -516,17 +516,43 @@ def ts_signature(call: str, params: str, returns: str) -> str:
     return f"{call}(\n" + "".join(f"  {part},\n" for part in parts) + f"){returns}"
 
 
-def node_page() -> str:
-    source = (ROOT / "node" / "index.d.ts").read_text()
+# A declaration of a name the package exports, as tsc writes one.
+NODE_DECLARED = re.compile(r"^export (?:declare )?(?:const|function|interface|class) (\w+)", re.MULTILINE)
+
+
+def node_reexported(index: str, module: typing.Callable[[str], str]) -> str:
+    """index with each `export { names } from './m.js'` replaced by what module("m")
+    declares of those names, doc comments and all, in m's order."""
+
+    def declared_in(match: re.Match[str]) -> str:
+        names = [name.strip() for name in match.group(1).split(",")]
+        found = [(doc, statement) for doc, statement in statements(module(match.group(2)))
+                 if (declared := NODE_DECLARED.match(statement)) and declared.group(1) in names]
+        missing = set(names) - {declared.group(1) for _, statement in found if (declared := NODE_DECLARED.match(statement))}
+        if missing:
+            raise RuntimeError(f"Node.js declarations: {match.group(2)}.d.ts declares no {', '.join(sorted(missing))}")
+        return "\n".join(f"{doc}\n{statement}" for doc, statement in found)
+
+    return re.sub(r"^export \{ ([^}]+) \} from '\./([\w-]+)\.js';$", declared_in, index, flags=re.MULTILINE)
+
+
+def node_declarations(out: Path, env: dict[str, str]) -> str:
+    """The package's declarations as its compile script emits them into out, read
+    as one module."""
+    run(["node", str(ROOT / "node" / "scripts" / "compile.ts"), "--out", str(out)], env)
+    return node_reexported((out / "index.d.ts").read_text(), lambda name: (out / f"{name}.d.ts").read_text())
+
+
+def node_page(source: str) -> str:
     ids = Ids()
-    symbols = set(re.findall(r"^export (?:const|function|interface|class) (\w+)", source, re.MULTILINE))
+    symbols = set(NODE_DECLARED.findall(source))
     page = ["# Node.js API", "",
             "Generated from the package's public TypeScript declarations. See the [Node.js integration guide](../integrations/node.md) for examples.", ""]
     for doc, statement in statements(source):
         prose, throws = jsdoc(doc) if doc else ([], [])
-        constant = re.match(r"^export const (\w+): (.+);$", statement)
-        function = re.match(r"^export function (\w+)\((.*)\): (.+);$", statement)
-        declared = re.match(r"^export (interface|class) (\w+)(?: extends (\w+))? \{(.*)\}$", statement, re.DOTALL)
+        constant = re.match(r"^export (?:declare )?const (\w+): (.+);$", statement)
+        function = re.match(r"^export (?:declare )?function (\w+)\((.*)\): (.+);$", statement)
+        declared = re.match(r"^export (?:declare )?(interface|class) (\w+)(?: extends (\w+))? \{(.*)\}$", statement, re.DOTALL)
         default = re.match(r"^export default (\w+);$", statement)
         if constant:
             page += [heading(2, constant.group(1)), ""] + panel("typescript", f"const {constant.group(1)}: {constant.group(2)}")
@@ -542,6 +568,9 @@ def node_page() -> str:
             properties: list[Row] = []
             members: list[str] = []
             for member_doc, member in statements(body):
+                if member == "#private;":
+                    # What tsc says of a class with private fields: nothing a caller can use.
+                    continue
                 member_prose, member_throws = jsdoc(member_doc) if member_doc else ([], [])
                 member = member.rstrip(";")
                 field = re.match(r"^(\w+)(\?)?: (.+)$", member)
@@ -551,18 +580,20 @@ def node_page() -> str:
                                           labels=("optional",) if field.group(2) else (), anchor=ids(name, field.group(1))))
                 elif method:
                     member_name, params, returns = method.groups()
+                    # An object type as tsc writes it in one, { cause?: unknown; }, as a person would.
+                    params = re.sub(r";\s*\}", " }", params)
                     constructor = member_name == "constructor"
                     call = f"new {name}" if constructor else f"{name[:1].lower()}{name[1:]}.{member_name}"
                     members += [heading(3, f"new {name}()" if constructor else f"{name}.{member_name}()", "tf-member"), ""]
                     members += panel("typescript", ts_signature(call, params, f": {returns}" if returns else ""))
                     members += paragraphs_md(member_prose) + rows_html("Throws", linked(member_throws, symbols))
                 else:
-                    raise RuntimeError(f"index.d.ts: a member it does not know: {member!r}")
+                    raise RuntimeError(f"Node.js declarations: a member it does not know: {member!r}")
             page += rows_html("Properties", properties) + members
         elif default:
             page += [f"The package's default export is `{default.group(1)}`.", ""]
         else:
-            raise RuntimeError(f"index.d.ts: a declaration it does not know: {statement[:80]!r}")
+            raise RuntimeError(f"Node.js declarations: a declaration it does not know: {statement[:80]!r}")
     return "\n".join(page)
 
 
@@ -837,7 +868,7 @@ def generate() -> dict[str, str]:
         run(["go", "build", "-o", str(binary), "./cmd/tls-forge"], env)
         pages = {
             "cli.md": cli_page(binary),
-            "node-api.md": node_page(),
+            "node-api.md": node_page(node_declarations(temporary_path / "node", env)),
             "python-api.md": python_page(),
             "profile-fields.md": fields_page(),
         }

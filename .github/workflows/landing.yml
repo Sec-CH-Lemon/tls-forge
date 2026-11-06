@@ -21,7 +21,10 @@ on:
       - '**/*.go'
       - engine/version.json
       - profile/data/**
-      - node/index.d.ts
+      - node/src/**
+      - node/scripts/compile.ts
+      - node/tsconfig*.json
+      - node/package*.json
       - python/src/tlsforge/**
       - web/landing/**
       - .github/workflows/landing.yml
@@ -56,6 +59,8 @@ jobs:
       - name: Install documentation builder and Lighthouse
         run: |
           python -m pip install --requirement docs-requirements.txt
+          # The Node.js reference is read from what tsc emits of node/src.
+          npm ci --ignore-scripts --prefix node
           npm install --prefix "$RUNNER_TEMP/lighthouse" --no-audit --no-fund lighthouse@13.6.0
       - name: Generate references and build documentation
         run: |

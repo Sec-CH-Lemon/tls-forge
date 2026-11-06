@@ -11,6 +11,20 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Write the Node.js package in TypeScript. Its sources are `node/src/*.ts`,
+  published compiled into `dist/` with the declarations the compiler writes
+  from them, so `dist/index.d.ts` is what the code is rather than a copy kept
+  by hand beside it: the old one gave `ENGINE_MAJOR` the description of
+  `Hello` and `networkContext` none. What the package exports, does and runs
+  on, Node 20.12 and newer, is unchanged; `main`, `types` and `exports` name
+  `dist/`, which a release compiles afresh with `node/scripts/compile.ts`.
+  That script also writes the declarations' imports of one another as `.js`,
+  which TypeScript before 5.0 needs. The tests are TypeScript as well, run as
+  they are written by Node 22.18 or newer, and `npm test` type-checks the
+  sources, the tests and the script in strict mode before it runs them; CI's
+  Node 20.12 leg runs the suite compiled in place. Working on the package
+  needs `npm ci` in `node/` first (TypeScript 5.9.3, `@types/node` 20).
+
 - Security: keep what a caller gave at the origin it asked for when a page is
   reloaded. `Request.Reloaded`, and so `fetch --retry-as-browser`, reloaded a
   page that a redirect had taken to another host. It then filed the request's

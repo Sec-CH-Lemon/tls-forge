@@ -2,13 +2,23 @@
 // browser context sent only to a transport that says it applies one.
 
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { test, type TestContext } from 'node:test';
 import { chmodSync, mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { Client, TLSForgeError, Unsupported, SessionReset } from '../index.js';
+import {
+  Client,
+  SessionReset,
+  TLSForgeError,
+  Unsupported,
+  type BrowserContext,
+  type ClientOptions,
+  type Hello,
+  type NetworkContext,
+  type RequestOptions,
+} from '../src/index.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fakeDaemon = path.join(here, 'fake-daemon.js');
@@ -16,7 +26,7 @@ const fakeDaemon = path.join(here, 'fake-daemon.js');
 process.env.TLSFORGE_PROTOCOL_FIXTURES = path.join(here, '..', '..', 'testdata', 'protocol');
 const wrapperDir = mkdtempSync(path.join(os.tmpdir(), 'tls-forge-hello-'));
 const configuredDaemon = process.env.TLSFORGE_TEST_DAEMON;
-let wrapper;
+let wrapper: string;
 if (configuredDaemon) {
   wrapper = path.resolve(configuredDaemon);
 } else if (process.platform === 'win32') {
@@ -29,8 +39,12 @@ if (configuredDaemon) {
 
 // withTransport runs body with a client whose transport is started with env
 // set, and closes it, the variables restored, after.
-async function withTransport(env, body, options = {}) {
-  const saved = {};
+async function withTransport(
+  env: Record<string, string>,
+  body: (client: Client) => Promise<void>,
+  options: ClientOptions = {},
+): Promise<void> {
+  const saved: Record<string, string | undefined> = {};
   for (const [name, value] of Object.entries(env)) {
     saved[name] = process.env[name];
     process.env[name] = value;
@@ -48,7 +62,7 @@ async function withTransport(env, body, options = {}) {
 }
 
 // seen is what the transport had read by the time it answered a plain request.
-async function seen(client) {
+async function seen(client: Client) {
   return JSON.parse((await client.get('https://ok/')).body);
 }
 
@@ -64,7 +78,7 @@ const COLD_START = 5_000;
 // be COLD_START and cost nothing. Nothing is in flight when ask is made: the
 // test's clearTimeout does not clear a deadline set on the real clock, which
 // would pass later. The real clock is back for what follows.
-function pastDeadline(t, ask) {
+function pastDeadline<T>(t: TestContext, ask: () => T): T {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   try {
     const asked = ask();
@@ -96,7 +110,7 @@ test('a transport newer than this package is read for what it says it can do', a
   // to refuse what both know.
   await withTransport({ TLSFORGE_TEST_PROTOCOL: 'newer' }, async (client) => {
     assert.deepEqual(await client.hello(), { protocol: 7, capabilities: ['browser_context', 'teleport', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' });
-    const context = { kind: 'fetch', initiator: 'https://example.com/' };
+    const context: BrowserContext = { kind: 'fetch', initiator: 'https://example.com/' };
     const answer = JSON.parse((await client.get('https://ok/', { browserContext: context })).body);
     assert.deepEqual(answer.browser, context);
   });
@@ -112,7 +126,7 @@ test('the committed answers to hello read as they say', async () => {
   for (const [mode, want] of [
     ['fixture', { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' }],
     ['fixture-old', { protocol: 1, capabilities: [] }],
-  ]) {
+  ] as [string, Hello][]) {
     await withTransport({ TLSFORGE_TEST_PROTOCOL: mode }, async (client) => {
       assert.deepEqual(await client.hello(), want);
     });
@@ -146,7 +160,7 @@ test('a question asked after a session went leaves the next request to be told',
   await withTransport({}, async (client) => {
     await assert.rejects(pastDeadline(t, () => client.get('https://silent/')), /request timed out/);
     assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' });
-    await assert.rejects(client.get('https://ok/'), (err) => err.name === 'SessionReset');
+    await assert.rejects(client.get('https://ok/'), (err: Error) => err.name === 'SessionReset');
     assert.equal((await seen(client)).requests, 1);
   }, { timeout: COLD_START });
 });
@@ -158,12 +172,12 @@ test('a closed client asks nothing', async () => {
 });
 
 test('a browser context goes to a transport that applies one, and to no other', async () => {
-  const context = { kind: 'fetch', initiator: 'https://example.com/' };
-  for (const [env, protocol] of [[{ TLSFORGE_TEST_CAPABILITIES: 'other,catalogue_json_v1,network_hints_estimator_v1' }, 3]]) {
+  const context: BrowserContext = { kind: 'fetch', initiator: 'https://example.com/' };
+  for (const [env, protocol] of [[{ TLSFORGE_TEST_CAPABILITIES: 'other,catalogue_json_v1,network_hints_estimator_v1' }, 3]] as const) {
     await withTransport(env, async (client) => {
       const refused = await client.get('https://ok/', { browserContext: context }).then(
         () => assert.fail('sent'),
-        (err) => err,
+        (err: unknown) => err,
       );
       assert.ok(refused instanceof Unsupported);
       assert.equal(refused.name, 'Unsupported');
@@ -195,7 +209,7 @@ test('a browser context goes to a transport that applies one, and to no other', 
 
 test('a browser context goes with every key as the protocol names it', async () => {
   await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'browser_context,catalogue_json_v1,network_hints_estimator_v1' }, async (client) => {
-    const context = {
+    const context: BrowserContext = {
       kind: 'fetch',
       initiator: 'https://shop.example/item/7',
       referrerPolicy: 'origin',
@@ -216,14 +230,15 @@ test('a browser context that is no object, or has a key the protocol does not, i
       [{ kind: 'fetch', referrer_policy: 'origin' },
         /^tlsforge: browserContext has no key "referrer_policy"; it takes kind, initiator, referrerPolicy, mode, credentials$/],
       [{ kind: 'fetch', teleport: true }, /^tlsforge: browserContext has no key "teleport"/],
-    ]) {
-      await assert.rejects(client.get('https://ok/', { browserContext: context }), (err) => {
+    ] as [unknown, RegExp][]) {
+      await assert.rejects(client.get('https://ok/', { browserContext: context as never }), (err: Error) => {
         assert.ok(err instanceof TypeError && !(err instanceof TLSForgeError), err.name);
         assert.match(err.message, says);
         return true;
       });
     }
     // Said before anything was asked; and null is none, as it is to the daemon.
+    // @ts-expect-error -- null, which the types do not offer
     const answer = JSON.parse((await client.get('https://ok/', { browserContext: null })).body);
     assert.equal(answer.controls, 1);
     assert.equal(answer.requests, 1);
@@ -235,8 +250,8 @@ test('every request requires the exact SDK engine major before URL or cookie tra
   for (const major of ['missing', 'null', '0', '7', '2', '3', '4', '5', '6', '8', '-1', '1.5', '"1"', 'true']) {
     const log = path.join(wrapperDir, `engine-${encodeURIComponent(major)}.jsonl`);
     await withTransport({ TLSFORGE_TEST_ENGINE_MAJOR: major, TLSFORGE_TEST_WIRE_LOG: log }, async (client) => {
-      for (const options of [{}, { browserContext: { kind: 'navigation' } }]) {
-        await assert.rejects(client.get('https://must-not-resolve.invalid/', { cookies: ['secret=never-sent'], ...options }), (err) => {
+      for (const options of [{}, { browserContext: { kind: 'navigation' } }] as RequestOptions[]) {
+        await assert.rejects(client.get('https://must-not-resolve.invalid/', { cookies: ['secret=never-sent'], ...options }), (err: Error) => {
           assert.ok(err instanceof Unsupported);
           assert.match(err.message, /engine_major .*SDK engine major 1; request was not sent/);
           return true;
@@ -273,7 +288,7 @@ test('a replacement process must pass its own engine handshake', async () => {
     process.env.TLSFORGE_TEST_ENGINE_MAJOR = '0';
     await assert.rejects(client.get('https://silent/'), /timed out/);
     await assert.rejects(client.get('https://must-not-resolve.invalid/'), Unsupported);
-    const lines = readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse);
+    const lines = readFileSync(log, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
     assert.equal(lines.filter((line) => line.control === 'hello').length, 2);
     assert.equal(lines.filter((line) => line.url?.includes('must-not-resolve')).length, 0);
   }, { timeout: 1000 });
@@ -303,7 +318,7 @@ test('only ambient TLS key logging is removed on every daemon start', async () =
 
 test('network metadata is snapshotted, typed and sent by its protocol name', async () => {
  await withTransport({}, async (client) => {
-  const input={type:'wifi',id:'network-😀',generation:7,signal:0};
+  const input: NetworkContext={type:'wifi',id:'network-😀',generation:7,signal:0};
   const answer=client.get('https://ok/',{networkContext:input});
   input.id='owner-later-edit';input.signal=4;
   const received=JSON.parse((await answer).body);
@@ -315,10 +330,10 @@ test('network metadata is snapshotted, typed and sent by its protocol name', asy
 });
 
 test('malformed network metadata is rejected before discovery or a request', async () => {
- const good={type:'wifi',id:'network-a',generation:0,signal:null};
- const invalid=[[],false,'wifi',{}, {type:"wifi",id:"a",generation:0,rtt:1}, {...good,rtt:100}, {...good,signal:undefined}, {...good,type:'made-up'}, {...good,id:17}, {...good,id:'\ud800'}, {...good,id:'x'.repeat(4097)}, {...good,generation:-1}, {...good,generation:2**53}, {...good,generation:1.5}, {...good,signal:false}, {...good,signal:-1}, {...good,signal:5}];
+ const good: NetworkContext={type:'wifi',id:'network-a',generation:0,signal:null};
+ const invalid: unknown[]=[[],false,'wifi',{}, {type:"wifi",id:"a",generation:0,rtt:1}, {...good,rtt:100}, {...good,signal:undefined}, {...good,type:'made-up'}, {...good,id:17}, {...good,id:'\ud800'}, {...good,id:'x'.repeat(4097)}, {...good,generation:-1}, {...good,generation:2**53}, {...good,generation:1.5}, {...good,signal:false}, {...good,signal:-1}, {...good,signal:5}];
  await withTransport({},async(client)=>{
-  for(const value of invalid) await assert.rejects(client.get('https://ok/',{networkContext:value}),TypeError);
+  for(const value of invalid) await assert.rejects(client.get('https://ok/',{networkContext:value as never}),TypeError);
   const answer=await seen(client);assert.equal(answer.controls,1);assert.equal(answer.requests,1);
  });
 });
@@ -329,7 +344,7 @@ test('same-major legacy daemons cannot silently ignore catalogue or estimator po
   await withTransport({TLSFORGE_TEST_CAPABILITIES:caps,TLSFORGE_TEST_WIRE_LOG:log},async(client)=>{
    assert.equal((await client.hello()).engine_major,1);
    await assert.rejects(client.get('https://must-not-send/'),/lacks required capabilities.*request was not sent/);
-   const lines=readFileSync(log,'utf8').trim().split('\n').map(JSON.parse);
+   const lines=readFileSync(log,'utf8').trim().split('\n').map((line) => JSON.parse(line));
    assert.equal(lines.length,1);assert.equal(lines[0].control,'hello');
   });
  }

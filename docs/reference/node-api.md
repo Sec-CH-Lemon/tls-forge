@@ -2,13 +2,21 @@
 
 Generated from the package's public TypeScript declarations. See the [Node.js integration guide](../integrations/node.md) for examples.
 
+## ENGINE\_MAJOR { .tf-symbol }
+
+```typescript linenums="0"
+const ENGINE_MAJOR: number
+```
+
+The engine major this package belongs to. A transport whose hello says another, or none, is sent no request.
+
 ## MAX\_REQUEST\_BYTES { .tf-symbol }
 
 ```typescript linenums="0"
 const MAX_REQUEST_BYTES: number
 ```
 
-The most a request can be, in bytes, as the transport reads it: one line of JSON, its newline included, in UTF-8. A longer one is refused with a RangeError before it is queued.
+The most a request can be, in bytes, as the transport reads it: one line of JSON, its newline included, in UTF-8. A longer one would end the transport, and the session in it, so it is refused with a RangeError before it is queued.
 
 ## ClientOptions { .tf-symbol }
 
@@ -77,7 +85,7 @@ What `get` and `post` take besides the URL and the body.
 <div class="tf-param" id="requestoptions-order"><div class="tf-param__head"><code class="tf-param__name">order</code><span class="tf-param__type">string[]</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">The order of the headers given, for a profile that lays them out as given; sorted when omitted.</div></div>
 <div class="tf-param" id="requestoptions-cookies"><div class="tf-param__head"><code class="tf-param__name">cookies</code><span class="tf-param__type">string[]</span><span class="tf-param__label">optional</span></div><div class="tf-param__text"><code>name=value</code> pairs put in the jar before the request.</div></div>
 <div class="tf-param" id="requestoptions-browsercontext"><div class="tf-param__head"><code class="tf-param__name">browserContext</code><span class="tf-param__type">BrowserContext</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">The browser context the request is made in. A transport that does not say it applies one rejects the request with Unsupported, unsent.</div></div>
-<div class="tf-param" id="requestoptions-networkcontext"><div class="tf-param__head"><code class="tf-param__name">networkContext</code><span class="tf-param__type">NetworkContext</span><span class="tf-param__label">optional</span></div></div>
+<div class="tf-param" id="requestoptions-networkcontext"><div class="tf-param__head"><code class="tf-param__name">networkContext</code><span class="tf-param__type">NetworkContext</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">Actual network metadata for this request alone. A transport that does not say it applies it rejects the request with Unsupported, unsent.</div></div>
 </div>
 
 ## Request { .tf-symbol }
@@ -113,24 +121,18 @@ What came back: exactly these fields, in this order.
 <div class="tf-param" id="response-cookies"><div class="tf-param__head"><code class="tf-param__name">cookies</code><span class="tf-param__type">string[]</span></div><div class="tf-param__text">The <code>name=value</code> pairs the jar holds for the final URL.</div></div>
 </div>
 
-## ENGINE\_MAJOR { .tf-symbol }
-
-```typescript linenums="0"
-const ENGINE_MAJOR: number
-```
-
-What a transport is, as it answers `hello`.
-
 ## Hello { .tf-symbol }
 
 ```typescript linenums="0"
 interface Hello
 ```
 
+What a transport is, as it answers `hello`.
+
 <div class="tf-params">
 <p class="tf-params__title">Properties</p>
-<div class="tf-param" id="hello-engine-major"><div class="tf-param__head"><code class="tf-param__name">engine_major</code><span class="tf-param__type">number</span><span class="tf-param__label">optional</span></div></div>
-<div class="tf-param" id="hello-version"><div class="tf-param__head"><code class="tf-param__name">version</code><span class="tf-param__type">string</span><span class="tf-param__label">optional</span></div></div>
+<div class="tf-param" id="hello-engine-major"><div class="tf-param__head"><code class="tf-param__name">engine_major</code><span class="tf-param__type">number</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">The engine major it was built as; none from one older than engine majors.</div></div>
+<div class="tf-param" id="hello-version"><div class="tf-param__head"><code class="tf-param__name">version</code><span class="tf-param__type">string</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">Its version; none from one older than engine majors.</div></div>
 <div class="tf-param" id="hello-protocol"><div class="tf-param__head"><code class="tf-param__name">protocol</code><span class="tf-param__type">number</span></div><div class="tf-param__text">The protocol it speaks: 1 for one older than the question.</div></div>
 <div class="tf-param" id="hello-capabilities"><div class="tf-param__head"><code class="tf-param__name">capabilities</code><span class="tf-param__type">string[]</span></div><div class="tf-param__text">What it can do that a client has to ask about, such as <code>browser_context</code>.</div></div>
 </div>
@@ -148,6 +150,8 @@ One browser identity: one transport process, one fingerprint, one cookie jar, on
 ```typescript linenums="0"
 new Client(options?: ClientOptions)
 ```
+
+A client, and no transport yet: the first request starts one.
 
 <div class="tf-params">
 <p class="tf-params__title">Throws</p>
@@ -174,7 +178,7 @@ client.post(
 ): Promise<Response>
 ```
 
-POST a body, in the browserContext of the form or script that posts it: without one it is refused.
+POST a body, in the browserContext of the form or script that posts it: a request without one is a navigation typed into the address bar, which posts nothing, and is refused. A Buffer or Uint8Array is sent as base64, so a body that is not text arrives intact.
 
 ### Client.request() { .tf-member }
 
@@ -182,7 +186,7 @@ POST a body, in the browserContext of the form or script that posts it: without 
 client.request(request: Request): Promise<Response>
 ```
 
-Make a request.
+Make a request. One with a browserContext or a networkContext is sent only to a transport that says, when asked with hello(), that it applies one, and to no other: it is refused with Unsupported rather than sent as though it had none. The first such request waits for that answer, and a request made after it may go first.
 
 ### Client.hello() { .tf-member }
 
@@ -190,7 +194,7 @@ Make a request.
 client.hello(): Promise<Hello>
 ```
 
-What the transport is, asked without a connection and once.
+What the transport is: the protocol it speaks and what it can do, asked without a connection and once. One older than the question speaks protocol 1, and can do nothing a client has to ask about.
 
 ### Client.close() { .tf-member }
 
@@ -210,7 +214,7 @@ The transport binary: the one given, TLSFORGE\_BIN, the platform package, a loca
 
 <div class="tf-params">
 <p class="tf-params__title">Throws</p>
-<div class="tf-param"><div class="tf-param__head"><a href="#binarynotfound"><code class="tf-param__name">BinaryNotFound</code></a></div></div>
+<div class="tf-param"><div class="tf-param__head"><a href="#binarynotfound"><code class="tf-param__name">BinaryNotFound</code></a></div><div class="tf-param__text">none of them is there, or the one given or named by TLSFORGE_BIN is not a file</div></div>
 </div>
 
 ## TLSForgeError { .tf-symbol }
@@ -233,7 +237,7 @@ new TLSForgeError(message?: string, options?: { cause?: unknown })
 class BinaryNotFound extends TLSForgeError
 ```
 
-No transport binary was found, or the one named is not there.
+No transport binary was found, or the one named is not there: an install problem, which no retry mends.
 
 ## TransportError { .tf-symbol }
 
@@ -241,7 +245,7 @@ No transport binary was found, or the one named is not there.
 class TransportError extends TLSForgeError
 ```
 
-The transport failed: it would not start, would not take its arguments or its proxy, died, could not be written to, was closed, or answered with something that is not an answer.
+The transport failed: it would not start, would not take its arguments or its proxy, died, could not be written to, was closed, or answered with something that is not an answer. The request did not happen, or happened and its answer was lost. The client stays usable: the next request starts a fresh transport.
 
 ## SessionReset { .tf-symbol }
 
@@ -249,7 +253,7 @@ The transport failed: it would not start, would not take its arguments or its pr
 class SessionReset extends TransportError
 ```
 
-The request was not sent: the session it was made in has gone.
+A request that was not sent because the transport the client's session was in has gone: its cookies, TLS sessions and connections went with it. Every request waiting when that happens is rejected with this, and the next one made is when none was waiting; requests after that start a new session in a new transport. The client never promises the identity it had before.
 
 ## RequestFailed { .tf-symbol }
 
@@ -257,7 +261,7 @@ The request was not sent: the session it was made in has gone.
 class RequestFailed extends TLSForgeError
 ```
 
-The transport made the request, and the request failed.
+The transport made the request, and the request failed: a refused connection, a DNS failure, a TLS error, a proxy that would not tunnel, or a request the transport would not make as it was asked. Nothing is wrong locally, and trying again can make sense.
 
 ## Unsupported { .tf-symbol }
 
@@ -265,7 +269,7 @@ The transport made the request, and the request failed.
 class Unsupported extends TLSForgeError
 ```
 
-The transport cannot make the request as asked; it was not sent.
+A request this client's transport cannot make as asked: it does not do what the request needs, as it says when asked with hello(), or it is older than the question. The request was not sent.
 
 ## Timeout { .tf-symbol }
 

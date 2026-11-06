@@ -355,14 +355,16 @@ sent.
 
 ## TypeScript
 
-The package ships its types, `index.d.ts`. A TypeScript program needs
-`@types/node` beside them, as any Node.js program in TypeScript does. They
-declare what the package does at run time and no more: the client, its
-options, `Request`, `RequestOptions`, `BrowserContext`, `Response`, `Hello`,
-`resolveBinary`, `MAX_REQUEST_BYTES` and the error classes. A browser
-context's `kind`, `referrerPolicy`, `mode` and `credentials` are the values
-the daemon takes. [`example/typescript/`](../example/typescript/) is checked
-against them with TypeScript 5.9 in strict mode, refusals included, and run.
+The package is written in TypeScript, in `src/`, and published compiled to
+JavaScript with its declarations, `dist/index.d.ts`, which the compiler writes
+from the same sources. A TypeScript program needs `@types/node` beside them,
+as any Node.js program in TypeScript does. They declare the client, its
+options, `Request`, `RequestOptions`, `BrowserContext`, `NetworkContext`,
+`Response`, `Hello`, `resolveBinary`, `ENGINE_MAJOR`, `MAX_REQUEST_BYTES` and
+the error classes. A browser context's `kind`, `referrerPolicy`, `mode` and
+`credentials` are the values the daemon takes.
+[`example/typescript/`](../example/typescript/) is checked against them with
+TypeScript 5.9 in strict mode, refusals included, and run.
 
 ```ts
 import { Client, SessionReset, type Response } from 'tls-forge';
@@ -400,20 +402,36 @@ different binary.
 
 ## Development
 
+The sources are TypeScript, in `src/`, and so are the tests, in `test/`. Node
+22.18 or newer runs them as they are written, stripping their types, so
+working on the package needs one; the published package runs on Node 20.12.
 From the repository root:
 
 ```bash
 make node-test
 ```
 
-Or inside `node/`:
+Or inside `node/`, once its dependencies, TypeScript and `@types/node`, are
+installed as the lockfile pins them:
+
+```bash
+npm ci
+```
 
 ```bash
 npm test
 ```
 
-The suite uses a stand-in daemon and requires 100% line, function and branch
-coverage. To build a local transport into `node/vendor/`:
+`npm test` type-checks the sources, the tests and the compile script in strict
+mode, then runs the suite against a stand-in daemon, and requires 100% line,
+function and branch coverage. To compile the package into `dist/`, as it is
+published:
+
+```bash
+npm run compile
+```
+
+To build a local transport into `node/vendor/`:
 
 ```bash
 npm run build

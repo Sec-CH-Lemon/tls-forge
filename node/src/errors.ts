@@ -9,7 +9,7 @@
 
 /** The base of every error this package throws or rejects with. */
 export class TLSForgeError extends Error {
-  constructor(message, options) {
+  constructor(message?: string, options?: { cause?: unknown }) {
     super(message, options);
     this.name = new.target.name;
   }

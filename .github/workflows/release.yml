@@ -147,6 +147,11 @@ jobs:
         if: steps.where.outputs.build == 'true'
         with:
           version: v2.13.2
+      # TypeScript and Node's types, as node/'s lockfile pins them: the type
+      # check, the reference, and the dist/ the npm package is compiled into.
+      - run: npm ci --ignore-scripts
+        if: steps.where.outputs.build == 'true'
+        working-directory: node
       - run: npm test
         if: steps.where.outputs.build == 'true'
         working-directory: node

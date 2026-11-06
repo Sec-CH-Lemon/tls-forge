@@ -1,8 +1,8 @@
 """tlsforge.BrowserContext holds to the browser context the Go daemon reads:
 its keys are the daemon's fields by this package's names, in the daemon's
 order, kind the one it needs, and each value one the Go code takes. The
-Node.js package's index.d.ts is held to the same source by
-node/test/types.test.js."""
+Node.js package's types, in node/src/index.ts, are held to the same source by
+node/test/types.test.ts."""
 
 from __future__ import annotations
 

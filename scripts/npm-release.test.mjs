@@ -34,9 +34,13 @@ function binaries(t) {
 
 const read = (file) => JSON.parse(readFileSync(file, 'utf8'));
 
+// stubbed stands in for compiling node/src where a test is about something
+// else: the main package's dist/, empty.
+const stubbed = (dir) => mkdirSync(dir);
+
 test('each platform gets a package of its binary, stamped with the version', (t) => {
   const out = path.join(temporary(t), 'npm');
-  const published = assemble({ version: '1.2.3', binaries: binaries(t), out });
+  const published = assemble({ version: '1.2.3', binaries: binaries(t), out, compile: stubbed });
   assert.deepEqual(published.map((p) => p.name), [...PLATFORMS, 'tls-forge']);
   assert.deepEqual(readdirSync(out).sort(), [...PLATFORMS, 'tls-forge'].sort());
   for (const target of TARGETS) {
@@ -69,12 +73,20 @@ test('the main package pins every platform package to exactly its version', (t) 
   assert.equal(main.version, '1.2.3-rc.1');
   assert.deepEqual(main.optionalDependencies, Object.fromEntries(PLATFORMS.map((name) => [name, '1.2.3-rc.1'])));
   assert.equal(main.scripts, undefined);
+  assert.equal(main.devDependencies, undefined);
+  assert.ok(ours.devDependencies.typescript, 'the test holds a manifest that has some');
   assert.deepEqual(main.files, ours.files);
-  // Every file the manifest names is in it, the legal ones from the root.
-  for (const file of ours.files) {
+  // Every file the manifest names is in it, the legal ones from the root, and
+  // dist/ compiled from the sources: a module and declarations for each.
+  for (const file of ours.files.filter((name) => name !== 'dist/')) {
     const from = LEGAL.includes(file) ? path.join(ROOT, file) : path.join(ROOT, 'node', file);
     assert.deepEqual(readFileSync(path.join(out, 'tls-forge', file)), readFileSync(from), file);
   }
+  assert.ok(ours.files.includes('dist/'));
+  const sources = readdirSync(path.join(ROOT, 'node', 'src')).filter((name) => name.endsWith('.ts'));
+  assert.deepEqual(readdirSync(path.join(out, 'tls-forge', 'dist')).sort(),
+    sources.flatMap((name) => [name.replace(/\.ts$/, '.d.ts'), name.replace(/\.ts$/, '.js')]).sort());
+  assert.match(readFileSync(path.join(out, 'tls-forge', 'dist', 'index.d.ts'), 'utf8'), /^export declare class Client \{$/m);
   for (const file of LEGAL) assert.ok(existsSync(path.join(out, 'tls-forge', file)), file);
 });
 
@@ -83,7 +95,7 @@ test('what was there before is not left in the packages', (t) => {
   mkdirSync(path.join(out, 'tls-forge-linux-x64', 'bin'), { recursive: true });
   writeFileSync(path.join(out, 'tls-forge-linux-x64', 'bin', 'stale'), 'stale');
   writeFileSync(path.join(out, 'leftover.tgz'), 'old');
-  assemble({ version: '1.2.3', binaries: binaries(t), out });
+  assemble({ version: '1.2.3', binaries: binaries(t), out, compile: stubbed });
   assert.ok(!existsSync(path.join(out, 'leftover.tgz')));
   assert.deepEqual(readdirSync(path.join(out, 'tls-forge-linux-x64', 'bin')), ['tls-forge']);
 });

@@ -16,6 +16,8 @@ import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync, chm
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { compile as compileNode } from '../node/scripts/compile.ts';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // npm's platform/arch names are process.platform and process.arch, which are
@@ -44,8 +46,9 @@ const RELEASE_VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:a
 
 // assemble writes the npm packages of version into out, emptied first, from
 // the binaries in binaries and the repository at root, and is each package's
-// name and directory.
-export function assemble({ version, binaries, out, root = ROOT }) {
+// name and directory. compile writes the main package's dist/, compiled from
+// node/src, into the directory it is given.
+export function assemble({ version, binaries, out, root = ROOT, compile = compileNode }) {
   if (!RELEASE_VERSION.test(version ?? '')) {
     throw new Error(`--version ${version} is not a registry-compatible SemVer version`);
   }
@@ -112,18 +115,20 @@ export function assemble({ version, binaries, out, root = ROOT }) {
     published.push({ name, dir });
   }
 
-  // The main package: the JavaScript, and optional dependencies pinned to
-  // exactly this version. Pinned rather than ranged because a mismatch between
+  // The main package: the JavaScript compiled from the TypeScript, its
+  // declarations, and optional dependencies pinned to exactly this version. Pinned rather than ranged because a mismatch between
   // the client and its binary is not something a range should be allowed to
   // produce.
   const mainDir = path.join(out, 'tls-forge');
   mkdirSync(mainDir, { recursive: true });
   const manifest = JSON.parse(readFileSync(path.join(root, 'node', 'package.json'), 'utf8'));
-  // What the manifest says the package is, so that a module added to it
+  // What the manifest says the package is, so that a file added to it
   // cannot be left out of the tarball; the legal files come from the
-  // repository root.
+  // repository root, and dist/ is compiled afresh, so that nothing a build
+  // left in node/dist is published.
   for (const file of manifest.files.filter((name) => !LEGAL.includes(name))) {
-    cpSync(path.join(root, 'node', file), path.join(mainDir, file));
+    if (file === 'dist/') compile(path.join(mainDir, 'dist'));
+    else cpSync(path.join(root, 'node', file), path.join(mainDir, file));
   }
   copyLegal(mainDir);
 
@@ -133,6 +138,7 @@ export function assemble({ version, binaries, out, root = ROOT }) {
   );
   // Scripts and dev-only fields have no meaning in the published tarball.
   delete manifest.scripts;
+  delete manifest.devDependencies;
   writeFileSync(path.join(mainDir, 'package.json'), JSON.stringify(manifest, null, 2) + '\n');
   published.push({ name: manifest.name, dir: mainDir });
   return published;
