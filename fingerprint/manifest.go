@@ -353,6 +353,9 @@ var manifest = []Rule{
 	{"http1", "http1_request", "exactly: the method and the version; not the target, the page asked for"},
 	{"http1", "http1_header_order", "in order, with the spelling"},
 	{"http1", "http1_header_values", "in order; not Host's, the name the server was reached by"},
+	{"http1", "http1_layout", "in order: the target's form, each line that ended in LF alone, and each field " +
+		"with other than one space after its colon or spaces after its value, which a server reads alike; not " +
+		"checked when a side did not record it"},
 	{"http2", "http2_akamai", exactly},
 	{"http2", "http2_settings", inOrder},
 	{"http2", "http2_window_update", exactly},

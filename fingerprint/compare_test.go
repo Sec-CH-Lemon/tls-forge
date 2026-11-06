@@ -236,14 +236,24 @@ func TestCompareHTTP1(t *testing.T) {
 		{Name: "Host", Value: "browser.example"},
 		{Name: "sec-ch-ua", Value: `"Chromium";v="151"`},
 		{Name: "Connection", Value: "keep-alive"},
-	}}
+	}, Layout: []string{"target in origin-form"}}
 	identical := &HTTP1{Method: "GET", Proto: "HTTP/1.1", Headers: []HeaderField{
 		{Name: "Host", Value: "client.example"},
 		{Name: "sec-ch-ua", Value: `"Chromium";v="151"`},
 		{Name: "Connection", Value: "keep-alive"},
-	}}
+	}, Layout: []string{"target in origin-form"}}
 	if report := CompareHTTP1(reference, identical); !report.OK() {
 		t.Errorf("destination-specific Host value differed:\n%s", report)
+	}
+	// A capture made before the layout was recorded leaves it not checked,
+	// on either side: no match, no difference.
+	unrecorded := *identical
+	unrecorded.Layout = nil
+	for _, pair := range [][2]*HTTP1{{reference, &unrecorded}, {&unrecorded, reference}} {
+		report := CompareHTTP1(pair[0], pair[1])
+		if len(report.Differences) != 0 || len(report.Unchecked) != 1 || report.Unchecked[0].Field != "http1_layout" {
+			t.Errorf("a layout not recorded:\n%s", report)
+		}
 	}
 
 	held := map[string]bool{}
@@ -257,11 +267,15 @@ func TestCompareHTTP1(t *testing.T) {
 		{"order", func(h *HTTP1) { h.Headers[1], h.Headers[2] = h.Headers[2], h.Headers[1] }, "http1_header_order"},
 		{"casing", func(h *HTTP1) { h.Headers[1].Name = "Sec-Ch-Ua" }, "http1_header_order"},
 		{"value", func(h *HTTP1) { h.Headers[2].Value = "close" }, "http1_header_values"},
+		{"a line ended in LF alone", func(h *HTTP1) {
+			h.Layout = append(h.Layout, "Connection ends in LF alone")
+		}, "http1_layout"},
+		{"a whole URL for the target", func(h *HTTP1) { h.Layout[0] = "target in absolute-form" }, "http1_layout"},
 	} {
 		held[tc.field] = true
 		t.Run(tc.name, func(t *testing.T) {
 			candidate := &HTTP1{Method: identical.Method, Proto: identical.Proto,
-				Headers: append([]HeaderField(nil), identical.Headers...)}
+				Headers: append([]HeaderField(nil), identical.Headers...), Layout: slices.Clone(identical.Layout)}
 			tc.mutate(candidate)
 			report := CompareHTTP1(reference, candidate)
 			if !slices.ContainsFunc(report.Differences, func(d Difference) bool { return d.Field == tc.field }) {

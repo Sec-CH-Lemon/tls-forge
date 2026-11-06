@@ -130,8 +130,12 @@ func TestHTTP1FingerprintKeepsWireCasing(t *testing.T) {
 			{Name: "host", Value: "example.com"},
 			{Name: "sec-ch-ua", Value: `"Chromium"`},
 		},
+		Layout: []string{"target in origin-form", "Host ends in LF alone"},
 	}
 	got := rendered.Fingerprint()
+	if !reflect.DeepEqual(got.Layout, rendered.Layout) {
+		t.Errorf("the layout was lost: %q", got.Layout)
+	}
 	if got.Headers[0].Name != "Host" || got.Headers[1].Name != "sec-ch-ua" {
 		t.Errorf("wire casing was lost: %+v", got.Headers)
 	}
@@ -142,8 +146,8 @@ func TestHTTP1FingerprintKeepsWireCasing(t *testing.T) {
 
 	// Captures written before header_names existed remain comparable.
 	legacy := (&HTTP1{Headers: []HeaderField{{Name: "accept", Value: "*/*"}}}).Fingerprint()
-	if legacy.Headers[0].Name != "accept" {
-		t.Errorf("legacy capture name = %q", legacy.Headers[0].Name)
+	if legacy.Headers[0].Name != "accept" || legacy.Layout != nil {
+		t.Errorf("legacy capture name = %q, layout %q", legacy.Headers[0].Name, legacy.Layout)
 	}
 	var absent *HTTP1
 	if absent.Fingerprint() != nil {

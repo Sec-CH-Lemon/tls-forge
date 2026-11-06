@@ -20,6 +20,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix `compare` holding HTTP/1.1 to what the echo server made of a request
+  rather than to how it was written. Spaces around a value were taken off, a
+  line ending in LF alone read as one ending in CRLF, and the target's form
+  was not kept, so a client writing `Name:value`, `Name:  value`, LF line
+  endings or a whole URL for its target matched Chrome. A capture now keeps
+  its request's `layout`, and `compare` holds the client to the browser's
+  (`http1_layout`); against a capture made before, it is not checked.
+
 - Fix the Akamai HTTP/2 fingerprint writing a PRIORITY frame's weight as its
   byte on the wire: Firefox's frames came out `3:0:0:200`, where Akamai's
   format and tls.peet.ws say `3:0:0:201`, the weight RFC 9113 counts.

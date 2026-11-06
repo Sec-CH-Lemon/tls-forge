@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -150,5 +151,41 @@ func TestHTTP1KeepsAValueAsSentButForItsSpaces(t *testing.T) {
 	}
 	if got := session.http1.Headers[0].Value; got != "x " {
 		t.Errorf("recorded %q", got)
+	}
+}
+
+func TestHTTP1RecordsHowARequestWasWrittenWhereAServerReadsItAlike(t *testing.T) {
+	// A browser writes "Name: value" and CRLF, its target a path: its layout
+	// is the target's form alone. What a server reads alike and a browser
+	// never writes is recorded, so that a comparison can see it.
+	for _, tc := range []struct {
+		name, request string
+		want          []string
+	}{
+		{"as a browser writes it", "GET /x HTTP/1.1\r\nHost: h\r\nX-A: 1\r\nX-E: \r\n\r\n",
+			[]string{"target in origin-form"}},
+		{"lines ending in LF alone", "GET / HTTP/1.1\nHost: h\r\nX-A: 1\n\n", []string{"target in origin-form",
+			"the request line ends in LF alone", "X-A ends in LF alone", "the blank line ends in LF alone"}},
+		{"no space after a colon, two, a tab", "GET / HTTP/1.1\r\nX-A:1\r\nX-B:  2\r\nX-C:\t3\r\n\r\n",
+			[]string{"target in origin-form", `X-A: "" after the colon`, `X-B: "  " after the colon`,
+				`X-C: "\t" after the colon`}},
+		{"spaces after a value", "GET / HTTP/1.1\r\nX-A: 1 \r\nX-B: 2\t\r\n\r\n",
+			[]string{"target in origin-form", `X-A: " " after the value`, `X-B: "\t" after the value`}},
+		// An empty value's spaces are after its colon, and said once.
+		{"an empty value of spaces", "GET / HTTP/1.1\r\nX-A:   \r\nX-B:\r\n\r\n",
+			[]string{"target in origin-form", `X-A: "   " after the colon`, `X-B: "" after the colon`}},
+		{"a whole URL", "GET http://h/x HTTP/1.1\r\n\r\n", []string{"target in absolute-form"}},
+		{"an authority", "CONNECT h:443 HTTP/1.1\r\n\r\n", []string{"target in authority-form"}},
+		{"an asterisk", "OPTIONS * HTTP/1.1\r\n\r\n", []string{"target in asterisk-form"}},
+		{"after empty lines", "\r\n\nGET / HTTP/1.1\r\n\r\n", []string{"target in origin-form"}},
+	} {
+		req, err := readHTTP1Request(bufio.NewReader(strings.NewReader(tc.request)), io.Discard)
+		if err != nil {
+			t.Errorf("%s: %v", tc.name, err)
+			continue
+		}
+		if !slices.Equal(req.Layout, tc.want) {
+			t.Errorf("%s:\n got %q\nwant %q", tc.name, req.Layout, tc.want)
+		}
 	}
 }

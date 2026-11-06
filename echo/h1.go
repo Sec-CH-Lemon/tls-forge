@@ -214,9 +214,10 @@ func readHTTP1Request(r *bufio.Reader, w io.Writer) (*http1Request, error) {
 	// A server SHOULD skip at least one empty line before a request line
 	// (RFC 9112, section 2.2): some clients end a body with one.
 	var line string
+	var crlf bool
 	for line == "" {
 		var err error
-		if line, err = readLine(r, "414"); err != nil {
+		if line, crlf, err = readLineEnd(r, "414"); err != nil {
 			return nil, err
 		}
 	}
@@ -229,15 +230,23 @@ func readHTTP1Request(r *bufio.Reader, w io.Writer) (*http1Request, error) {
 	if version[len("HTTP/")] != '1' {
 		return nil, refuse("505", "%s is not a version of HTTP/1", version)
 	}
-	req := &http1Request{HTTP1: capture.HTTP1{Method: method, Path: target, Proto: version}}
+	req := &http1Request{HTTP1: capture.HTTP1{Method: method, Path: target, Proto: version,
+		Layout: []string{"target in " + targetForm(target)}}}
+	ended := func(what string, crlf bool) {
+		if !crlf {
+			req.Layout = append(req.Layout, what+" ends in LF alone")
+		}
+	}
+	ended("the request line", crlf)
 
 	size := 0
 	for {
-		line, err := readLine(r, "431")
+		line, crlf, err := readLineEnd(r, "431")
 		if err != nil {
 			return nil, err
 		}
 		if line == "" {
+			ended("the blank line", crlf)
 			break
 		}
 		if len(req.Headers) >= maxHTTP1Headers {
@@ -258,7 +267,15 @@ func readHTTP1Request(r *bufio.Reader, w io.Writer) (*http1Request, error) {
 		if !found || !isToken(wireName) {
 			return nil, refuse("400", "malformed header %q", line)
 		}
-		value = strings.Trim(value, " \t")
+		ended(wireName, crlf)
+		trimmed := strings.Trim(value, " \t")
+		if before := value[:len(value)-len(strings.TrimLeft(value, " \t"))]; before != " " {
+			req.Layout = append(req.Layout, fmt.Sprintf("%s: %q after the colon", wireName, before))
+		}
+		if after := value[len(strings.TrimRight(value, " \t")):]; after != "" && trimmed != "" {
+			req.Layout = append(req.Layout, fmt.Sprintf("%s: %q after the value", wireName, after))
+		}
+		value = trimmed
 		if hasByte(value, notInValue) {
 			return nil, refuse("400", "the value of %s holds a control character", wireName)
 		}
@@ -331,19 +348,36 @@ func readHTTP1Request(r *bufio.Reader, w io.Writer) (*http1Request, error) {
 // is refused with status; one with a carriage return anywhere but at its end
 // is refused as malformed, since RFC 9112 (section 2.2) leaves a bare CR to be
 // taken for a line ending by one reader and not by another.
-func readLine(r *bufio.Reader, status string) (string, error) {
+func readLineEnd(r *bufio.Reader, status string) (string, bool, error) {
 	line, err := r.ReadSlice('\n')
 	if errors.Is(err, bufio.ErrBufferFull) {
-		return "", refuse(status, "line exceeds %d bytes", maxHTTP1Line)
+		return "", false, refuse(status, "line exceeds %d bytes", maxHTTP1Line)
 	}
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
-	text := strings.TrimSuffix(strings.TrimSuffix(string(line), "\n"), "\r")
+	text := strings.TrimSuffix(string(line), "\n")
+	crlf := strings.HasSuffix(text, "\r")
+	text = strings.TrimSuffix(text, "\r")
 	if strings.IndexByte(text, '\r') >= 0 {
-		return "", refuse("400", "a carriage return inside %q", text)
+		return "", false, refuse("400", "a carriage return inside %q", text)
 	}
-	return text, nil
+	return text, crlf, nil
+}
+
+// targetForm is the form of a request line's target (RFC 9112, section 3.2):
+// a path, a whole URL as to a proxy, an authority as CONNECT's, or "*".
+func targetForm(target string) string {
+	switch {
+	case strings.HasPrefix(target, "/"):
+		return "origin-form"
+	case target == "*":
+		return "asterisk-form"
+	case strings.Contains(target, "://"):
+		return "absolute-form"
+	default:
+		return "authority-form"
+	}
 }
 
 // members are the members of a comma-separated list, without the spaces around

@@ -67,6 +67,12 @@ type HTTP1 struct {
 	HeaderOrder []string      `json:"header_order"`
 	HeaderNames []string      `json:"header_names,omitempty"`
 	Headers     []HeaderField `json:"headers"`
+	// Layout is how the request was written where a server reads it alike:
+	// the target's form first, then each line that ended in LF alone and
+	// each field with other than one space after its colon or spaces after
+	// its value. A browser's is its target's form alone. None in a capture
+	// made before it was recorded.
+	Layout []string `json:"layout,omitempty"`
 }
 
 // Value is a wire code together with its human name, so the JSON is readable
@@ -281,7 +287,8 @@ func (h *HTTP1) Fingerprint() *fingerprint.HTTP1 {
 	if h == nil {
 		return nil
 	}
-	out := &fingerprint.HTTP1{Method: h.Method, Proto: h.Proto, Headers: make([]fingerprint.HeaderField, len(h.Headers))}
+	out := &fingerprint.HTTP1{Method: h.Method, Proto: h.Proto, Headers: make([]fingerprint.HeaderField, len(h.Headers)),
+		Layout: h.Layout}
 	for i, field := range h.Headers {
 		name := field.Name
 		if i < len(h.HeaderNames) && h.HeaderNames[i] != "" {

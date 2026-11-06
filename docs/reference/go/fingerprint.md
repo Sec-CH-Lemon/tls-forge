@@ -406,6 +406,9 @@ type HTTP1 struct {
 	Method  string
 	Proto   string
 	Headers []HeaderField
+	// Layout is how the request was written where a server reads it alike
+	// (capture.HTTP1.Layout); nil when it was not recorded.
+	Layout []string
 }
     HTTP1 is the request line, without its target, and the ordered header block
     as they appeared on the wire.

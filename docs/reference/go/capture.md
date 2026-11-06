@@ -87,6 +87,12 @@ type HTTP1 struct {
 	HeaderOrder []string      `json:"header_order"`
 	HeaderNames []string      `json:"header_names,omitempty"`
 	Headers     []HeaderField `json:"headers"`
+	// Layout is how the request was written where a server reads it alike:
+	// the target's form first, then each line that ended in LF alone and
+	// each field with other than one space after its colon or spaces after
+	// its value. A browser's is its target's form alone. None in a capture
+	// made before it was recorded.
+	Layout []string `json:"layout,omitempty"`
 }
     HTTP1 is what an HTTP/1.1 client sent.
 
