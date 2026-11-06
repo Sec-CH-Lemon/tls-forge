@@ -240,12 +240,16 @@ func (c *preflightCache) keep(r *browserRequest, h hop, target string, a allowan
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	origin := h.serialized(r)
-	until := c.now().Add(a.maxAge)
+	now := c.now()
+	until := now.Add(a.maxAge)
 	// Chrome caches one latest preflight result for this origin/URL and
 	// credentials scope. A narrower replacement grant must not inherit
-	// methods or headers allowed by an earlier result.
-	for key := range c.allowed {
-		if key.origin == origin && key.url == target && key.credentials == (r.credentials == credentialsAll) {
+	// methods or headers allowed by an earlier result. What has expired goes
+	// too, as Chrome erases a stale entry when it is looked up: a session's
+	// cache holds no more than a Max-Age (2 hours at most) of preflights.
+	for key, ends := range c.allowed {
+		if !ends.After(now) ||
+			key.origin == origin && key.url == target && key.credentials == (r.credentials == credentialsAll) {
 			delete(c.allowed, key)
 		}
 	}

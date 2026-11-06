@@ -20,6 +20,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix a client's preflight cache keeping every allowance it was ever given:
+  what has expired is dropped as another is kept, so that a session holds no
+  more than a Max-Age (2 hours at most) of them, as Chrome erases a stale
+  entry when it is looked up. Chrome's own limits on the cache (1024 entries,
+  a URL of 1024 bytes) are not modelled.
+
 - Fix the noise of the network client hints (`rtt`, `downlink`) of an IPv6
   address drawn from it without its brackets: Chrome draws it from the host
   as GURL says it, `[::1]`, and the hints of such an address now are those.

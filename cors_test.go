@@ -222,6 +222,12 @@ func TestThePreflightCache(t *testing.T) {
 	if allows(json, target) {
 		t.Error("an expired allowance holds")
 	}
+	// It goes when another is kept, wherever it was for: the cache holds
+	// only what it may still allow.
+	keep(put, target+"/other", allowance{methods: []string{"PUT"}, maxAge: time.Minute})
+	if len(cache.allowed) != 1 {
+		t.Errorf("the cache holds %d allowances, want the one kept", len(cache.allowed))
+	}
 	// A wildcard stands for what a request without credentials sends, but
 	// for Authorization.
 	keep(put, target, allowance{methods: []string{"*"}, headers: []string{"*"}, maxAge: time.Minute})
