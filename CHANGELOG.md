@@ -20,6 +20,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix the Node package sending a request direct that asked for a proxy.
+  `request()`, `get()` and `post()` put every field they were given on the
+  protocol's line, and the transport passes over a field the protocol does
+  not have: `get(url, { proxy })` went out without it. A field a request does
+  not have is now a `TypeError`, before anything is sent; a proxy is the
+  client's (`new Client({ proxy })`).
+
 - Security: what a proxy, a server or a visiting browser said reaches a
   terminal as text. A proxy's refusal (`proxy responded with non 200 code:
   …`) carried its status line's reason as it came, and `capture` and

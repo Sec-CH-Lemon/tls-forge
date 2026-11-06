@@ -17,7 +17,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 
-import { BinaryNotFound, Client, MAX_REQUEST_BYTES, SessionReset, resolveBinary } from '../index.js';
+import { BinaryNotFound, Client, MAX_REQUEST_BYTES, SessionReset, TLSForgeError, resolveBinary } from '../index.js';
 import { builtBinary, exeName, platformPackage, platformPackageName } from '../binary.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -136,6 +136,29 @@ test('headers, order and cookies reach the transport', async () => {
   assert.deepEqual(echoed.headers, { referer: 'https://example.com' });
   assert.deepEqual(echoed.order, ['referer', 'user-agent']);
   assert.deepEqual(echoed.cookies, ['a=1', 'b=2']);
+  c.close();
+});
+
+// A field a request does not have is refused before anything is sent: the
+// transport passes over one the protocol does not have, and a proxy asked of
+// a request went out direct.
+test('a request with a field it does not have is refused unsent', async () => {
+  const c = fake();
+  for (const [asked, says] of [
+    [() => c.get('https://ok/x', { proxy: 'http://proxy:8080' }),
+      /^tlsforge: a request has no field "proxy"; a proxy is the client's: new Client\(\{ proxy \}\); it takes url, method/],
+    [() => c.request({ url: 'https://ok/x', timeout: 5 }), /^tlsforge: a request has no field "timeout"; it takes url, method, headers/],
+    [() => c.post('https://ok/x', 'b', { browser_context: { kind: 'fetch' } }), /no field "browser_context"/],
+  ]) {
+    await assert.rejects(asked(), (err) => {
+      assert.ok(err instanceof TypeError && !(err instanceof TLSForgeError), err.name);
+      assert.match(err.message, says);
+      return true;
+    });
+  }
+  const res = await c.request({ url: 'https://ok/x', method: 'GET', headers: {}, order: [], cookies: [], body: undefined,
+    browserContext: undefined, networkContext: undefined });
+  assert.equal(res.status, 200);
   c.close();
 });
 

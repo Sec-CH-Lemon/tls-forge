@@ -292,7 +292,9 @@ class, and one that wraps another error keeps it as `cause`.
 | `Unsupported` | The request was not sent, because the transport does not do what it needs: a `browserContext`, which a tls-forge older than this one does not apply. |
 
 A mistake in the call is none of these. It is a `TypeError`, for a request
-without a url, a body that is not a string, `Buffer` or `Uint8Array`, a
+without a url, one with a field it does not have (a `proxy` is the client's,
+`new Client({ proxy })`, and a request that named one went out direct before),
+a body that is not a string, `Buffer` or `Uint8Array`, a
 request JSON cannot hold, an `onStderr` that is not a function, or a
 `cookieSet` without a `cookieFile`. It is a `RangeError` for a timeout that is
 not a positive finite number, and for a request longer than

@@ -64,6 +64,19 @@ function networkContextSnapshot(value) {
  return result;
 }
 
+// The fields of a request. One it does not have is a mistake in the call,
+// said before anything is sent: the transport passes over a field the
+// protocol does not have, so a request asked with { proxy } went out direct.
+const REQUEST_FIELDS = ['url', 'method', 'headers', 'order', 'body', 'cookies', 'browserContext', 'networkContext'];
+
+// requestProblem is why a request cannot be sent as it is asked, or undefined.
+function requestProblem(request) {
+  const unknown = Object.keys(request).find((key) => !REQUEST_FIELDS.includes(key));
+  if (unknown === undefined) return undefined;
+  const instead = unknown === 'proxy' ? '; a proxy is the client\'s: new Client({ proxy })' : '';
+  return `tlsforge: a request has no field "${unknown}"${instead}; it takes ${REQUEST_FIELDS.join(', ')}`;
+}
+
 // The keys of a browser context, as the protocol names them.
 const CONTEXT_KEYS = ['kind', 'initiator', 'referrerPolicy', 'mode', 'credentials'];
 
@@ -302,6 +315,8 @@ export class Client {
    */
   request(request) {
     if (!request?.url) return Promise.reject(new TypeError('tlsforge: request needs a url'));
+    const wrong = requestProblem(request);
+    if (wrong) return Promise.reject(new TypeError(wrong));
     if (this.#closed) {
       return Promise.reject(
         new TransportError('tlsforge: this client was closed and will not respawn; construct a new one'),
