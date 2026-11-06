@@ -202,6 +202,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `cookie.raw_fields` | `true` |
 | `cookie.reset_order_on_value_change` | `true` |
 | `h1.auth_body` | `"read-all"` |
+| `h1.chunked_bare_lf` | `true` |
 | `h1.dropped_body` | `"drain"` |
 | `h1.idle_connection_timeout_ms` | `300000` |
 | `h1.idle_reap` | `"on-request"` |
@@ -393,6 +394,21 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `tls.unsolicited_extension_alert` | `110` |
 | `tls.validate_encrypted_extensions` | `true` |
 | `url.blocked_ports` | `[0,1,7,9,11,13,15,17,19,20,21,22,23,25,37,42,43,53,69,77,79,87,95,101,102,103,104,109,110,111,113,115,117,119,123,135,137,139,143,161,179,389,427,465,512,513,514,515,526,530,531,532,540,548,554,556,563,587,601,636,989,990,993,995,1719,1720,1723,2049,3659,4045,5060,5061,6000,6566,6665,6666,6667,6668,6669,6697,10080]` |
+
+## Values added after the release (review 2026-11-05)
+
+Each key below was added to the 18 shipped Chrome profiles and the three
+`close_notify` variants after the release, as policy values alone: the
+mechanism is the forks', read in Chromium 156's source and held by tests, not
+measured on a browser of each build. `profile/provenance/policy-additions.json`
+has a layer for each, the bytes of every profile before and after, and
+`TestPolicyAdditionsPreserveEveryEarlierLayer` unwinds them, through Save, to
+the bytes the earlier provenance was made of. Chrome 151 to 155 inherit the
+values; no browser verdict is new for them.
+
+| Field | Meaning; Chrome's value |
+|---|---|
+| `h1.chunked_bare_lf` | A chunked HTTP/1.1 answer read as Chromium 156's HttpChunkedDecoder reads it: a line ends at LF, a CR before it dropped; a size is cut at its extension, then of trailing spaces (a tab is none); a chunk's data ends in an empty line of LF or CRLF, and so do the trailer's lines. Without it, RFC 9112's CRLF. A request a server reads keeps CRLF always. `true`. |
 
 ## URL host encoding integrity
 

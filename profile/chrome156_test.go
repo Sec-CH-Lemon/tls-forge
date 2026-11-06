@@ -85,6 +85,11 @@ func TestChrome156DefaultsRetainNativeCaptureProvenance(t *testing.T) {
 					t.Fatal("missing source derivation", key)
 				}
 			}
+			if layer, ok := policyAdded(t, key); ok {
+				// A value added after the release, with its own provenance.
+				origin = FieldOrigin{"source-derived", layer.Source}
+				want = "source-derived"
+			}
 			if key == "headers.network_hints" {
 				// A13 is an explicit later source-derived policy, not part of
 				// the immutable A12 capture provenance.

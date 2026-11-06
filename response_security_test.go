@@ -21,7 +21,10 @@ func TestClientRejectsUnsafeChunkedResponses(t *testing.T) {
 		name, wire string
 		invalid    bool
 	}{
-		{"bare LF", "1\nx\r\n0\r\n\r\n", true},
+		// A size line of LF alone Chrome reads (HttpChunkedDecoder), and so
+		// does every Chrome profile (h1.chunked_bare_lf): refused without it,
+		// TestAChunkedAnswerOfLFAloneIsReadAsChromeReadsIt.
+		{"bare LF", "1\nx\r\n0\r\n\r\n", false},
 		{"extension overhead", strings.Repeat("1;"+strings.Repeat("a", 3000)+"\r\nx\r\n", 100) + "0\r\n\r\n", true},
 		// An empty size line is no last chunk: followed by what ends a
 		// trailer, the body was "hello" with no error.

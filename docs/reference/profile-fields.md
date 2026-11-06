@@ -37,6 +37,7 @@ Generated from the 18 bundled JSON profile files. This is an inventory of fields
 | `behavior["dns.https_wait_percent"]` | int |
 | `behavior["dns.resolver"]` | str |
 | `behavior["h1.auth_body"]` | str |
+| `behavior["h1.chunked_bare_lf"]` | bool |
 | `behavior["h1.dropped_body"]` | str |
 | `behavior["h1.idle_connection_timeout_ms"]` | int |
 | `behavior["h1.idle_reap"]` | str |

@@ -74,6 +74,7 @@
     "dns.https_wait_percent": 20,
     "dns.resolver": "built-in",
     "h1.auth_body": "read-all",
+    "h1.chunked_bare_lf": true,
     "h1.dropped_body": "drain",
     "h1.idle_connection_timeout_ms": 300000,
     "h1.idle_reap": "on-request",

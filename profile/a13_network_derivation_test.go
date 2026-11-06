@@ -44,6 +44,10 @@ func networkDerivations() (map[string]networkDerivation, error) {
 // checking the earlier immutable QUIC derivation. Earlier hashes are unchanged.
 func unwindA13NetworkDerivation(raw []byte, beforeSHA string) ([]byte, string, error) {
 	var refreshErr error
+	raw, refreshErr = unwindPolicyAdditions(raw)
+	if refreshErr != nil {
+		return nil, "", refreshErr
+	}
 	raw, refreshErr = unwindHintBuildDerivations(raw)
 	if refreshErr != nil {
 		return nil, "", refreshErr

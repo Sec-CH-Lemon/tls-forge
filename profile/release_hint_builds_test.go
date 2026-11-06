@@ -159,6 +159,9 @@ func TestReleaseHintBuildsPreserveEveryEarlierProvenanceLayer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		if raw, err = unwindPolicyAdditions(raw); err != nil {
+			t.Fatal(path, err)
+		}
 		if a13SHA(raw) != row.AfterSHA {
 			t.Fatal("current bytes differ from measured refresh", path)
 		}

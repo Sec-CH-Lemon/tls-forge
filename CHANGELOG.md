@@ -27,6 +27,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   a closed one waited out its minute and could be handed a request, which then
   went again on another.
 
+- Fix an HTTP/1.1 answer failing whose chunked body ends its lines in LF
+  alone. Chrome 156 reads it (HttpChunkedDecoder): a line ends at LF, a size
+  is cut at its extension and trailing spaces, and a chunk's data and the
+  trailer's lines end in an empty line of LF or CRLF. fhttp refused it as RFC
+  9112 does, so a page Chrome shows failed. The Chrome profiles say
+  `h1.chunked_bare_lf`; their bytes before it are kept in
+  `profile/provenance/policy-additions.json`.
+
 - Fix HTTP/2 streams reset other than Chrome resets them. A response body let
   go of (a redirect's, a 401's or a preflight's, and the timer of its drain)
   was closed twice, and each close sent RST_STREAM(CANCEL): two where Chrome
