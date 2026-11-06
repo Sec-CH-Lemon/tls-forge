@@ -76,6 +76,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   sitemap; add a tag-triggered GitHub Pages workflow gated by mobile/desktop
   Lighthouse 100.
 
+- Fix the documentation's search and narrow layouts. From 1220px up, the
+  header title lay over the centered search field, so a click on the field
+  did nothing and only `/` opened search. Results now open directly under
+  the field, and the backdrop covers the section tabs: the header's
+  `backdrop-filter`, which had no visible effect on its opaque background,
+  kept the tabs above it. On phones, long names in table cards wrap instead
+  of being cut at the card's edge, and short inline code such as
+  `--request-kind` no longer breaks after a hyphen.
+
 ## [1.0.0] - Unreleased
 
 Prepared release; no release tag or publication has been made. The publication

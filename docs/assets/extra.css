@@ -105,9 +105,9 @@ a:focus-visible, button:focus-visible, label:focus-visible, input:focus-visible 
   border-radius: .875rem;
   background: var(--tf-header);
   box-shadow: 0 8px 28px var(--tf-shadow);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
 }
+/* No backdrop-filter on the opaque header: it would make the bar a stacking
+   context, and the open search's backdrop could not cover the section tabs. */
 .md-header__button.md-logo { display: inline-flex; align-items: center; margin: 0 .6rem 0 0; padding: 0; }
 .md-header__button.md-logo img, .md-header__button.md-logo svg { width: 1.8rem; height: 1.8rem; }
 .md-header__title { position: relative; z-index: 1; margin-left: 0; font-size: 1.08rem; font-weight: 750; letter-spacing: -.01em; }
@@ -223,6 +223,8 @@ body .md-search-result__article p {
 .md-dialog__inner.md-typeset { color: var(--tf-text); font-size: .875rem; }
 
 @media screen and (min-width: 76.25em) {
+  /* The title stretches across the bar; the centered search must lie above it. */
+  .md-search { z-index: 2; }
   [data-md-toggle="search"]:checked ~ .md-header .md-search { z-index: 20; }
   .md-search__inner { float: none; width: 100%; }
   [data-md-toggle="search"]:checked ~ .md-header .md-search__overlay {
@@ -241,7 +243,7 @@ body .md-search-result__article p {
   }
   [data-md-toggle="search"]:checked ~ .md-header .md-search__form { border-radius: .6rem; }
   [data-md-toggle="search"]:checked ~ .md-header .md-search__output {
-    top: calc(100% + 3.4rem);
+    top: calc(100% + .375rem);
     max-height: min(65vh, 30rem);
     overflow: hidden;
     border-radius: .625rem;
@@ -344,6 +346,9 @@ body .md-search-result__article p {
 .md-typeset a { color: var(--tf-accent); text-underline-offset: .16em; }
 .md-typeset a:hover { text-decoration: underline; }
 .md-typeset code { padding: .125em .28em; border: 0; border-radius: .375rem; color: var(--tf-text); background: var(--tf-code); font-size: .9em; }
+/* code-actions.js marks short inline code: a flag such as --request-kind must
+   not break after a hyphen. Longer fragments keep wrapping. */
+.md-typeset code.tf-code-unbroken { white-space: nowrap; }
 .md-typeset pre > code { border: 0; color: var(--tf-code-text); background: transparent; }
 .md-typeset .highlight {
   --md-code-fg-color: #e3eef5;
@@ -555,8 +560,6 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
     height: 3.15rem;
     padding: 0 .65rem;
     border-radius: .75rem;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
   }
   .md-header__button.md-logo { display: none; }
   .md-header__title { font-size: 1rem; }
@@ -781,6 +784,12 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
     border: 0;
     overflow-wrap: anywhere;
   }
+  /* A card hides what crosses its edge: long code wraps inside it. */
+  .md-typeset table[data-tf-responsive="true"]:not([class]) tbody td code {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .md-typeset table[data-tf-responsive="true"]:not([class]) tbody td code.tf-code-unbroken { white-space: nowrap; }
   .md-typeset table[data-tf-responsive="true"]:not([class]) tbody td + td { border-top: 1px solid var(--tf-line); }
   .md-typeset table[data-tf-responsive="true"]:not([class]) tbody td::before {
     display: block;

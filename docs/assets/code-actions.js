@@ -6,6 +6,11 @@
       if (header && action) header.appendChild(action);
     });
 
+    document.querySelectorAll(".md-typeset code").forEach((code) => {
+      if (code.closest("pre") || code.textContent.length > 24) return;
+      code.classList.add("tf-code-unbroken");
+    });
+
     document.querySelectorAll(".md-typeset table:not([class])").forEach((table) => {
       const labels = [...table.querySelectorAll("thead th")].map((cell) => cell.textContent.trim().replace(/\s+/g, " "));
       const rows = [...table.querySelectorAll("tbody tr")];
