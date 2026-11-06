@@ -249,6 +249,26 @@ func TestHTTP3OffersTheECHOfItsRecord(t *testing.T) {
 	}
 }
 
+// A record whose configs the profile can use none of offers no ECH over
+// HTTP/3 either, as over TCP
+// (TestARecordWithNoConfigTheProfileCanUseGoesWithGREASEAsChrome).
+func TestHTTP3OffersNoECHOfARecordWithNoConfigTheProfileCanUse(t *testing.T) {
+	key, err := ecdh.X25519().GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	site := startH3Site(t, 100*time.Millisecond, 0, tls.EncryptedClientHelloKey{Config: h3ECHConfig(7, key),
+		PrivateKey: key.Bytes(), SendAsRetry: true})
+	p384 := newECHKey(t, 0x44, ecdh.P384(), 0x11, [][2]uint16{{1, 1}}, 0)
+	p256 := newECHKey(t, 0x55, ecdh.P256(), 0x10, [][2]uint16{{1, 1}}, 0)
+	sha384 := newECHKey(t, 0x88, ecdh.X25519(), 0x20, [][2]uint16{{2, 1}}, 0)
+	dns := echNames(t, map[string]*dnsmessage.SVCBResource{"unusable.h3.test": service(1, "unusable.h3.test",
+		alpnParam("h3", "h2"), echParam(echList(p384, p256, sha384)))}, 0, 0)
+	if got := came(t, echClient(t, dns), "https://unusable.h3.test:"+site.port+"/"); got != "HTTP/3.0" {
+		t.Errorf("came over %q, want HTTP/3 with no inner hello", got)
+	}
+}
+
 // h3ECHConfig is an ECHConfig of id and key, public.h3.test its public name.
 func h3ECHConfig(id uint8, key *ecdh.PrivateKey) []byte {
 	b := cryptobyte.NewBuilder(nil)

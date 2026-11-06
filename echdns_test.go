@@ -807,6 +807,37 @@ func TestEveryECHScenarioGoesAsChromes(t *testing.T) {
 	}
 }
 
+// A record whose configs the profile can use none of offers no ECH: the
+// hello goes to the server's own name with the profile's GREASE
+// encrypted_client_hello, as Chrome 156 sends it (BoringSSL's
+// ssl_select_ech_config picks none, and ssl_encrypt_client_hello sends
+// GREASE). The server's ECH is another config's, whose retry configs a
+// GREASE offer leaves alone. HTTP/3: TestHTTP3OffersNoECHOfARecordWithNoConfigTheProfileCanUse.
+func TestARecordWithNoConfigTheProfileCanUseGoesWithGREASEAsChrome(t *testing.T) {
+	good := newECHKey(t, 0x11, ecdh.X25519(), 0x20, [][2]uint16{{1, 1}}, 0)
+	p384 := newECHKey(t, 0x44, ecdh.P384(), 0x11, [][2]uint16{{1, 1}}, 0)
+	p256 := newECHKey(t, 0x55, ecdh.P256(), 0x10, [][2]uint16{{1, 1}}, 0)
+	sha384 := newECHKey(t, 0x88, ecdh.X25519(), 0x20, [][2]uint16{{2, 1}}, 0)
+	served := []tls.EncryptedClientHelloKey{{Config: good.config, PrivateKey: good.key.Bytes(), SendAsRetry: true}}
+	site := startECHSite(t, served, []echKey{good, p384, p256, sha384})
+	dns := echNames(t, map[string]*dnsmessage.SVCBResource{"unusable.ech.test": service(1, "unusable.ech.test",
+		alpnParam("h2"), echParam(echList(p384, p256, sha384)))}, 0, 0)
+	res, err := echClient(t, dns).Do(&Request{URL: "https://unusable.ech.test:" + site.port + "/"})
+	if err != nil || res.Status != 200 {
+		t.Fatalf("%v %+v", err, res)
+	}
+	conns := site.seen()
+	if len(conns) != 1 {
+		t.Fatalf("the site saw %d connections, want 1", len(conns))
+	}
+	if conns[0].kindOf(nil) != "grease" || conns[0].request != "unusable.ech.test:"+site.port+" / ech=false" {
+		t.Fatalf("the site saw a %s hello asking %q", conns[0].kindOf(nil), conns[0].request)
+	}
+	if sni, _ := helloOfBytes(conns[0].hellos[0]).ext(0); !bytes.HasSuffix(sni, []byte("unusable.ech.test")) {
+		t.Errorf("the hello names %q", sni)
+	}
+}
+
 func TestASessionIsResumedInTheInnerHelloAloneAsChromeResumesIt(t *testing.T) {
 	for _, hrr := range []bool{false, true} {
 		good := newECHKey(t, 0x11, ecdh.X25519(), 0x20, [][2]uint16{{1, 1}}, 0)

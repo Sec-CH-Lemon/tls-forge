@@ -244,6 +244,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   profile's file is now one the run reads: such a run is a usage error (exit
   2) before anything is removed or written.
 
+- Fix a request failing where a name's HTTPS record gives ECH configs that
+  read but that the profile can use none of: a P-256 or P-384 key, a KDF or
+  AEAD it does not name, a newer ECHConfig version, a mandatory extension. utls
+  ended the connection before its ClientHello. It now goes as one of no list,
+  to the name itself with the profile's GREASE ECH, as Chrome 156 does
+  (measured). A list that does not read as BoringSSL reads it still fails, as
+  Chrome's ERR_INVALID_ECH_CONFIG_LIST does. Over TCP and HTTP/3 alike.
+
 - Fix an HTTP/2 connection whose peer stops reading holding up every HTTP/2
   request of the client, other hosts' included. fhttp (97f9b95) held the
   connection's lock while a request's HEADERS waited for a write the peer did
