@@ -78,3 +78,30 @@ func TestSecretQueriesStayOutOfTheLogOverBothProtocols(t *testing.T) {
 		})
 	}
 }
+
+// A header value no server may be sent is refused without being quoted: the
+// error goes to standard error, the log and the daemon's answer, and the
+// value is most likely a credential typed or pasted with a stray byte.
+func TestAHeaderValueThatCannotBeSentIsNotQuoted(t *testing.T) {
+	for _, h2 := range []bool{false, true} {
+		t.Run(fmt.Sprintf("h2=%v", h2), func(t *testing.T) {
+			site := tlsSite(t, h2, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				t.Error("a request with a value no server may be sent was sent")
+			}))
+			var log bytes.Buffer
+			client, err := New(WithProfile("chrome_155_macos"), WithInsecureSkipVerify(),
+				WithLogger(slog.New(slog.NewJSONHandler(&log, &slog.HandlerOptions{Level: LevelTrace}))))
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = client.Close() })
+			_, err = client.Do(&Request{URL: site.URL + "/", Header: NewHeader("Authorization", "Bearer NEVER-KEEP-7\x01")})
+			if err == nil || !strings.Contains(err.Error(), "Authorization") {
+				t.Fatalf("%v", err)
+			}
+			if strings.Contains(err.Error(), "NEVER-KEEP-7") || strings.Contains(log.String(), "NEVER-KEEP-7") {
+				t.Errorf("quoted: %v\n%s", err, log.String())
+			}
+		})
+	}
+}

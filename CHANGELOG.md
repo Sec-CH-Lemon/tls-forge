@@ -231,6 +231,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   given with no scheme (`//user:password@host/`). Both now say the username
   alone.
 
+- Security: a header value no server may be sent (a control byte in it) is
+  refused without being quoted. fhttp quoted it whole in the error
+  (`invalid HTTP header value "Bearer …" for header "Authorization"`), which
+  reached standard error, the log and the daemon's answer. The error names
+  the field alone, as net/http and x/net say it.
+
 - Fix a CONNECT over an HTTPS proxy's HTTP/2 connection counting as part of
   the request it opened a tunnel for. The request's `Trace` and log saw the
   CONNECT's connection and first byte as their own (two `GotConn`, two
