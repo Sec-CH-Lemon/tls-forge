@@ -521,6 +521,40 @@ func TestAnAnswerLeftUnreadThatIsNoRedirectIsDrainedAsTheTransportsOwn(t *testin
 	(&cacheBody{ReadCloser: io.NopCloser(strings.NewReader(""))}).Detach()
 }
 
+// A request with a precondition the cache does not evaluate goes to the
+// origin, and what it brings back is not kept, as Chromium's
+// kPassThroughHeaders disable the cache for it.
+func TestAPreconditionTheCacheDoesNotEvaluateGoesToTheOrigin(t *testing.T) {
+	for _, field := range []string{"If-Match", "If-Unmodified-Since"} {
+		c := cacheOf(t, nil)
+		origin := &cacheOrigin{answers: []func(*fhttp.Request) (*fhttp.Response, error){
+			cacheAnswer(200, "page", "Cache-Control", "max-age=60", "ETag", `"v1"`),
+			cacheAnswer(412, "", "Cache-Control", "max-age=60"),
+			cacheAnswer(200, "page", "Cache-Control", "max-age=60", "ETag", `"v1"`),
+		}}
+		ch := &chain{browser: &browserRequest{}}
+		read := func(req *fhttp.Request) int {
+			res, err := c.roundTrip(ch, req, origin)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, _ = io.ReadAll(res.Body)
+			_ = res.Body.Close()
+			return res.StatusCode
+		}
+		read(mustRequest(t, "https://www.example.com/page"))
+		conditional := mustRequest(t, "https://www.example.com/page")
+		conditional.Header.Set(field, `"v0"`)
+		if status := read(conditional); status != 412 || len(origin.asked) != 2 {
+			t.Errorf("%s: %d, the origin asked %d times", field, status, len(origin.asked))
+		}
+		// What was kept before is still the cache's; the 412 was not kept.
+		if status := read(mustRequest(t, "https://www.example.com/page")); status != 200 || len(origin.asked) != 2 {
+			t.Errorf("%s: then %d, the origin asked %d times", field, status, len(origin.asked))
+		}
+	}
+}
+
 func TestABodyCutShortIsNotKept(t *testing.T) {
 	c := cacheOf(t, nil)
 	broke := errors.New("connection reset")

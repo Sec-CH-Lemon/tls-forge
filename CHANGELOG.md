@@ -20,6 +20,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix the cache answering a request with `If-Match` or `If-Unmodified-Since`
+  itself, from what it kept, where its server would have said 412. Such a
+  request now goes to the origin and its answer is not kept, as Chromium's
+  `kPassThroughHeaders` make it bypass the cache.
+
 - Fix a fresh answer coded with deflate never kept by the cache over HTTP/2.
   zlib's decoder stops at its checksum, before the stream's end, so the body
   was never read to its end and the cache never saw it whole. What a body

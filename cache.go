@@ -122,8 +122,13 @@ func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.Roun
 	key := c.key(ch, req)
 	d := cacheDirectives(req.Header)
 	noStore := d.has("no-store")
+	// A precondition the cache does not evaluate, If-Match or
+	// If-Unmodified-Since, neither reads nor writes it, as Chromium's
+	// kPassThroughHeaders make the request LOAD_DISABLE_CACHE: answered from
+	// the cache, it would never be the 412 its server says.
 	eligible := (req.Method == "GET" || req.Method == "HEAD") && !noStore && cacheValue(req.Header, "If-Range") == "" &&
-		cacheValue(req.Header, "If-None-Match") == "" && cacheValue(req.Header, "If-Modified-Since") == ""
+		cacheValue(req.Header, "If-None-Match") == "" && cacheValue(req.Header, "If-Modified-Since") == "" &&
+		cacheValue(req.Header, "If-Match") == "" && cacheValue(req.Header, "If-Unmodified-Since") == ""
 	release := func() {}
 	if eligible && req.Method == "GET" {
 		// Include the exact request fields and browser credentials scope. Only
