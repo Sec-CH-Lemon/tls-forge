@@ -20,6 +20,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix a TCP connection that lost the race to QUIC taken for alive after its
+  server closed it, where it was dialed with ECH or under `fetch --pcap`.
+  tls-client looks at the socket of a connection waiting to be taken up
+  through `NetConn`, which tls-forge's ECH connection and the wire's lacked:
+  a closed one waited out its minute and could be handed a request, which then
+  went again on another.
+
 - Fix `compare` holding HTTP/1.1 to what the echo server made of a request
   rather than to how it was written. Spaces around a value were taken off, a
   line ending in LF alone read as one ending in CRLF, and the target's form

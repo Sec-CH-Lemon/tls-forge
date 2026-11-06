@@ -291,6 +291,11 @@ type echConn struct {
 
 func (c echConn) ECHConfigList() []byte { return c.configs }
 
+// NetConn is the connection under it, through which tls-client looks at the
+// socket of a connection waiting to be taken up: whether its server closed
+// it (connected), as Chromium's pool asks of an idle socket.
+func (c echConn) NetConn() net.Conn { return c.Conn }
+
 func newConnectDialer(u *url.URL, timeout time.Duration, local *net.TCPAddr, extra fhttp.Header) *connectDialer {
 	d := &connectDialer{
 		address: u.Host, secure: u.Scheme == "https", name: u.Hostname(),

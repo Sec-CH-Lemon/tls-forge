@@ -96,6 +96,11 @@ func (c *wiredConn) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// NetConn is the connection the wire keeps, through which tls-client looks at
+// its socket: whether its server closed it (connected). Reading through it
+// goes past the wire, and nothing does.
+func (c *wiredConn) NetConn() net.Conn { return c.Conn }
+
 func (c *wiredConn) Close() error {
 	c.w.closing(c)
 	return c.Conn.Close()
