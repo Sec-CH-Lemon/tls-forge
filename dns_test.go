@@ -1,6 +1,7 @@
 package tlsforge
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -630,6 +631,17 @@ func TestAnAnswerToAnotherQueryIsNotTheQuerys(t *testing.T) {
 		wrong[2] |= 0x80
 		right := slices.Clone(query)
 		right[2] |= 0x80
+		// Its ID and the response bit, but another question: of another name,
+		// of the name in other capitals, of two questions, cut short.
+		other, _, _ := httpsQuery("www.example.tesT", true, 4096)
+		binary.BigEndian.PutUint16(other, id)
+		other[2] |= 0x80
+		two := slices.Clone(right)
+		two[5] = 2
+		short := slices.Clone(right[:20])
+		if network == "tcp" {
+			wrong = other
+		}
 		var addr string
 		if network == "udp" {
 			addr = pc.LocalAddr().String()
@@ -638,6 +650,9 @@ func TestAnAnswerToAnotherQueryIsNotTheQuerys(t *testing.T) {
 				_, from, err := pc.ReadFrom(buf)
 				if err == nil {
 					_, _ = pc.WriteTo(wrong, from)
+					_, _ = pc.WriteTo(other, from)
+					_, _ = pc.WriteTo(two, from)
+					_, _ = pc.WriteTo(short, from)
 					_, _ = pc.WriteTo(right[:5], from)
 					_, _ = pc.WriteTo(query, from) // no answer: the response bit unset
 					_, _ = pc.WriteTo(right, from)
@@ -657,7 +672,7 @@ func TestAnAnswerToAnotherQueryIsNotTheQuerys(t *testing.T) {
 			}()
 		}
 		got, err := exchangeOver(context.Background(), network, addr, query, id)
-		if network == "udp" && (err != nil || binary.BigEndian.Uint16(got) != id || got[2]&0x80 == 0) {
+		if network == "udp" && (err != nil || !bytes.Equal(got, right)) {
 			t.Errorf("udp: %x, %v", got, err)
 		}
 		if network == "tcp" && (err == nil || !strings.Contains(err.Error(), "answered another query")) {

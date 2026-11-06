@@ -1,6 +1,7 @@
 package tlsforge
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/binary"
@@ -448,14 +449,27 @@ func exchangeOver(ctx context.Context, network, server string, query []byte, id 
 			return nil, err
 		}
 		// An answer to another query is not this one's: over UDP the next
-		// datagram may be.
-		if n >= 12 && binary.BigEndian.Uint16(reply) == id && reply[2]&0x80 != 0 {
+		// datagram may be. Its ID, its response bit and its question say
+		// whose it is, as Chromium's DnsResponse::InitParse reads them.
+		if n >= 12 && binary.BigEndian.Uint16(reply) == id && reply[2]&0x80 != 0 && sameQuestion(query, reply[:n]) {
 			return reply[:n], nil
 		}
 		if framed {
 			return nil, fmt.Errorf("tlsforge: %s answered another query", server)
 		}
 	}
+}
+
+// sameQuestion says whether reply asks the question query asks: one
+// question, its bytes the query's, the name's spelling too.
+func sameQuestion(query, reply []byte) bool {
+	end := 12
+	for end < len(query) && query[end] != 0 {
+		end += 1 + int(query[end])
+	}
+	end += 1 + 4 // the root label, the type and the class
+	return end <= len(query) && end <= len(reply) && bytes.Equal(reply[4:6], query[4:6]) &&
+		bytes.Equal(reply[12:end], query[12:end])
 }
 
 // httpsSupportedKeys are the service parameters Chrome's HTTPS record parser

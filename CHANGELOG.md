@@ -20,6 +20,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix a DNS answer taken for the query's by its ID and response bit alone.
+  tls-forge's own client now also holds it to the query's question, one
+  question of the same bytes, as Chromium's `DnsResponse::InitParse` does:
+  over UDP an answer to another question is passed over for the next
+  datagram, over TCP the query fails.
+
 - Fix the wait for a name's HTTPS records read differently from Chromium's
   for values other than Chrome's own (20 %, 5 to 50 ms, which wait as
   before). A percent now waits a millisecond at least; a percent of 0 waits
