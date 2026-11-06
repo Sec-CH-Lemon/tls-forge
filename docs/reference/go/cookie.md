@@ -2,21 +2,21 @@
 
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
-```text title="Go package cookie"
-package cookie // import "github.com/Sec-CH-Lemon/tls-forge/cookie"
+```go linenums="0"
+import "github.com/Sec-CH-Lemon/tls-forge/cookie"
+```
 
 Package cookie is the file a warmed session is kept in.
 
-Warming a session costs something: a browser, a challenge, sometimes a person.
-Once it is warm it is worth keeping, and worth reusing across runs and machines,
-which means it has to be written down in a shape that survives the trip.
+Warming a session costs something: a browser, a challenge, sometimes a person. Once it is warm it is worth keeping, and worth reusing across runs and machines, which means it has to be written down in a shape that survives the trip.
 
-A file holds SETS rather than cookies, because a session is the unit that was
-warmed. Twenty sessions in one file are twenty identities to spread a run over,
-not one pile of cookies to mix.
+A file holds SETS rather than cookies, because a session is the unit that was warmed. Twenty sessions in one file are twenty identities to spread a run over, not one pile of cookies to mix.
 
-TYPES
+## Types
 
+### Cookie { .tf-symbol }
+
+```go linenums="0"
 type Cookie struct {
 	Name   string `json:"name"`
 	Value  string `json:"value"`
@@ -32,32 +32,43 @@ type Cookie struct {
 	// SameSite is "strict", "lax", "none", or empty when the server named none.
 	SameSite string `json:"same_site,omitempty"`
 }
-    Cookie is one cookie as a browser holds it.
+```
 
-    More than a name and a value, because a warmed session is not portable
-    without the rest: the domain decides what it is sent to, and whether to
-    its subdomains as well, Secure, HttpOnly and SameSite are part of what the
-    server set, and an expiry that has passed is a cookie that will be ignored,
-    while no expiry at all is a session cookie.
+Cookie is one cookie as a browser holds it.
 
+More than a name and a value, because a warmed session is not portable without the rest: the domain decides what it is sent to, and whether to its subdomains as well, Secure, HttpOnly and SameSite are part of what the server set, and an expiry that has passed is a cookie that will be ignored, while no expiry at all is a session cookie.
+
+#### Parse() { .tf-member }
+
+```go linenums="0"
 func Parse(pair string) (Cookie, error)
-    Parse reads a cookie given on a command line, as `name=value`.
+```
 
-    Only the two halves, because that is all a command line can carry without
-    becoming its own format. Anything needing a domain or an expiry belongs in a
-    file.
+Parse reads a cookie given on a command line, as `name=value`.
 
+Only the two halves, because that is all a command line can carry without becoming its own format. Anything needing a domain or an expiry belongs in a file.
+
+#### Cookie.Expired() { .tf-member }
+
+```go linenums="0"
 func (c Cookie) Expired(at time.Time) bool
-    Expired reports whether this cookie is past its date. A cookie with no date
-    is a session cookie and never expires on its own.
+```
 
+Expired reports whether this cookie is past its date. A cookie with no date is a session cookie and never expires on its own.
+
+#### Cookie.MarshalJSON() { .tf-member }
+
+```go linenums="0"
 func (c Cookie) MarshalJSON() ([]byte, error)
-    MarshalJSON leaves out an expiry that was never set.
+```
 
-    encoding/json's omitempty has no opinion about a struct, so a session cookie
-    would otherwise be written down as expiring in the year one, which is both
-    noise and a lie.
+MarshalJSON leaves out an expiry that was never set.
 
+encoding/json's omitempty has no opinion about a struct, so a session cookie would otherwise be written down as expiring in the year one, which is both noise and a lie.
+
+### File { .tf-symbol }
+
+```go linenums="0"
 type File struct {
 	// Version is written so a later format can be told from this one. Nothing
 	// is rejected for it: a file from the future is more likely to be readable
@@ -68,47 +79,69 @@ type File struct {
 	Version int   `json:"version"`
 	Sets    []Set `json:"sets"`
 }
-    File is what a cookies.json holds.
+```
 
+File is what a cookies.json holds.
+
+#### Load() { .tf-member }
+
+```go linenums="0"
 func Load(data []byte) (*File, error)
-    Load reads a cookie file.
+```
 
-    Three shapes are accepted, because a warmed session arrives from wherever it
-    was warmed: this file's own object, a bare array of sets, and a bare array
-    of cookies, which is what a browser extension exports and becomes one set.
+Load reads a cookie file.
 
+Three shapes are accepted, because a warmed session arrives from wherever it was warmed: this file's own object, a bare array of sets, and a bare array of cookies, which is what a browser extension exports and becomes one set.
+
+#### File.Add() { .tf-member }
+
+```go linenums="0"
 func (f *File) Add(set Set)
-    Add puts a set in the file under an id nothing else is using.
+```
 
-    Unique because --cookie-set takes one: two sets answering to the same name
-    make the flag a coin toss. The stamp a caller offers is only a starting
-    point, since two runs can finish inside one second.
+Add puts a set in the file under an id nothing else is using.
 
+Unique because --cookie-set takes one: two sets answering to the same name make the flag a coin toss. The stamp a caller offers is only a starting point, since two runs can finish inside one second.
+
+#### File.Encode() { .tf-member }
+
+```go linenums="0"
 func (f *File) Encode() ([]byte, error)
-    Encode writes the file back out, in this version of the format, which reads
-    the sets of an older one as that one did.
+```
 
-    It fails rather than write less than it was given. A date this format cannot
-    hold, one after the year 9999 that a caller put in a Cookie, made it return
-    an empty document without a word, which a caller then wrote over a file of
-    good sessions: a caller writing the result over a file writes nothing when
-    this fails.
+Encode writes the file back out, in this version of the format, which reads the sets of an older one as that one did.
 
+It fails rather than write less than it was given. A date this format cannot hold, one after the year 9999 that a caller put in a Cookie, made it return an empty document without a word, which a caller then wrote over a file of good sessions: a caller writing the result over a file writes nothing when this fails.
+
+#### File.IDs() { .tf-member }
+
+```go linenums="0"
 func (f *File) IDs() []string
-    IDs are the sets in the file, in order.
+```
 
+IDs are the sets in the file, in order.
+
+#### File.Pick() { .tf-member }
+
+```go linenums="0"
 func (f *File) Pick(id string, pick *rand.Rand) (Set, error)
-    Pick chooses a set: the one named, or one at random when no name is given.
+```
 
-    Random rather than the first, because a file of warmed sessions exists to be
-    spread over. Deterministic when there is only one, which is the common case
-    and should not need a seed to be repeatable.
+Pick chooses a set: the one named, or one at random when no name is given.
 
+Random rather than the first, because a file of warmed sessions exists to be spread over. Deterministic when there is only one, which is the common case and should not need a seed to be repeatable.
+
+#### File.Unscoped() { .tf-member }
+
+```go linenums="0"
 func (f *File) Unscoped() bool
-    Unscoped says the file was written before a cookie's scope was kept, so that
-    a cookie its host's alone when it was set reads as its domain's and is sent
-    to subdomains too. Written again, it keeps the scope of what is in it.
+```
 
+Unscoped says the file was written before a cookie's scope was kept, so that a cookie its host's alone when it was set reads as its domain's and is sent to subdomains too. Written again, it keeps the scope of what is in it.
+
+### Set { .tf-symbol }
+
+```go linenums="0"
 type Set struct {
 	// ID names it, so a run can ask for this one.
 	ID string `json:"id"`
@@ -117,19 +150,32 @@ type Set struct {
 	Warmed  time.Time `json:"warmed,omitempty"`
 	Cookies []Cookie  `json:"cookies"`
 }
-    Set is one warmed session.
-
-func (s Set) EncodeNetscape() []byte
-    EncodeNetscape writes a set as a cookies.txt, for handing to curl or to
-    anything else that reads them.
-
-    One set, because the format cannot hold two: it is a jar, and a jar is one
-    identity. The caller chooses which.
-
-func (s Set) Live(at time.Time) Set
-    Live is the set with its expired cookies left out.
-
-func (s Set) MarshalJSON() ([]byte, error)
-    MarshalJSON leaves out a warming date that was never set, for the reason
-    Cookie.MarshalJSON does.
 ```
+
+Set is one warmed session.
+
+#### Set.EncodeNetscape() { .tf-member }
+
+```go linenums="0"
+func (s Set) EncodeNetscape() []byte
+```
+
+EncodeNetscape writes a set as a cookies.txt, for handing to curl or to anything else that reads them.
+
+One set, because the format cannot hold two: it is a jar, and a jar is one identity. The caller chooses which.
+
+#### Set.Live() { .tf-member }
+
+```go linenums="0"
+func (s Set) Live(at time.Time) Set
+```
+
+Live is the set with its expired cookies left out.
+
+#### Set.MarshalJSON() { .tf-member }
+
+```go linenums="0"
+func (s Set) MarshalJSON() ([]byte, error)
+```
+
+MarshalJSON leaves out a warming date that was never set, for the reason Cookie.MarshalJSON does.

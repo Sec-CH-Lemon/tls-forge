@@ -384,6 +384,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   section's overview it was larger, set further in, and pushed the entries
   19px down. The section tabs sit on the page background under the header
   panel instead of on a second, square-cornered bar.
+- Show the generated reference one symbol at a time, as Stripe's reference
+  does. The CLI, Go, Node.js and Python pages were whole dumps of `--help`,
+  `go doc -all` and `index.d.ts` with numbered lines, and Python signatures
+  were set as headings, `:param` fields and all. Now each command,
+  declaration, method and export has a heading of its own and a signature in
+  a code panel without line numbers, one parameter a line when it is long.
+  After the panel come its documentation as text, then its flags,
+  parameters, fields, keys or properties as a list. Each entry gives a name,
+  type, default and description, and raised errors link to their sections.
+  `scripts/generate-docs.py` fails on a construct it cannot read rather than
+  leaving it out. Two code blocks in a row no longer touch on wide screens.
 
 ## [1.0.0] - Unreleased
 

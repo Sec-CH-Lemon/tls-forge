@@ -2,40 +2,45 @@
 
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
-```text title="Go package capture"
-package capture // import "github.com/Sec-CH-Lemon/tls-forge/capture"
+```go linenums="0"
+import "github.com/Sec-CH-Lemon/tls-forge/capture"
+```
 
-Package capture is the exchange format between a client that connects and the
-report describing what it sent.
+Package capture is the exchange format between a client that connects and the report describing what it sent.
 
-One shape serves both sides on purpose. The echo server answers every client
-— a real browser or this library — with the same JSON, so comparing the two
-is comparing two values of one type rather than reconciling two formats.
-The alternative, a browser-shaped struct and a client-shaped struct, is where
-"these fields look equivalent" quietly becomes "these fields are equivalent".
+One shape serves both sides on purpose. The echo server answers every client — a real browser or this library — with the same JSON, so comparing the two is comparing two values of one type rather than reconciling two formats. The alternative, a browser-shaped struct and a client-shaped struct, is where "these fields look equivalent" quietly becomes "these fields are equivalent".
 
-The authoritative field is RawClientHello: the bytes as they arrived. Every
-list below is derived from it and exists to be read by a human. A comparison
-re-parses the raw bytes instead of trusting the rendering, so a bug in the
-rendering can never make two different handshakes look identical.
+The authoritative field is RawClientHello: the bytes as they arrived. Every list below is derived from it and exists to be read by a human. A comparison re-parses the raw bytes instead of trusting the rendering, so a bug in the rendering can never make two different handshakes look identical.
 
-CONSTANTS
+## Constants
 
+### SourceBrowser, SourceTLSFetch { .tf-symbol }
+
+```go linenums="0"
 const (
 	SourceBrowser  = "browser"
 	SourceTLSFetch = "tlsforge"
 )
-    Source labels which side produced a capture.
+```
 
+Source labels which side produced a capture.
 
-TYPES
+## Types
 
+### Brand { .tf-symbol }
+
+```go linenums="0"
 type Brand struct {
 	Brand   string `json:"brand"`
 	Version string `json:"version"`
 }
-    Brand is one entry of navigator.userAgentData.brands.
+```
 
+Brand is one entry of navigator.userAgentData.brands.
+
+### Capture { .tf-symbol }
+
+```go linenums="0"
 type Capture struct {
 	Source     string `json:"source,omitempty"`
 	Profile    string `json:"profile,omitempty"`
@@ -64,19 +69,31 @@ type Capture struct {
 	// a browser that sent none, and none from a server before they were kept.
 	ClientHints []HeaderField `json:"client_hints,omitempty"`
 }
-    Capture is one client's complete self-description.
+```
 
+Capture is one client's complete self-description.
+
+#### Capture.Hello() { .tf-member }
+
+```go linenums="0"
 func (c *Capture) Hello() (*fingerprint.ClientHello, error)
-    Hello re-parses the authoritative bytes.
+```
 
-    Comparison goes through here rather than through the rendered lists so that
-    a mistake in the rendering cannot make two different handshakes compare
-    equal.
+Hello re-parses the authoritative bytes.
 
+Comparison goes through here rather than through the rendered lists so that a mistake in the rendering cannot make two different handshakes compare equal.
+
+#### Capture.UserAgent() { .tf-member }
+
+```go linenums="0"
 func (c *Capture) UserAgent() string
-    UserAgent returns the user-agent the request carried, which is the one that
-    has to agree with the TLS handshake.
+```
 
+UserAgent returns the user-agent the request carried, which is the one that has to agree with the TLS handshake.
+
+### HTTP1 { .tf-symbol }
+
+```go linenums="0"
 type HTTP1 struct {
 	Method string `json:"method"`
 	Path   string `json:"path"`
@@ -94,11 +111,21 @@ type HTTP1 struct {
 	// made before it was recorded.
 	Layout []string `json:"layout,omitempty"`
 }
-    HTTP1 is what an HTTP/1.1 client sent.
+```
 
+HTTP1 is what an HTTP/1.1 client sent.
+
+#### HTTP1.Fingerprint() { .tf-member }
+
+```go linenums="0"
 func (h *HTTP1) Fingerprint() *fingerprint.HTTP1
-    Fingerprint converts the rendered HTTP/1.1 view into its comparable form.
+```
 
+Fingerprint converts the rendered HTTP/1.1 view into its comparable form.
+
+### HTTP2 { .tf-symbol }
+
+```go linenums="0"
 type HTTP2 struct {
 	Akamai            string        `json:"akamai_fingerprint"`
 	Settings          []Setting     `json:"settings"`
@@ -116,21 +143,40 @@ type HTTP2 struct {
 	// checked.
 	RawFrames []byte `json:"raw_frames,omitempty"`
 }
-    HTTP2 is the readable rendering of the connection preamble and first
-    request.
+```
 
+HTTP2 is the readable rendering of the connection preamble and first request.
+
+#### FromHTTP2() { .tf-member }
+
+```go linenums="0"
 func FromHTTP2(h *fingerprint.HTTP2) *HTTP2
-    FromHTTP2 renders observed HTTP/2 traffic for humans.
+```
 
+FromHTTP2 renders observed HTTP/2 traffic for humans.
+
+#### HTTP2.Fingerprint() { .tf-member }
+
+```go linenums="0"
 func (h *HTTP2) Fingerprint() *fingerprint.HTTP2
-    Fingerprint converts the rendered HTTP/2 view back into the comparable form.
+```
 
+Fingerprint converts the rendered HTTP/2 view back into the comparable form.
+
+### HeaderField { .tf-symbol }
+
+```go linenums="0"
 type HeaderField struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
-    HeaderField is one header in wire order.
+```
 
+HeaderField is one header in wire order.
+
+### Navigator { .tf-symbol }
+
+```go linenums="0"
 type Navigator struct {
 	UserAgent           string          `json:"user_agent"`
 	Languages           []string        `json:"languages,omitempty"`
@@ -149,29 +195,40 @@ type Navigator struct {
 	HardwareConcurrency int             `json:"hardware_concurrency,omitempty"`
 	Extra               json.RawMessage `json:"extra,omitempty"`
 }
-    Navigator is what the browser says about itself in JavaScript.
+```
 
-    It is collected because the HTTP layer has to agree with it: a request whose
-    user-agent claims Chrome 151 while sec-ch-ua-platform-version claims a macOS
-    that shipped with Chrome 120 is a contradiction no real browser produces.
-    The high-entropy hints are stored verbatim rather than re-derived for the
-    same reason — inventing one would be inventing a machine.
+Navigator is what the browser says about itself in JavaScript.
 
+It is collected because the HTTP layer has to agree with it: a request whose user-agent claims Chrome 151 while sec-ch-ua-platform-version claims a macOS that shipped with Chrome 120 is a contradiction no real browser produces. The high-entropy hints are stored verbatim rather than re-derived for the same reason — inventing one would be inventing a machine.
+
+### Priority { .tf-symbol }
+
+```go linenums="0"
 type Priority struct {
 	StreamID  uint32 `json:"stream_id"`
 	Exclusive bool   `json:"exclusive"`
 	DependsOn uint32 `json:"depends_on"`
 	Weight    uint8  `json:"weight"`
 }
-    Priority is a standalone PRIORITY frame.
+```
 
+Priority is a standalone PRIORITY frame.
+
+### Setting { .tf-symbol }
+
+```go linenums="0"
 type Setting struct {
 	ID    uint16 `json:"id"`
 	Name  string `json:"name"`
 	Value uint32 `json:"value"`
 }
-    Setting is one HTTP/2 setting, named.
+```
 
+Setting is one HTTP/2 setting, named.
+
+### TLS { .tf-symbol }
+
+```go linenums="0"
 type TLS struct {
 	JA3     string `json:"ja3"`
 	JA3Hash string `json:"ja3_hash"`
@@ -198,15 +255,25 @@ type TLS struct {
 	// difference that is not one.
 	Resumed bool `json:"session_resumed"`
 }
-    TLS is the readable rendering of a ClientHello.
+```
 
+TLS is the readable rendering of a ClientHello.
+
+#### FromClientHello() { .tf-member }
+
+```go linenums="0"
 func FromClientHello(hello *fingerprint.ClientHello) TLS
-    FromClientHello renders a parsed hello for humans.
+```
 
+FromClientHello renders a parsed hello for humans.
+
+### Value { .tf-symbol }
+
+```go linenums="0"
 type Value struct {
 	Code uint16 `json:"code"`
 	Name string `json:"name"`
 }
-    Value is a wire code together with its human name, so the JSON is readable
-    without a registry lookup and still exact.
 ```
+
+Value is a wire code together with its human name, so the JSON is readable without a registry lookup and still exact.
