@@ -43,7 +43,8 @@ func TestASessionIsOfferedOnlyToThePortItsServerGaveItOn(t *testing.T) {
 			mu.Unlock()
 		}))
 		for _, s := range []*httptest.Server{a, b} {
-			s.TLS = &stdtls.Config{SessionTicketKey: key}
+			s.TLS = &stdtls.Config{}
+			s.TLS.SetSessionTicketKeys([][32]byte{key})
 			s.StartTLS()
 			t.Cleanup(s.Close)
 		}
