@@ -20,6 +20,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix `compare` taking an ECH payload of any length for Chrome's. Chrome
+  draws the length for every connection from four, so it was shown and never
+  compared, and a client sending 300 bytes, or 145, matched. `ech_grease` now
+  says whether the payload is one of BoringSSL's four (144, 176, 208, 240),
+  and a client is held to that where the browser's is.
+
 - Fix the HTTPS records asked on Windows of servers the addresses do not
   come from. tls-forge took the DNS servers of every adapter that is up,
   where Go's resolver, which looks up the addresses, takes only an adapter's

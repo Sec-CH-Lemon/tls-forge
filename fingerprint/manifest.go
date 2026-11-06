@@ -236,14 +236,24 @@ func hpkeName(names map[uint16]string, id uint16) string {
 func echShape(hello *ClientHello) (fixed, payload string) {
 	ech, ok := hello.EncryptedClientHello()
 	if ok {
-		return fmt.Sprintf("%s, %s, key %s", hpkeName(hpkeKDFs, ech.KDF), hpkeName(hpkeAEADs, ech.AEAD),
-			size(ech.EncLength)), fmt.Sprint(ech.PayloadLength)
+		fixed = fmt.Sprintf("%s, %s, key %s", hpkeName(hpkeKDFs, ech.KDF), hpkeName(hpkeAEADs, ech.AEAD),
+			size(ech.EncLength))
+		if slices.Contains(boringECHPayloads, ech.PayloadLength) {
+			fixed += ", payload drawn as BoringSSL draws it"
+		}
+		return fixed, fmt.Sprint(ech.PayloadLength)
 	}
 	if data, present := hello.Extension(ExtEncryptedClientHello); present {
 		return "unreadable, " + size(len(data)), "(none)"
 	}
 	return "(none)", "(none)"
 }
+
+// boringECHPayloads are the lengths BoringSSL draws a GREASE ECH payload
+// from, its 16-byte tag in (setup_ech_grease: 32 times 4 to 7, and the tag),
+// as Chrome 155 was measured drawing them: a payload of one of them is one
+// drawn by that rule, which is compared where the payload itself cannot be.
+var boringECHPayloads = []int{144, 176, 208, 240}
 
 // pskShape is pre_shared_key without its tickets and binders: how many
 // identities, and how long each binder is.
@@ -314,9 +324,10 @@ var manifest = []Rule{
 	{"tls", "compress_certificate", inOrder},
 	{"tls", "trust_anchors", "in order when the browser sends them sorted by their bytes, as Chrome 154 " +
 		"and later do; as a set when it does not, as an older Chrome drew their order for each process"},
-	{"tls", "ech_grease", "exactly: the cipher suite and the key's length; " +
-		"not the config id, key or payload, drawn for each connection: the key is held as keys"},
-	{"tls", "ech_payload_length", "shown, not compared: " + drawn},
+	{"tls", "ech_grease", "exactly: the cipher suite, the key's length, and whether the payload is one of " +
+		"the four lengths BoringSSL draws it from (144, 176, 208, 240); not the config id, key or payload, " +
+		"drawn for each connection: the key is held as keys"},
+	{"tls", "ech_payload_length", "shown, not compared: " + drawn + "; ech_grease holds it to its rule"},
 	{"tls", "pre_shared_key", "exactly: how many identities, how long each binder; not the tickets or binders"},
 	{"tls", "extension_contents", "as a set: the contents of each extension that is the same on every " +
 		"connection; not server_name's, the site's, or padding's; an extension no rule describes is not " +

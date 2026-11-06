@@ -113,6 +113,14 @@ var tlsChanges = []change{
 	{"ChaCha20-Poly1305 for ECH", cold, "ech_grease", func(_ *testing.T, b *helloBuilder) {
 		b.set(ExtEncryptedClientHello, echBody(1, 3, 176))
 	}},
+	// A length BoringSSL never draws, though the payload's own length is not
+	// compared: each of Chrome's four is another connection's.
+	{"an ECH payload of 300 bytes", cold, "ech_grease", func(_ *testing.T, b *helloBuilder) {
+		b.set(ExtEncryptedClientHello, echBody(1, 1, 300))
+	}},
+	{"an ECH payload a byte longer than one Chrome draws", cold, "ech_grease", func(_ *testing.T, b *helloBuilder) {
+		b.set(ExtEncryptedClientHello, echBody(1, 1, 145))
+	}},
 	{"random bytes for ECH's key", cold, "keys", func(t *testing.T, b *helloBuilder) {
 		b.set(ExtEncryptedClientHello, echWith(fromHex(t, reported)))
 	}},
@@ -136,6 +144,12 @@ func TestWhatChromeChangesItselfIsNotADifference(t *testing.T) {
 		{"another ECH payload length", cold, "", func(_ *testing.T, b *helloBuilder) {
 			b.set(ExtEncryptedClientHello, echBody(1, 1, 240))
 		}},
+		{"the shortest ECH payload Chrome draws", cold, "", func(_ *testing.T, b *helloBuilder) {
+			b.set(ExtEncryptedClientHello, echBody(1, 1, 144))
+		}},
+		{"an ECH payload of 208 bytes", cold, "", func(_ *testing.T, b *helloBuilder) {
+			b.set(ExtEncryptedClientHello, echBody(1, 1, 208))
+		}},
 		{"other GREASE values", cold, "", func(_ *testing.T, b *helloBuilder) {
 			b.ciphers[0] = 0x1a1a
 			b.extensions[0].Type, b.extensions[len(b.extensions)-1].Type = 0x2a2a, 0x3a3a
@@ -155,6 +169,25 @@ func TestWhatChromeChangesItselfIsNotADifference(t *testing.T) {
 				t.Errorf("%s was reported:\n%s", c.name, report)
 			}
 		})
+	}
+}
+
+// TestAnECHPayloadOfARuleNotKnownIsNotCompared holds a browser whose payload
+// is none BoringSSL draws to nothing of its length: what rule it draws by is
+// not known, so another length is not a difference, and one of BoringSSL's
+// four is.
+func TestAnECHPayloadOfARuleNotKnownIsNotCompared(t *testing.T) {
+	b := builderOf(t, fixture(t, cold))
+	b.set(ExtEncryptedClientHello, echBody(1, 1, 300))
+	reference := mustParse(t, b.records())
+	for _, tc := range []struct {
+		payload int
+		ok      bool
+	}{{300, true}, {301, true}, {100, true}, {176, false}} {
+		b.set(ExtEncryptedClientHello, echBody(1, 1, tc.payload))
+		if report := CompareTLS(reference, mustParse(t, b.records())); report.OK() != tc.ok {
+			t.Errorf("%d against 300: %s", tc.payload, report)
+		}
 	}
 }
 
