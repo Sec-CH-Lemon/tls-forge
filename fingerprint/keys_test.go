@@ -282,3 +282,50 @@ func TestTheComparisonFindsTheECHKeyTLSForgeSentBeforeItsFix(t *testing.T) {
 		t.Errorf("the hello of d5ed306:\n%s", report)
 	}
 }
+
+func TestAKeyNoRuleChecksIsNotTakenToMatch(t *testing.T) {
+	hello := func(share []byte, ech []byte) *ClientHello {
+		b := newHello().withCiphers(0x1301)
+		if share != nil {
+			b.withExtension(ExtKeyShare, share)
+		}
+		if ech != nil {
+			b.withExtension(ExtEncryptedClientHello, echWith(ech))
+		}
+		return mustParse(t, b.records())
+	}
+	x448 := keyShareOf(sharedKey{30, make([]byte, 56)})
+	x25519 := keyShareOf(sharedKey{29, freshKey("X25519")})
+	unchecked := func(r Report) []string {
+		var out []string
+		for _, d := range r.Unchecked {
+			out = append(out, d.Field)
+		}
+		return out
+	}
+	// Both send one: whatever they hold, nothing says they are keys.
+	if got := unchecked(CompareTLS(hello(x448, nil), hello(x448, nil))); !slices.Equal(got, []string{"keys of X448"}) {
+		t.Errorf("X448 on both sides: %q", got)
+	}
+	if got := unchecked(CompareTLS(hello(nil, make([]byte, 48)), hello(nil, make([]byte, 48)))); !slices.Equal(got,
+		[]string{"keys of encrypted_client_hello"}) {
+		t.Errorf("an ECH key of 48 bytes on both sides: %q", got)
+	}
+	// One side alone: a difference of the groups, not a key left unchecked.
+	report := CompareTLS(hello(x448, nil), hello(x25519, nil))
+	if got := unchecked(report); got != nil || report.OK() {
+		t.Errorf("X448 against X25519: %q, %s", got, report)
+	}
+	if got := unchecked(CompareTLS(hello(x25519, nil), hello(x448, nil))); got != nil {
+		t.Errorf("X25519 against X448: %q", got)
+	}
+	// Keys a rule checks, and GREASE's, leave nothing unchecked.
+	greased := keyShareOf(sharedKey{0x0a0a, []byte{0}}, sharedKey{29, freshKey("X25519")})
+	if got := unchecked(CompareTLS(hello(greased, freshKey("X25519")), hello(greased, freshKey("X25519")))); got != nil {
+		t.Errorf("keys a rule checks: %q", got)
+	}
+	// Chrome against itself: none.
+	if r := CompareTLS(mustParse(t, fixture(t, cold)), mustParse(t, fixture(t, cold))); len(r.Unchecked) != 0 {
+		t.Errorf("Chrome against itself: %s", r)
+	}
+}

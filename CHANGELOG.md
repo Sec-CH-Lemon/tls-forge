@@ -20,6 +20,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix `compare` taking a key it cannot check for a match. A key share of a
+  group it reads no key of (X448, say), or an ECH key of a length no KEM has,
+  was shown as `not checked` on both sides and counted as alike. Both sides
+  sending one is now reported as not checked, and `compare` exits 3.
+
 - Fix `compare` passing over bytes Chrome sends alike every time. GREASE was
   held to its lengths alone, though BoringSSL writes the second GREASE
   extension's single zero byte and the GREASE key share's every time; a

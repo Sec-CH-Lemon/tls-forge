@@ -361,6 +361,9 @@ func TLSFields(hello *ClientHello) []Field
         and whether each extension a field reads reads whole, is compared as
         framing.
 
+    A key of a group no rule reads, and an ECH key of a length no KEM has,
+    are reported as not checked when both sides send one.
+
     Other fields in this manifest are compared exactly for the supplied pair of
     captures. This does not establish that they are invariant across launches,
     request contexts or connection states. An extension both sides send that

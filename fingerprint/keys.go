@@ -113,6 +113,37 @@ func keys(hello *ClientHello) []string {
 	return out
 }
 
+// uncheckedKeys are the keys both hellos send that no rule checks: of a group
+// keyParts does not know, or an ECH key of a length no KEM has. Neither says
+// anything of the other, so the two are not taken to match.
+func uncheckedKeys(reference, candidate *ClientHello) []Difference {
+	theirs := uncheckable(candidate)
+	var out []Difference
+	for _, name := range uncheckable(reference) {
+		if slices.Contains(theirs, name) {
+			out = append(out, Difference{Field: "keys of " + name, Reference: "a key no rule checks",
+				Candidate: "a key no rule checks"})
+		}
+	}
+	return out
+}
+
+// uncheckable names the keys of a hello no rule checks.
+func uncheckable(hello *ClientHello) []string {
+	var out []string
+	for _, share := range keyShareData(hello) {
+		if _, known := keyParts[share.group]; !known && !IsGREASE(share.group) {
+			out = append(out, GroupName(share.group))
+		}
+	}
+	if enc, ok := echKey(hello); ok {
+		if _, known := echKeys[len(enc)]; !known {
+			out = append(out, ExtensionName(ExtEncryptedClientHello))
+		}
+	}
+	return out
+}
+
 func partsSize(parts []keyPart) int {
 	n := 0
 	for _, part := range parts {

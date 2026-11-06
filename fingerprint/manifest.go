@@ -330,7 +330,8 @@ var manifest = []Rule{
 	{"tls", "keys", "in order: whether each key of key_share and ECH's is a public key of its kind, as the " +
 		"browser's always is (X25519's below 2^255-19, its top bit clear, of a point of the curve in the group " +
 		"of prime order; a NIST curve's a point of it; ML-KEM's through FIPS 203's check), and whether the keys " +
-		"of one kind are each their own; not the keys, drawn for each connection"},
+		"of one kind are each their own; not the keys, drawn for each connection; a key of a group no rule " +
+		"reads, or an ECH key of a length no KEM has, is not checked"},
 	{"tls", "alpn", inOrder},
 	{"tls", "application_settings", inOrder},
 	{"tls", "ec_point_formats", inOrder},
