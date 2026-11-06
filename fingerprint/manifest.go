@@ -139,7 +139,7 @@ func greaseLayout(hello *ClientHello) []string {
 	var values []uint16
 	for i, ext := range extensions {
 		if IsGREASE(ext.Type) {
-			out = append(out, fmt.Sprintf("extensions %s, %s", position(i, len(extensions)), size(len(ext.Data))))
+			out = append(out, fmt.Sprintf("extensions %s, %s", position(i, len(extensions)), greaseBody(ext.Data)))
 			values = append(values, ext.Type)
 		}
 	}
@@ -152,12 +152,12 @@ func greaseLayout(hello *ClientHello) []string {
 	}
 
 	groups := greased("supported_groups", hello.SupportedGroups())
-	shares := hello.KeyShares()
+	shares := keyShareData(hello)
 	var shared []uint16
 	for i, share := range shares {
-		if IsGREASE(share.Group) {
-			out = append(out, fmt.Sprintf("key_share %s, key %s", position(i, len(shares)), size(share.Length)))
-			shared = append(shared, share.Group)
+		if IsGREASE(share.group) {
+			out = append(out, fmt.Sprintf("key_share %s, key %s", position(i, len(shares)), greaseBody(share.key)))
+			shared = append(shared, share.group)
 		}
 	}
 	if len(groups) > 0 && len(shared) > 0 {
@@ -170,6 +170,17 @@ func greaseLayout(hello *ClientHello) []string {
 	greased("supported_versions", hello.SupportedVersions())
 	greased("signature_algorithms", hello.SignatureAlgorithms())
 	return out
+}
+
+// greaseBody is how long a GREASE extension's body or key share's key is
+// and, short, what it holds: BoringSSL writes the same every time (the first
+// extension empty, the second a single zero byte, the key a single zero
+// byte), which a server can see.
+func greaseBody(data []byte) string {
+	if len(data) == 0 || len(data) > 16 {
+		return size(len(data))
+	}
+	return fmt.Sprintf("%s %x", size(len(data)), data)
 }
 
 // position is where an entry is in a list of n: first, last, or its number.
@@ -309,8 +320,8 @@ var manifest = []Rule{
 	{"tls", "cipher_suites", inOrderNoGREASE},
 	{"tls", "compression_methods", inOrder},
 	{"tls", "extensions", "as a set, GREASE aside: the browser shuffles the order for each connection"},
-	{"tls", "grease", "in order: where GREASE goes, how long it is and which of its values are one; " +
-		"not the values, drawn for each connection"},
+	{"tls", "grease", "in order: where GREASE goes, how long it is, what a short extension body or key " +
+		"holds, and which of its values are one; not the values, drawn for each connection"},
 	{"tls", "supported_versions", inOrderNoGREASE},
 	{"tls", "supported_groups", inOrderNoGREASE},
 	{"tls", "signature_algorithms", inOrderNoGREASE},
@@ -335,6 +346,9 @@ var manifest = []Rule{
 	{"tls", "extension_contents", "as a set: the contents of each extension that is the same on every " +
 		"connection; not server_name's, the site's, or padding's; an extension no rule describes is not " +
 		"checked when the two differ"},
+	{"tls", "framing", "as a set: the extensions a field reads whose bytes do not read whole as their " +
+		"grammar has them, bytes past a list or a list cut short, and server_name holding other than one " +
+		"host_name; none in a browser's"},
 	{"http1", "http1_request", "exactly: the method and the version; not the target, the page asked for"},
 	{"http1", "http1_header_order", "in order, with the spelling"},
 	{"http1", "http1_header_values", "in order; not Host's, the name the server was reached by"},

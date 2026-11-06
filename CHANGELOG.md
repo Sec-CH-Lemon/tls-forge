@@ -20,6 +20,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix `compare` passing over bytes Chrome sends alike every time. GREASE was
+  held to its lengths alone, though BoringSSL writes the second GREASE
+  extension's single zero byte and the GREASE key share's every time; a
+  field read an extension's list and passed over what followed it; and
+  `server_name`'s contents were left out whole. A client with another byte
+  there, a byte past `supported_groups`' list, a protocol name cut short or a
+  second server name matched. `grease` now says what a body or key of up to
+  16 bytes holds (`extensions last, 1 byte 00`), and `framing` names each
+  extension a field reads whose bytes do not read whole by its grammar, and a
+  `server_name` of other than one host_name; a browser's has none.
+
 - Fix `compare` taking an ECH payload of any length for Chrome's. Chrome
   draws the length for every connection from four, so it was shown and never
   compared, and a client sending 300 bytes, or 145, matched. `ech_grease` now

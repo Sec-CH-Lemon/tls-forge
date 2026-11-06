@@ -142,8 +142,8 @@ func scalar(name, value string) Field {
 //   - Extension ORDER. Chrome shuffles it on every connection. The extension
 //     SET is compared instead, which is what JA4 hashes, and the order of the
 //     trust anchors, drawn once for each browser process, likewise.
-//   - GREASE values (RFC 8701). Where they go, how long they are and which are
-//     one value is compared as grease.
+//   - GREASE values (RFC 8701). Where they go, how long they are, what a short
+//     body holds and which are one value is compared as grease.
 //   - The random, the session id, the keys, ECH's config id, key and payload,
 //     and the tickets and binders of pre_shared_key: their lengths are
 //     compared, the bytes are not. Of the keys, what a server can check is
@@ -153,7 +153,9 @@ func scalar(name, value string) Field {
 //     connection: shown, not compared itself (Varies); whether it is one of
 //     the four is (ech_grease).
 //   - The contents of server_name, which are the site's, and of padding, whose
-//     length follows from the rest.
+//     length follows from the rest. Whether server_name holds one host_name,
+//     and whether each extension a field reads reads whole, is compared as
+//     framing.
 //
 // Other fields in this manifest are compared exactly for the supplied pair of
 // captures. This does not establish that they are invariant across launches,
@@ -188,6 +190,7 @@ func TLSFields(hello *ClientHello) []Field {
 		{Name: "ech_payload_length", Values: []string{echPayload}, Scalar: true, Varies: drawn},
 		scalar("pre_shared_key", pskShape(hello)),
 		{Name: "extension_contents", Values: extensionContents(hello), Set: true},
+		{Name: "framing", Values: framing(hello), Set: true},
 	}
 }
 

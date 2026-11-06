@@ -308,8 +308,8 @@ func TestPreSharedKeyIsReadWithoutItsKeys(t *testing.T) {
 func TestGREASEIsComparedByWhereItGoes(t *testing.T) {
 	want := []string{
 		"cipher_suites first",
-		"extensions first, empty", "extensions last, 1 byte", "extensions each a value of their own",
-		"supported_groups first", "key_share first, key 1 byte", "key_share the group of supported_groups",
+		"extensions first, empty", "extensions last, 1 byte 00", "extensions each a value of their own",
+		"supported_groups first", "key_share first, key 1 byte 00", "key_share the group of supported_groups",
 		"supported_versions first", "signature_algorithms first",
 	}
 	for _, name := range []string{"chrome155-clienthello.bin", "chrome155-clienthello-resumed.bin"} {
@@ -339,6 +339,13 @@ func TestGREASEIsComparedByWhereItGoes(t *testing.T) {
 		return strings.HasPrefix(line, "extensions each") || strings.HasPrefix(line, "extensions a value")
 	}) {
 		t.Errorf("one GREASE extension: %q", got)
+	}
+	// A body is said whole up to 16 bytes, past them by its length alone.
+	for data, want := range map[string]string{"": "empty", "\x00": "1 byte 00", "\x01\xff": "2 bytes 01ff",
+		strings.Repeat("a", 16): "16 bytes " + strings.Repeat("61", 16), strings.Repeat("a", 17): "17 bytes"} {
+		if got := greaseBody([]byte(data)); got != want {
+			t.Errorf("greaseBody(%q) = %q, want %q", data, got, want)
+		}
 	}
 	// None at all: nothing to say.
 	if got := greaseLayout(mustParse(t, newHello().withCiphers(0x1301).records())); got != nil {

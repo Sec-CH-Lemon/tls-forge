@@ -65,6 +65,16 @@ var tlsChanges = []change{
 	{"the second GREASE extension empty", cold, "grease", func(_ *testing.T, b *helloBuilder) {
 		b.extensions[len(b.extensions)-1].Data = nil
 	}},
+	// BoringSSL writes a single zero byte there every time: another is no
+	// value it draws.
+	{"the second GREASE extension holding 01", cold, "grease", func(_ *testing.T, b *helloBuilder) {
+		b.extensions[len(b.extensions)-1].Data = []byte{1}
+	}},
+	{"a GREASE key of 01", cold, "grease", func(_ *testing.T, b *helloBuilder) {
+		hybrid := shareOf(4588, 1216)
+		b.set(ExtKeyShare, keyShareOf(sharedKey{greaseGroup(b), []byte{1}}, sharedKey{4588, hybrid},
+			sharedKey{29, shareOf(29, 32)}))
+	}},
 	{"no TLS 1.2", cold, "supported_versions", func(_ *testing.T, b *helloBuilder) {
 		b.set(ExtSupportedVersions, vector8of16(0x2a2a, 0x0304))
 	}},
@@ -134,6 +144,15 @@ var tlsChanges = []change{
 	}},
 	{"OCSP asked with an extension", cold, "extension_contents", func(_ *testing.T, b *helloBuilder) {
 		b.set(ExtStatusRequest, []byte{1, 0, 0, 0, 1})
+	}},
+	// The lists read as Chrome's, a byte past them: only framing sees it.
+	{"a byte past supported_groups' list", cold, "framing", func(_ *testing.T, b *helloBuilder) {
+		b.set(ExtSupportedGroups, append(slices.Clone(extensionOf(b, ExtSupportedGroups)), 0))
+	}},
+	{"a second server name", cold, "framing", func(t *testing.T, b *helloBuilder) {
+		name := sni("www.example.com")
+		list := append(slices.Clone(name[2:]), name[2:]...)
+		b.set(ExtServerName, append([]byte{byte(len(list) >> 8), byte(len(list))}, list...))
 	}},
 }
 
