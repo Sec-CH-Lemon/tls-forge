@@ -15,6 +15,8 @@ import (
 	"github.com/igor-lemon/fhttp/httptrace"
 
 	utls "github.com/igor-lemon/utls"
+
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
 // A pool belongs to one proxy and top-level site. Origin credential modes
@@ -405,7 +407,7 @@ func (d *connectDialer) openProxyStream(ctx context.Context, p *proxyH2Conn, add
 		cancel()
 		_ = answer.Body.Close()
 		_ = writer.Close()
-		return nil, fmt.Errorf("proxy responded with non 200 code: %s", answer.Status)
+		return nil, fmt.Errorf("proxy responded with non 200 code: %s", redact.Printable(answer.Status))
 	}
 	stream := &proxyStream{Conn: p.conn, reader: answer.Body, writer: writer, cancel: cancel}
 	opened := &tunnel{Conn: stream, reader: stream, header: answerHeader(answer.Header), id: tunnels.Add(1)}

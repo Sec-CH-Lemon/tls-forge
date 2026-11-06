@@ -251,14 +251,18 @@ func TestATunnelTheProxyWillNotOpen(t *testing.T) {
 		name, answer, want string
 	}{
 		{"turned away", "HTTP/1.1 407 Proxy Authentication Required\r\nContent-Length: 0\r\n\r\n", "407 Proxy Authentication Required"},
+		// What a terminal would obey in the proxy's words is said as text.
+		{"in words a terminal obeys", "HTTP/1.1 403 \x1b]0;owned\x07\x1b[2JGone\r\nContent-Length: 0\r\n\r\n",
+			`403 \x1b]0;owned\a\x1b[2JGone`},
 		// Hung up on without an answer.
 		{"no answer", "", "EOF"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			via := startConnectProxy(t, false, func(int32) string { return tc.answer })
 			client := newTestClient(t, WithProxy(via.server.URL))
-			if _, err := client.Get(server.URL()); err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Errorf("err = %v, want one that says %q", err, tc.want)
+			if _, err := client.Get(server.URL()); err == nil || !strings.Contains(err.Error(), tc.want) ||
+				strings.ContainsAny(err.Error(), "\x1b\x07") {
+				t.Errorf("err = %q, want one that says %q", err, tc.want)
 			}
 		})
 	}

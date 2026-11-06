@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
 // Rendering the comparison as a diff.
@@ -148,6 +149,7 @@ func (d *diffPrinter) section(title string, reference, candidate []fingerprint.F
 }
 
 func (d *diffPrinter) line(colour, marker, name, value string, trim bool) {
+	value = redact.Printable(value)
 	label := name
 	if len(label) < d.labelAt {
 		label += strings.Repeat(" ", d.labelAt-len(label))

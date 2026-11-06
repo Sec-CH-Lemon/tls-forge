@@ -240,7 +240,9 @@ func prefixed(err error) string {
 		if line == strings.TrimSuffix(errorPrefix, " ") {
 			line = ""
 		}
-		lines[i] = errorPrefix + line
+		// Its own words, but no byte a terminal would obey: what a server or a
+		// proxy said is quoted in it.
+		lines[i] = errorPrefix + redact.Printable(line)
 	}
 	return strings.Join(lines, "\n")
 }

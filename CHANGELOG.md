@@ -20,6 +20,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Security: what a proxy, a server or a visiting browser said reaches a
+  terminal as text. A proxy's refusal (`proxy responded with non 200 code:
+  …`) carried its status line's reason as it came, and `capture` and
+  `compare` printed a manual visitor's user agent and navigator fields as
+  sent: an escape sequence in them could clear the screen or set the
+  window's title. Every control character but a tab is now written as Go
+  writes it in a quoted string, in errors, a request's line and those fields
+  (`redact.Printable`).
+
 - Fix `--clear-output-dir` emptying a git repository's own directory. It
   refused a directory holding a `.git`, but not a `.git` itself, a directory
   in one, nor a bare repository (`HEAD`, `objects/`, `refs/`) or a directory

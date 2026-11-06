@@ -21,6 +21,7 @@ import (
 	"github.com/igor-lemon/utls/behavior"
 	"golang.org/x/net/proxy"
 
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -416,7 +417,8 @@ func (d *connectDialer) open(ctx context.Context, conn net.Conn, address string)
 		if r != nil {
 			r.proxyRefused(answer, refusalBody(answer))
 		}
-		return nil, fmt.Errorf("proxy responded with non 200 code: %s", answer.Status)
+		// The proxy's own words, but no byte of them a terminal would obey.
+		return nil, fmt.Errorf("proxy responded with non 200 code: %s", redact.Printable(answer.Status))
 	}
 	_ = conn.SetDeadline(time.Time{})
 	// Whatever was read past the answer is the tunnel's already.

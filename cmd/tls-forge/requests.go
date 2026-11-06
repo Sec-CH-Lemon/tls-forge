@@ -239,7 +239,7 @@ func verboseLine(r result) string {
 		line += "  via " + redactProxy(r.Proxy)
 	}
 	if r.Error != "" {
-		line += "  " + r.Error
+		line += "  " + redact.Printable(r.Error)
 	}
 	if said := r.said(); said != "" {
 		line += "  " + said

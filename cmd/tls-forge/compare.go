@@ -11,6 +11,7 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/capture"
 	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
@@ -87,11 +88,11 @@ func printComparison(out *printer, result *tlsforge.Comparison, pal palette, ful
 		return
 	}
 
-	out.printf("%s--- browser  %s%s\n", pal.differ, result.Browser.UserAgent(), pal.reset)
+	out.printf("%s--- browser  %s%s\n", pal.differ, redact.Printable(result.Browser.UserAgent()), pal.reset)
 	measured := result.Measured
 	if about := strings.Join(slices.DeleteFunc([]string{measured.Browser, measured.Platform, measured.Mode},
 		func(s string) bool { return s == "" || s == result.Browser.UserAgent() }), ", "); about != "" {
-		out.printf("%s             %s%s\n", pal.differ, about, pal.reset)
+		out.printf("%s             %s%s\n", pal.differ, redact.Printable(about), pal.reset)
 	}
 	out.printf("%s+++ client   profile %s%s\n\n", pal.match, result.Client.Profile, pal.reset)
 	if len(measured.Scenario) > 0 {
@@ -157,9 +158,11 @@ func printComparison(out *printer, result *tlsforge.Comparison, pal palette, ful
 func printCapture(out *printer, measured *capture.Capture) {
 	line := strings.Repeat("─", 72)
 	out.println(line)
+	// What a browser said of itself, a visitor's of a manual capture
+	// included, is written as text: no byte of it a terminal would obey.
 	field := func(label, value string) {
 		if value != "" {
-			out.printf("  %-16s %s\n", label, value)
+			out.printf("  %-16s %s\n", label, redact.Printable(value))
 		}
 	}
 	field("user-agent", measured.UserAgent())

@@ -1381,6 +1381,12 @@ apart. A URL is read for this as a browser reads it: `https:/user:pass@host`,
 `https:user:pass@host` and backslashes after the scheme carry a password too,
 as do tabs or newlines inside one.
 
+What a proxy, a server or a visiting browser said reaches a terminal as text:
+in an error, a request's line, and the fields `capture` and `compare` print
+of a browser, every control character but a tab is written as Go writes it
+in a quoted string (`\x1b`, `\r`), so that none of it can move the cursor,
+clear the screen or set the window's title.
+
 `fetch`, `proxy` and `daemon` take the proxy from an environment variable
 with `--proxy-env NAME`: on the command line, a password is one that `ps`
 shows to every user of the machine. The environment is not a secret either.
