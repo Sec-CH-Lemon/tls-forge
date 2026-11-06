@@ -20,6 +20,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix the wait for a name's HTTPS records read differently from Chromium's
+  for values other than Chrome's own (20 %, 5 to 50 ms, which wait as
+  before). A percent now waits a millisecond at least; a percent of 0 waits
+  the larger of `dns.https_wait_min_ms` and `dns.https_wait_max_ms`, not the
+  floor; and all three 0 wait for the records as long as they take, as
+  Chromium starts no timer then, where tls-forge waited for none.
+
 - Fix the Node package sending a request direct that asked for a proxy.
   `request()`, `get()` and `post()` put every field they were given on the
   protocol's line, and the transport passes over a field the protocol does

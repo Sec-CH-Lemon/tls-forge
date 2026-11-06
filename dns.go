@@ -163,13 +163,25 @@ func (r *resolving) lookupNames(ctx context.Context, host string) ([]netip.Addr,
 }
 
 // wait is how long a connection waits for the HTTPS records of a lookup
-// that has taken elapsed when the addresses are in.
-func (r *resolving) wait(elapsed time.Duration) time.Duration {
-	w := elapsed * time.Duration(r.percent) / 100
-	if r.max > 0 {
-		w = min(w, r.max)
+// that has taken elapsed when the addresses are in, as Chromium's
+// HostResolverDnsTask::MaybeStartTimeoutTimer works it out (156.0.8078.80):
+// with a percent, that part of elapsed, a millisecond at least, then at most
+// the max and at least the min, each where it is not 0; without one, the
+// larger of the min and the max. None, as there it starts no timer, is a wait
+// for the records as long as they take: bounded is false.
+func (r *resolving) wait(elapsed time.Duration) (w time.Duration, bounded bool) {
+	if r.percent > 0 {
+		w = max(elapsed*time.Duration(r.percent)/100, time.Millisecond)
+		if r.max > 0 {
+			w = min(w, r.max)
+		}
+		if r.min > 0 {
+			w = max(w, r.min)
+		}
+		return w, true
 	}
-	return max(w, r.min)
+	w = max(r.min, r.max)
+	return w, w > 0
 }
 
 // asksFor says whether the HTTPS records of host are asked for: a name the
@@ -255,13 +267,17 @@ func (r *resolving) ask(ctx context.Context, address string) *httpsLookup {
 // profile says, and takes the configs they gave by then: none after.
 func (l *httpsLookup) settle(ctx context.Context) {
 	l.settled.Do(func() {
-		timer := time.NewTimer(l.r.wait(time.Since(l.began)))
-		defer timer.Stop()
+		var expired <-chan time.Time
+		if wait, bounded := l.r.wait(time.Since(l.began)); bounded {
+			timer := time.NewTimer(wait)
+			defer timer.Stop()
+			expired = timer.C
+		}
 		select {
 		case <-l.done:
 			l.record, l.taken = l.answer.record, l.answer.configs
 			l.h3, l.h3taken = l.answer.h3, l.answer.h3configs
-		case <-timer.C:
+		case <-expired:
 		case <-ctx.Done():
 		}
 		l.cancel()

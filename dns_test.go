@@ -506,14 +506,34 @@ func TestTheRecordsAreWaitedForAsChromeWaits(t *testing.T) {
 		{250 * time.Millisecond, 50 * time.Millisecond},
 		{10 * time.Second, 50 * time.Millisecond},
 	} {
-		if got := r.wait(tc.elapsed); got != tc.want {
-			t.Errorf("after %v: %v, want %v", tc.elapsed, got, tc.want)
+		if got, bounded := r.wait(tc.elapsed); got != tc.want || !bounded {
+			t.Errorf("after %v: %v (%v), want %v", tc.elapsed, got, bounded, tc.want)
 		}
 	}
-	p := chromeDNS(t)
-	p["dns.https_wait_max_ms"] = []byte("0")
-	if got := newResolving("", p).wait(10 * time.Second); got != 2*time.Second {
-		t.Errorf("no ceiling: %v", got)
+	// Other values are read as Chromium's MaybeStartTimeoutTimer reads them.
+	for _, tc := range []struct {
+		percent, min, max string
+		elapsed, want     time.Duration
+		bounded           bool
+	}{
+		{"20", "5", "0", 10 * time.Second, 2 * time.Second, true},             // no ceiling
+		{"20", "0", "50", 0, time.Millisecond, true},                          // a millisecond at least
+		{"20", "0", "50", time.Millisecond, time.Millisecond, true},           // 200 µs
+		{"20", "0", "0", 300 * time.Millisecond, 60 * time.Millisecond, true}, // the percent alone
+		{"0", "5", "50", 10 * time.Second, 50 * time.Millisecond, true},       // the larger of the two
+		{"0", "30", "0", 10 * time.Second, 30 * time.Millisecond, true},       // the min alone
+		{"0", "0", "40", 0, 40 * time.Millisecond, true},                      // the max alone
+		{"0", "0", "0", 10 * time.Second, 0, false},                           // as long as they take
+		{"100", "0", "10", 3 * time.Millisecond, 3 * time.Millisecond, true},  // under the max
+		{"100", "8", "10", 3 * time.Millisecond, 8 * time.Millisecond, true},  // the min over it
+	} {
+		p := chromeDNS(t)
+		p["dns.https_wait_percent"], p["dns.https_wait_min_ms"], p["dns.https_wait_max_ms"] =
+			[]byte(tc.percent), []byte(tc.min), []byte(tc.max)
+		if got, bounded := newResolving("", p).wait(tc.elapsed); got != tc.want || bounded != tc.bounded {
+			t.Errorf("%s%%, %s..%s ms after %v: %v (%v), want %v (%v)", tc.percent, tc.min, tc.max, tc.elapsed,
+				got, bounded, tc.want, tc.bounded)
+		}
 	}
 }
 
