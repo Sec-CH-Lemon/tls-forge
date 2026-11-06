@@ -363,6 +363,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `quic.max_udp_payload` | `1472` |
 | `quic.preserve_extensions` | `[0,65037,27,45,51764,10,13,51,16,43,41]` |
 | `quic.remove_grease_groups` | `true` |
+| `quic.session_cache_sessions_per_entry` | `2` |
 | `quic.shuffle_extensions` | `true` |
 | `quic.shuffle_parameters` | `true` |
 | `quic.source_cid_bytes` | `0` |
@@ -390,6 +391,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `tls.preserve_sni_trailing_dot` | `true` |
 | `tls.resumption` | `true` |
 | `tls.retry_local_alerts` | `[10,50,51,110]` |
+| `tls.session_cache_sessions_per_entry` | `2` |
 | `tls.single_use_tickets` | `true` |
 | `tls.ticket_age_quantum_ms` | `1000` |
 | `tls.trust_anchor_order` | `"captured"` |
@@ -412,6 +414,7 @@ values; no browser verdict is new for them.
 |---|---|
 | `h1.chunked_bare_lf` | A chunked HTTP/1.1 answer read as Chromium 156's HttpChunkedDecoder reads it: a line ends at LF, a CR before it dropped; a size is cut at its extension, then of trailing spaces (a tab is none); a chunk's data ends in an empty line of LF or CRLF, and so do the trailer's lines. Without it, RFC 9112's CRLF. A request a server reads keeps CRLF always. `true`. |
 | `h3.cookie_crumbs` | A `Cookie` written over HTTP/3 a field a crumb, as quiche's ValueSplittingHeaderList cuts it for Chrome's QPACK encoder (CookieCrumbling::kEnabled): at each `;`, the one space after it dropped. HTTP/2 crumbles it whatever the key. Without it, the value in one field. `true`. |
+| `tls.session_cache_sessions_per_entry`, `quic.session_cache_sessions_per_entry` | How many sessions the TLS and the QUIC session cache keep for a key, as Chromium's SSLClientSessionCache::Entry and quiche's QuicClientSessionCache::Entry keep two: a single-use (TLS 1.3) session put where another is moves that one behind it, a reusable one takes its place, and a connection takes the newest. Without them, one. `2` and `2`. |
 | `h3.server_bidi_stream_close_reason` | The reason a connection is closed with, H3_STREAM_CREATION_ERROR (0x103), at a server's first bidirectional stream, which HTTP/3 lets no server open (RFC 9114, section 6.1), as quiche's QuicSpdyClientSession::ShouldCreateIncomingStream closes it (QUIC_HTTP_SERVER_INITIATED_BIDIRECTIONAL_STREAM). Without it the stream is passed over and the connection stays. `"154:Server created bidirectional stream."`. |
 
 ## URL host encoding integrity

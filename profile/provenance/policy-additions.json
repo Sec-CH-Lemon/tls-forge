@@ -194,91 +194,185 @@
       "name": "h3-server-bidi-stream",
       "profiles": {
         "example/profiles/chrome_156_linux_close_notify.json": {
-          "before_sha256": "863fe10ec52b49cd06c6a7bb9e8838325a7798a21201f8de3d28f3ddd735673b",
-          "after_sha256": "ea433391ce8f1651c045a9fdc10c72b48107042658f0193907267525ca363b95"
+          "after_sha256": "ea433391ce8f1651c045a9fdc10c72b48107042658f0193907267525ca363b95",
+          "before_sha256": "863fe10ec52b49cd06c6a7bb9e8838325a7798a21201f8de3d28f3ddd735673b"
         },
         "example/profiles/chrome_156_macos_close_notify.json": {
-          "before_sha256": "98b74966cce804a4dd93f5d89b3fe773d04da5c738989285baf929843419d6d6",
-          "after_sha256": "d15306d6e3cff960e9402267b30544b52510b70d93a85c29c583954fbf0986d6"
+          "after_sha256": "d15306d6e3cff960e9402267b30544b52510b70d93a85c29c583954fbf0986d6",
+          "before_sha256": "98b74966cce804a4dd93f5d89b3fe773d04da5c738989285baf929843419d6d6"
         },
         "example/profiles/chrome_156_windows_close_notify.json": {
-          "before_sha256": "a54963ecf6e7e55bac8f0e14810bf41a9b2de6674ad567cc24da02fcc7d79fa6",
-          "after_sha256": "89c3321ce3bcd5424800752c0c4e9594e44ee9237e9cb8c1786f1b0b243f1460"
+          "after_sha256": "89c3321ce3bcd5424800752c0c4e9594e44ee9237e9cb8c1786f1b0b243f1460",
+          "before_sha256": "a54963ecf6e7e55bac8f0e14810bf41a9b2de6674ad567cc24da02fcc7d79fa6"
         },
         "profile/data/chrome_151/linux.json": {
-          "before_sha256": "1fa7418940d181c038db0e8674c16c54e1d88a2bdb1094b933e66bc6d17c777d",
-          "after_sha256": "28bbbdd03594791a144ba12690f8e248a3422b260294e222f0ecf8c207262450"
+          "after_sha256": "28bbbdd03594791a144ba12690f8e248a3422b260294e222f0ecf8c207262450",
+          "before_sha256": "1fa7418940d181c038db0e8674c16c54e1d88a2bdb1094b933e66bc6d17c777d"
         },
         "profile/data/chrome_151/macos.json": {
-          "before_sha256": "112ecae20b4524fec60ab3a8bb46fc18b62d506e10416d18df0598b009d6cf3f",
-          "after_sha256": "06db5f78006e739d6ad11a32ae145dbaa525edc1817e9de61acffed31330f5fe"
+          "after_sha256": "06db5f78006e739d6ad11a32ae145dbaa525edc1817e9de61acffed31330f5fe",
+          "before_sha256": "112ecae20b4524fec60ab3a8bb46fc18b62d506e10416d18df0598b009d6cf3f"
         },
         "profile/data/chrome_151/windows.json": {
-          "before_sha256": "f4661f12880a91741bfc30f9886fb636e2cd9408b4440c8bdc47c8402abe2f5f",
-          "after_sha256": "5d950713f5da0769fbcc3b959c8e9258bb6cc1146587cd3cabe3ecd16d37b619"
+          "after_sha256": "5d950713f5da0769fbcc3b959c8e9258bb6cc1146587cd3cabe3ecd16d37b619",
+          "before_sha256": "f4661f12880a91741bfc30f9886fb636e2cd9408b4440c8bdc47c8402abe2f5f"
         },
         "profile/data/chrome_152/linux.json": {
-          "before_sha256": "45b2204ed4c39ac2731ad446784a6fd49e20d546aa7c0b7966a518944438cfb5",
-          "after_sha256": "183d727955b0971249e802de52215d21d6075f7214f318e5dad2d8520d874958"
+          "after_sha256": "183d727955b0971249e802de52215d21d6075f7214f318e5dad2d8520d874958",
+          "before_sha256": "45b2204ed4c39ac2731ad446784a6fd49e20d546aa7c0b7966a518944438cfb5"
         },
         "profile/data/chrome_152/macos.json": {
-          "before_sha256": "8a37b73f16e39a784a243ae5cdae4b77e3524c795efeb58326722094ebf23c95",
-          "after_sha256": "82375b43beaf73ab062d5c79648f0b871c1b7cde5bd075af44f2a83f02804ff6"
+          "after_sha256": "82375b43beaf73ab062d5c79648f0b871c1b7cde5bd075af44f2a83f02804ff6",
+          "before_sha256": "8a37b73f16e39a784a243ae5cdae4b77e3524c795efeb58326722094ebf23c95"
         },
         "profile/data/chrome_152/windows.json": {
-          "before_sha256": "5b68d33cd5438a20829606a48643cdba6204b02c545a83bd712b11c65042dfcc",
-          "after_sha256": "1e2dc8593c55ec8ba459efc1ede0f8462a913acab6b6c8e5a5bcd1e5e8a35012"
+          "after_sha256": "1e2dc8593c55ec8ba459efc1ede0f8462a913acab6b6c8e5a5bcd1e5e8a35012",
+          "before_sha256": "5b68d33cd5438a20829606a48643cdba6204b02c545a83bd712b11c65042dfcc"
         },
         "profile/data/chrome_153/linux.json": {
-          "before_sha256": "cc04737bb03210b345043099b68d7f36ddda2a1a851d4aa741e529c990e019b5",
-          "after_sha256": "7b2173b0b650e987eb8a4b83c7217db68b1654092fa66727ad00d41c6d555746"
+          "after_sha256": "7b2173b0b650e987eb8a4b83c7217db68b1654092fa66727ad00d41c6d555746",
+          "before_sha256": "cc04737bb03210b345043099b68d7f36ddda2a1a851d4aa741e529c990e019b5"
         },
         "profile/data/chrome_153/macos.json": {
-          "before_sha256": "9c411367f4427a5950e3e70bd6bfa224c18c25196a3bfab80998780f8f66cb96",
-          "after_sha256": "23465c54d9b75a00945441104643ebeafacda6a89b2b56b311bf8e24e31e363d"
+          "after_sha256": "23465c54d9b75a00945441104643ebeafacda6a89b2b56b311bf8e24e31e363d",
+          "before_sha256": "9c411367f4427a5950e3e70bd6bfa224c18c25196a3bfab80998780f8f66cb96"
         },
         "profile/data/chrome_153/windows.json": {
-          "before_sha256": "41d6bb63f601ba4b02e0616e82092e1e13e2e44ddc2bc11c7cbc4d6d03323958",
-          "after_sha256": "387a3053b9f01daca795b5048f5461506ded238439284dd8dba9adc0287ac632"
+          "after_sha256": "387a3053b9f01daca795b5048f5461506ded238439284dd8dba9adc0287ac632",
+          "before_sha256": "41d6bb63f601ba4b02e0616e82092e1e13e2e44ddc2bc11c7cbc4d6d03323958"
         },
         "profile/data/chrome_154/linux.json": {
-          "before_sha256": "2e14e5c2d2b84a74ec2902c77c0aaaa351d85ea9ca2884ef041c1b6c156b77ae",
-          "after_sha256": "f8383281c9b5eee8ea5828ed8b61874c911c7c25cf8ff436e6bc13c0c8833acb"
+          "after_sha256": "f8383281c9b5eee8ea5828ed8b61874c911c7c25cf8ff436e6bc13c0c8833acb",
+          "before_sha256": "2e14e5c2d2b84a74ec2902c77c0aaaa351d85ea9ca2884ef041c1b6c156b77ae"
         },
         "profile/data/chrome_154/macos.json": {
-          "before_sha256": "6fc6db46d5dc7b180b6f0f528cdccdd9e1c1ddde1d37374e1290d7f8177ff90d",
-          "after_sha256": "e3eafaf5b6639da72ecd17c507edfe21fe684e696bd3df16ed3c2f7d339510dc"
+          "after_sha256": "e3eafaf5b6639da72ecd17c507edfe21fe684e696bd3df16ed3c2f7d339510dc",
+          "before_sha256": "6fc6db46d5dc7b180b6f0f528cdccdd9e1c1ddde1d37374e1290d7f8177ff90d"
         },
         "profile/data/chrome_154/windows.json": {
-          "before_sha256": "11991d88871ff55cd207d8c49936ad5f0838669c80cf21e29d90e5b72f73ab3e",
-          "after_sha256": "14864fc3dbe13e93cf424713194803ca10b366fd41caf50976b861e7571bc208"
+          "after_sha256": "14864fc3dbe13e93cf424713194803ca10b366fd41caf50976b861e7571bc208",
+          "before_sha256": "11991d88871ff55cd207d8c49936ad5f0838669c80cf21e29d90e5b72f73ab3e"
         },
         "profile/data/chrome_155/linux.json": {
-          "before_sha256": "8395a8cdc71b9f5c461fcae68a1869d70437eb25e21f5edf047854525063b4c0",
-          "after_sha256": "2d47c8bbd509d8f1607937f5a964c86f8d899282322292c67775103f1278629b"
+          "after_sha256": "2d47c8bbd509d8f1607937f5a964c86f8d899282322292c67775103f1278629b",
+          "before_sha256": "8395a8cdc71b9f5c461fcae68a1869d70437eb25e21f5edf047854525063b4c0"
         },
         "profile/data/chrome_155/macos.json": {
-          "before_sha256": "5423abf20bbac622c4d3fb5b7c642bc267017b3da15c5996e679e18066a5f5ef",
-          "after_sha256": "504af45067e26f7bdd46ec435fda606647485de514d8ddb9aaa13a08c9efabda"
+          "after_sha256": "504af45067e26f7bdd46ec435fda606647485de514d8ddb9aaa13a08c9efabda",
+          "before_sha256": "5423abf20bbac622c4d3fb5b7c642bc267017b3da15c5996e679e18066a5f5ef"
         },
         "profile/data/chrome_155/windows.json": {
-          "before_sha256": "086599c1004679886e2567f776b574c2ee3d3116cba0bf0399a6d058d0d36c1a",
-          "after_sha256": "4a32bd5e7e01cae8651dfbf9420741da48b10d51396c8c346ed79a84c989794e"
+          "after_sha256": "4a32bd5e7e01cae8651dfbf9420741da48b10d51396c8c346ed79a84c989794e",
+          "before_sha256": "086599c1004679886e2567f776b574c2ee3d3116cba0bf0399a6d058d0d36c1a"
         },
         "profile/data/chrome_156/linux.json": {
-          "before_sha256": "e570c58a93f00bcd60c941241733159640fae1efa60944da97e4858a304e4179",
-          "after_sha256": "762274cc063131a3d8944770262d116707038bece8462f6c6e2f8d19f091ea33"
+          "after_sha256": "762274cc063131a3d8944770262d116707038bece8462f6c6e2f8d19f091ea33",
+          "before_sha256": "e570c58a93f00bcd60c941241733159640fae1efa60944da97e4858a304e4179"
         },
         "profile/data/chrome_156/macos.json": {
-          "before_sha256": "3c6ab1de761caa2f421cbba118a8b3862478bb2253d1f8280c2ab2acff7cd13e",
-          "after_sha256": "f7bc42312380333df7d192141412bd02b8a70b20d52e40c09fa1f7228bef728b"
+          "after_sha256": "f7bc42312380333df7d192141412bd02b8a70b20d52e40c09fa1f7228bef728b",
+          "before_sha256": "3c6ab1de761caa2f421cbba118a8b3862478bb2253d1f8280c2ab2acff7cd13e"
         },
         "profile/data/chrome_156/windows.json": {
-          "before_sha256": "cab532e2b9ae68ccd67a44abe5c70c979d2224cca67e24aafe7c1d8ef6be176d",
-          "after_sha256": "3835b8df000ee46f503d21c89114593a5879fa0aaaeb7867a016b81a3c33df77"
+          "after_sha256": "3835b8df000ee46f503d21c89114593a5879fa0aaaeb7867a016b81a3c33df77",
+          "before_sha256": "cab532e2b9ae68ccd67a44abe5c70c979d2224cca67e24aafe7c1d8ef6be176d"
         }
       },
       "source": "quiche 0b2bc13f (Chrome 156) QuicSpdyClientSession::ShouldCreateIncomingStream, QUIC_HTTP_SERVER_INITIATED_BIDIRECTIONAL_STREAM, read 2026-11-05 (review 1.2); Chrome 151 to 155 inherit it, no new browser verdict"
+    },
+    {
+      "added_policy": {
+        "quic.session_cache_sessions_per_entry": 2,
+        "tls.session_cache_sessions_per_entry": 2
+      },
+      "name": "sessions-per-entry",
+      "profiles": {
+        "example/profiles/chrome_156_linux_close_notify.json": {
+          "before_sha256": "ea433391ce8f1651c045a9fdc10c72b48107042658f0193907267525ca363b95",
+          "after_sha256": "77515d7984d6fca5b8927024a64f1fba05e056917d4f8c6937a087e230dff520"
+        },
+        "example/profiles/chrome_156_macos_close_notify.json": {
+          "before_sha256": "d15306d6e3cff960e9402267b30544b52510b70d93a85c29c583954fbf0986d6",
+          "after_sha256": "77e2291510f372276028ac05f686df2686c111b6a41ba8dfff00c1af1a2a9bf5"
+        },
+        "example/profiles/chrome_156_windows_close_notify.json": {
+          "before_sha256": "89c3321ce3bcd5424800752c0c4e9594e44ee9237e9cb8c1786f1b0b243f1460",
+          "after_sha256": "562571f5f3c3d96553f2ab542b75875c12966ae59264009da4d77502879ee4a6"
+        },
+        "profile/data/chrome_151/linux.json": {
+          "before_sha256": "28bbbdd03594791a144ba12690f8e248a3422b260294e222f0ecf8c207262450",
+          "after_sha256": "14e197aff264a5119573b5ee7b23d5a82edb81f85775e3c190c8fb924f520015"
+        },
+        "profile/data/chrome_151/macos.json": {
+          "before_sha256": "06db5f78006e739d6ad11a32ae145dbaa525edc1817e9de61acffed31330f5fe",
+          "after_sha256": "6b2c8120db45422e705386b8a85e6ecb011f92d3b28b5d09e3be8a2c4af3c630"
+        },
+        "profile/data/chrome_151/windows.json": {
+          "before_sha256": "5d950713f5da0769fbcc3b959c8e9258bb6cc1146587cd3cabe3ecd16d37b619",
+          "after_sha256": "dbff733ece3509b1776620e874ccf0794a9e8f6851594f73bf8adb5fe49476d0"
+        },
+        "profile/data/chrome_152/linux.json": {
+          "before_sha256": "183d727955b0971249e802de52215d21d6075f7214f318e5dad2d8520d874958",
+          "after_sha256": "b0152a4bb38c455d718de2db2188cb19c1513c9c193498006e9bca2afab0eaf1"
+        },
+        "profile/data/chrome_152/macos.json": {
+          "before_sha256": "82375b43beaf73ab062d5c79648f0b871c1b7cde5bd075af44f2a83f02804ff6",
+          "after_sha256": "d965a0bc5e00607511c61a44dbdfc1ddb96a61a4821a83eca25f5c8779deec1b"
+        },
+        "profile/data/chrome_152/windows.json": {
+          "before_sha256": "1e2dc8593c55ec8ba459efc1ede0f8462a913acab6b6c8e5a5bcd1e5e8a35012",
+          "after_sha256": "a38e2e87c7a3bd8025106f35004db5027b6e70fa1af7313c937b312749bac54f"
+        },
+        "profile/data/chrome_153/linux.json": {
+          "before_sha256": "7b2173b0b650e987eb8a4b83c7217db68b1654092fa66727ad00d41c6d555746",
+          "after_sha256": "5465074a9cdcec11545b6bd59653b583278633a5dd0653d34aeccb9c60bcf5ba"
+        },
+        "profile/data/chrome_153/macos.json": {
+          "before_sha256": "23465c54d9b75a00945441104643ebeafacda6a89b2b56b311bf8e24e31e363d",
+          "after_sha256": "34d61e84869afec29dbb1c6e60c1fd091c189546356f6ceaac960afa2f02bd95"
+        },
+        "profile/data/chrome_153/windows.json": {
+          "before_sha256": "387a3053b9f01daca795b5048f5461506ded238439284dd8dba9adc0287ac632",
+          "after_sha256": "a932170722861b82e331ae2c52cf2ebba8fbba3ad498247977ba5449f6387e8e"
+        },
+        "profile/data/chrome_154/linux.json": {
+          "before_sha256": "f8383281c9b5eee8ea5828ed8b61874c911c7c25cf8ff436e6bc13c0c8833acb",
+          "after_sha256": "58b934553095d606d8d0bf01d61354e87b403bdfb4f2d5d1d22646ea37837c15"
+        },
+        "profile/data/chrome_154/macos.json": {
+          "before_sha256": "e3eafaf5b6639da72ecd17c507edfe21fe684e696bd3df16ed3c2f7d339510dc",
+          "after_sha256": "50bab1d3d74926c382eb94a6ddacb4b2e1071526fa35fcb34f84941505f2226e"
+        },
+        "profile/data/chrome_154/windows.json": {
+          "before_sha256": "14864fc3dbe13e93cf424713194803ca10b366fd41caf50976b861e7571bc208",
+          "after_sha256": "541f9f53c24640e9d5155b149461e57db4c1fd7cd8deaef483a30a585fd2b62f"
+        },
+        "profile/data/chrome_155/linux.json": {
+          "before_sha256": "2d47c8bbd509d8f1607937f5a964c86f8d899282322292c67775103f1278629b",
+          "after_sha256": "9969d89852587ab1c788bfe999f661d32ca2244ccca9d018ecf30e07546871d5"
+        },
+        "profile/data/chrome_155/macos.json": {
+          "before_sha256": "504af45067e26f7bdd46ec435fda606647485de514d8ddb9aaa13a08c9efabda",
+          "after_sha256": "8357f510c9c6d79e104faed8d78d7b2543dd56ff37cb998427f9a580656a78f7"
+        },
+        "profile/data/chrome_155/windows.json": {
+          "before_sha256": "4a32bd5e7e01cae8651dfbf9420741da48b10d51396c8c346ed79a84c989794e",
+          "after_sha256": "988b46aed115fcff010925d7fce6adcf7cc00d947d578cdbe5fdd5c6d2f447cf"
+        },
+        "profile/data/chrome_156/linux.json": {
+          "before_sha256": "762274cc063131a3d8944770262d116707038bece8462f6c6e2f8d19f091ea33",
+          "after_sha256": "f46332d127240555b1919e8c6b65b530be2fdf95260a1689c14a00f25198bf38"
+        },
+        "profile/data/chrome_156/macos.json": {
+          "before_sha256": "f7bc42312380333df7d192141412bd02b8a70b20d52e40c09fa1f7228bef728b",
+          "after_sha256": "b1b0ce6048c65d982c5ecc92142d0fb3893078c9eebd05c5324bd22b467cfee1"
+        },
+        "profile/data/chrome_156/windows.json": {
+          "before_sha256": "3835b8df000ee46f503d21c89114593a5879fa0aaaeb7867a016b81a3c33df77",
+          "after_sha256": "a93e0b8929e43dfcfbf7568a4a9c6e097e5f37941c99cceca48b6e70edfc8749"
+        }
+      },
+      "source": "Chromium 156.0.8078.80 net/ssl/ssl_client_session_cache.cc (SSLClientSessionCache::Entry keeps two) and quiche 0b2bc13f QuicClientSessionCache::Entry, read 2026-11-05 (review 1.5); Chrome 151 to 155 inherit it, no new browser verdict"
     }
   ],
   "schema": 1

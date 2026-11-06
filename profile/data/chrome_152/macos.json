@@ -772,6 +772,7 @@
     "quic.server_rtts_max": 500,
     "quic.session_cache": true,
     "quic.session_cache_entries": 32,
+    "quic.session_cache_sessions_per_entry": 2,
     "quic.shuffle_extensions": true,
     "quic.shuffle_parameters": true,
     "quic.source_cid_bytes": 0,
@@ -866,6 +867,7 @@
       110
     ],
     "tls.session_cache_entries": 32,
+    "tls.session_cache_sessions_per_entry": 2,
     "tls.single_use_tickets": true,
     "tls.ticket_age_quantum_ms": 1000,
     "tls.trust_anchor_order": "process-shuffle",

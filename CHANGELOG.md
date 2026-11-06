@@ -27,6 +27,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   a closed one waited out its minute and could be handed a request, which then
   went again on another.
 
+- Keep two TLS sessions a server, as Chrome keeps them, over TCP and over
+  QUIC. A server's second ticket replaced its first, so a second connection
+  opened at once went as a full handshake where Chrome's resumes. The Chrome
+  profiles say `tls.session_cache_sessions_per_entry` and
+  `quic.session_cache_sessions_per_entry`.
+
 - Close an HTTP/3 connection whose server opens a bidirectional stream, as
   Chrome closes it: H3_STREAM_CREATION_ERROR with quiche's reason, "154:Server
   created bidirectional stream." HTTP/3 lets no server open one; the stream
