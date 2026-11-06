@@ -20,6 +20,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix a script's request asking a preflight for a header Chrome sends
+  without one. tls-forge let the Fetch standard's four through alone;
+  Chromium 156's CORS also lets through a simple `Range` (`bytes=0-100`,
+  `bytes=5-`), `Save-Data: on`, `Intervention` and the client hints, those a
+  script can say held to what they say (`DPR: 2`, `RTT: 50`, `ECT: 4g`). A
+  cross-origin `fetch()` or XHR with them was sent after an OPTIONS Chrome
+  does not send. A no-cors `fetch()` is still given the four alone, as
+  Chrome's no-CORS safelist has them, and a Range or a client hint there is
+  refused.
+
 - Fix the site of a name that ends in a dot: the public suffix list cannot
   read one, so `www.example.com.` was a site of its own and
   `api.example.com.` cross-site to it. Its site is now its registrable

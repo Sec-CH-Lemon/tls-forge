@@ -3,8 +3,10 @@ package tlsforge
 import (
 	"fmt"
 	"github.com/igor-lemon/utls/behavior"
+	"math"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 
 	fhttp "github.com/igor-lemon/fhttp"
@@ -370,7 +372,7 @@ func (b *BrowserContext) resolveScript(r *browserRequest, target *url.URL, heade
 	case r.mode == modeSameOrigin && to != r.from:
 		return errContext("%s in same-origin mode cannot go to another origin", what)
 	case r.mode == modeNoCORS && !noCORSSafe(r.method, header):
-		return errContext("%s in no-cors mode sends GET, HEAD or POST with only the headers CORS lets through", what)
+		return errContext("%s in no-cors mode sends GET, HEAD or POST with only Accept, Accept-Language, Content-Language and Content-Type, as CORS lets them through", what)
 	}
 	r.cors = r.mode == modeCORS && to != r.from
 	return nil
@@ -447,7 +449,10 @@ func forbiddenHeader(name string) bool {
 }
 
 // noCORSSafe reports a method and headers a no-cors request can have: GET,
-// HEAD or POST, with headers CORS lets through without asking.
+// HEAD or POST, with the four headers of the Fetch standard's no-CORS
+// safelist alone, held to what CORS lets through (IsNoCorsSafelistedHeader):
+// a Range or a client hint a script gives a no-cors request is no header it
+// can send.
 func noCORSSafe(method string, header Header) bool {
 	switch method {
 	case fhttp.MethodGet, fhttp.MethodHead, fhttp.MethodPost:
@@ -455,6 +460,11 @@ func noCORSSafe(method string, header Header) bool {
 		return false
 	}
 	for _, f := range header {
+		switch strings.ToLower(f.Name) {
+		case "accept", "accept-language", "content-language", "content-type":
+		default:
+			return false
+		}
 		if !corsSafelisted(f.Name, f.Value) {
 			return false
 		}
@@ -462,13 +472,34 @@ func noCORSSafe(method string, header Header) bool {
 	return true
 }
 
+// corsSafelistedHints are the client hints and the intervention Chromium
+// lets through without a preflight whatever they say (IsCorsSafelistedHeader,
+// services/network/public/cpp/cors/cors.cc, 156).
+var corsSafelistedHints = []string{"intervention", "sec-ch-ua", "sec-ch-ua-arch", "sec-ch-ua-platform",
+	"sec-ch-ua-model", "sec-ch-ua-mobile", "sec-ch-ua-full-version", "sec-ch-ua-platform-version",
+	"sec-ch-prefers-color-scheme", "sec-ch-ua-bitness", "sec-ch-viewport-height", "sec-ch-device-memory",
+	"sec-ch-dpr", "sec-ch-width", "sec-ch-viewport-width", "sec-ch-ua-full-version-list", "sec-ch-ua-wow64",
+	"sec-ch-prefers-reduced-motion", "sec-ch-ua-form-factors", "sec-ch-prefers-reduced-transparency"}
+
 // corsSafelisted reports a header CORS lets through without a preflight, as
-// the Fetch standard lists them.
+// Chromium lists them (IsCorsSafelistedHeader, 156): the Fetch standard's,
+// with a simple Range, and the client hints, those a script could say held
+// to what they say.
 func corsSafelisted(name, value string) bool {
 	if len(value) > 128 {
 		return false
 	}
-	switch strings.ToLower(name) {
+	switch lower := strings.ToLower(name); lower {
+	case "range":
+		return simpleRange(value)
+	case "device-memory", "dpr", "downlink":
+		return decimalNumber(value)
+	case "width", "viewport-width", "rtt":
+		return value != "" && !strings.ContainsFunc(value, notDigit)
+	case "ect":
+		return slices.Contains([]string{"4g", "slow-2g", "2g", "3g"}, value)
+	case "save-data":
+		return strings.Map(lowerASCII, value) == "on"
 	case "accept":
 		return !strings.ContainsFunc(value, corsUnsafeByte)
 	case "accept-language", "content-language":
@@ -482,8 +513,48 @@ func corsSafelisted(name, value string) bool {
 		case formEncoded, formMultipart, formText:
 			return true
 		}
+	default:
+		return slices.Contains(corsSafelistedHints, lower)
 	}
 	return false
+}
+
+func notDigit(r rune) bool { return r < '0' || r > '9' }
+
+// decimalNumber says whether value is digits with a point and more digits
+// after it or none, as Chromium's IsSimilarToDoubleABNF reads one.
+func decimalNumber(value string) bool {
+	whole, fraction, point := strings.Cut(value, ".")
+	return whole != "" && !strings.ContainsFunc(whole, notDigit) &&
+		(!point || fraction != "" && !strings.ContainsFunc(fraction, notDigit))
+}
+
+// simpleRange says whether value is a simple range of the Fetch standard, as
+// Chromium's ParseFetchSingleRange reads it with no whitespace: bytes= and a
+// first byte, a "-", and a last byte not before it or none.
+func simpleRange(value string) bool {
+	rest, ok := strings.CutPrefix(value, "bytes=")
+	if !ok {
+		return false
+	}
+	first, last, ok := strings.Cut(rest, "-")
+	from, isFrom := bytePosition(first)
+	if !ok || !isFrom {
+		return false
+	}
+	if last == "" {
+		return true
+	}
+	to, isTo := bytePosition(last)
+	return isTo && to >= from
+}
+
+// bytePosition reads a byte position of a range: digits alone, of a number
+// an int64 holds with one to spare, as Chromium takes none of int64's
+// largest.
+func bytePosition(digits string) (int64, bool) {
+	n, err := strconv.ParseInt(digits, 10, 64)
+	return n, err == nil && n != math.MaxInt64 && !strings.ContainsFunc(digits, notDigit)
 }
 
 // corsLanguageByte is a byte a safelisted Accept-Language or Content-Language

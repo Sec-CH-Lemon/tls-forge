@@ -127,9 +127,13 @@ func TestABrowserContextIsRefusedBeforeAnythingIsSent(t *testing.T) {
 		{"no-cors mode that puts", BrowserContext{Kind: KindFetch, Initiator: page, Mode: "no-cors"}, "PUT", other, nil, "",
 			"fetch() in no-cors mode sends GET, HEAD or POST"},
 		{"no-cors mode with a header CORS asks about", BrowserContext{Kind: KindFetch, Initiator: page, Mode: "no-cors"},
-			"", other, NewHeader("X-Foo", "1"), "", "with only the headers CORS lets through"},
+			"", other, NewHeader("X-Foo", "1"), "", "with only Accept, Accept-Language, Content-Language and Content-Type"},
 		{"no-cors mode with JSON", BrowserContext{Kind: KindFetch, Initiator: page, Mode: "no-cors"}, "POST", other,
-			NewHeader("Content-Type", "application/json"), "{}", "with only the headers CORS lets through"},
+			NewHeader("Content-Type", "application/json"), "{}", "as CORS lets them through"},
+		{"no-cors mode with a Range", BrowserContext{Kind: KindFetch, Initiator: page, Mode: "no-cors"}, "", other,
+			NewHeader("Range", "bytes=0-1"), "", "with only Accept, Accept-Language"},
+		{"no-cors mode with a client hint", BrowserContext{Kind: KindFetch, Initiator: page, Mode: "no-cors"}, "",
+			other, NewHeader("DPR", "2"), "", "with only Accept, Accept-Language"},
 		{"a URL with credentials", BrowserContext{Kind: KindFetch, Initiator: page}, "",
 			"https://u:p@www.example.com/x", nil, "", "fetch() is given no URL with credentials in it"},
 		{"fetch() clicked", BrowserContext{Kind: KindFetch, Initiator: page, Clicked: true}, "", page, nil, "",
@@ -370,6 +374,52 @@ func TestWhatCORSLetsThrough(t *testing.T) {
 		{"X-Foo", "1", false},
 		{"Accept", strings.Repeat("a", 129), false},
 		{"Accept", strings.Repeat("a", 128), true},
+		// Chromium's: a simple Range, and the client hints a script may say,
+		// held to what they say.
+		{"Range", "bytes=0-100", true},
+		{"range", "bytes=5-", true},
+		{"Range", "bytes=5-5", true},
+		{"Range", "bytes=5-4", false},
+		{"Range", "bytes=-500", false},
+		{"Range", "bytes=-", false},
+		{"Range", "Bytes=0-1", false},
+		{"Range", "bytes =0-1", false},
+		{"Range", "bytes=0 -1", false},
+		{"Range", "bytes=0-1,2-3", false},
+		{"Range", "bytes=0-1x", false},
+		{"Range", "bytes=1", false},
+		{"Range", "bytes=9223372036854775807-", false},
+		{"Range", "bytes=99999999999999999999-", false},
+		{"Range", "bytes=0-9223372036854775807", false},
+		{"Range", "bytes=0-99999999999999999999", false},
+		{"Range", "bytes=0-9223372036854775806", true},
+		{"Range", "bytes=+0-1", false},
+		{"Range", "bytes=0-+1", false},
+		{"Range", "bytes=0--1", false},
+		{"Range", "bytes=0", false},
+		{"DPR", "2", true},
+		{"dpr", "1.5", true},
+		{"device-memory", "0.25", true},
+		{"downlink", "1.5", true},
+		{"downlink", "10.", false},
+		{"downlink", ".5", false},
+		{"downlink", "1.2.3", false},
+		{"downlink", "1e3", false},
+		{"downlink", "", false},
+		{"Width", "1280", true},
+		{"viewport-width", "12.5", false},
+		{"rtt", "", false},
+		{"rtt", "50", true},
+		{"ECT", "4g", true},
+		{"ect", "slow-2g", true},
+		{"ect", "5g", false},
+		{"ect", "4G", false},
+		{"Save-Data", "ON", true},
+		{"save-data", "off", false},
+		{"Intervention", "<https://example.com>; level=warning", true},
+		{"Sec-CH-UA-Platform", `"macOS"`, true},
+		{"sec-ch-prefers-reduced-transparency", "reduce", true},
+		{"sec-ch-ua-full-version-list", strings.Repeat("a", 129), false},
 	} {
 		if got := corsSafelisted(tc.name, tc.value); got != tc.want {
 			t.Errorf("%s: %q: %v", tc.name, tc.value, got)
@@ -377,6 +427,20 @@ func TestWhatCORSLetsThrough(t *testing.T) {
 	}
 	if !noCORSSafe("HEAD", NewHeader("Accept", "*/*")) || noCORSSafe("DELETE", nil) {
 		t.Error("noCORSSafe")
+	}
+	// The four names of the no-CORS safelist, each held to what CORS lets
+	// through; nothing else, though CORS lets it through.
+	for _, h := range []Header{NewHeader("accept-language", "de"), NewHeader("Content-Language", "de"),
+		NewHeader("Content-Type", "text/plain")} {
+		if !noCORSSafe("POST", h) {
+			t.Errorf("noCORSSafe(%v)", h)
+		}
+	}
+	for _, h := range []Header{NewHeader("Range", "bytes=0-1"), NewHeader("Save-Data", "on"),
+		NewHeader("Sec-CH-UA-Platform", `"macOS"`), NewHeader("Accept-Language", "de?")} {
+		if noCORSSafe("GET", h) {
+			t.Errorf("noCORSSafe(%v)", h)
+		}
 	}
 }
 
