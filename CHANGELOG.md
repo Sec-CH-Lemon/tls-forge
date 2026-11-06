@@ -27,6 +27,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   a closed one waited out its minute and could be handed a request, which then
   went again on another.
 
+- Keep a TLS session by the host and port it came from, as Chrome keeps it,
+  over TCP, QUIC and a websocket. A ticket a server gave on one port was
+  offered on another of its name, which Chrome never does. The Chrome
+  profiles say `tls.session_cache_key` and `quic.session_cache_key`. utls
+  61d479e, tls-client 34dec9b.
+
 - Keep two TLS sessions a server, as Chrome keeps them, over TCP and over
   QUIC. A server's second ticket replaced its first, so a second connection
   opened at once went as a full handshake where Chrome's resumes. The Chrome

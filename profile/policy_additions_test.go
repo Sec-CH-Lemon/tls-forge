@@ -197,7 +197,7 @@ func TestPolicyAdditionsPreserveEveryEarlierLayer(t *testing.T) {
 		for key, value := range last.Added {
 			changed := p.Clone()
 			changed.UserAgent = strings.TrimSuffix(changed.UserAgent, " foreign")
-			changed.Behavior[key] = otherValue(t, value)
+			changed.Behavior[key] = otherValue(t, key, value)
 			other, err := changed.Save()
 			if err != nil {
 				t.Fatal(key, err)
@@ -209,8 +209,16 @@ func TestPolicyAdditionsPreserveEveryEarlierLayer(t *testing.T) {
 	}
 }
 
-// otherValue is a value of the same kind as v the registry takes too.
-func otherValue(t *testing.T, v json.RawMessage) json.RawMessage {
+// otherChoices is another of the choices of a text key the registry holds to
+// a list of them: a text of its own would not load.
+var otherChoices = map[string]string{
+	"tls.session_cache_key":  "server-name",
+	"quic.session_cache_key": "server-name",
+}
+
+// otherValue is a value of the same kind as v the registry takes too, for
+// key.
+func otherValue(t *testing.T, key string, v json.RawMessage) json.RawMessage {
 	t.Helper()
 	var x any
 	if err := json.Unmarshal(v, &x); err != nil {
@@ -225,7 +233,11 @@ func otherValue(t *testing.T, v json.RawMessage) json.RawMessage {
 		out, _ := json.Marshal(x + 1)
 		return out
 	case string:
-		out, _ := json.Marshal(x + " Again.")
+		other, ok := otherChoices[key]
+		if !ok {
+			other = x + " Again."
+		}
+		out, _ := json.Marshal(other)
 		return out
 	}
 	t.Fatalf("no other value of %s", v)

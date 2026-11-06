@@ -361,6 +361,7 @@ Generated from the 18 bundled JSON profile files. This is an inventory of fields
 | `behavior["quic.server_rtts_max"]` | int |
 | `behavior["quic.session_cache"]` | bool |
 | `behavior["quic.session_cache_entries"]` | int |
+| `behavior["quic.session_cache_key"]` | str |
 | `behavior["quic.session_cache_sessions_per_entry"]` | int |
 | `behavior["quic.shuffle_extensions"]` | bool |
 | `behavior["quic.shuffle_parameters"]` | bool |
@@ -411,6 +412,7 @@ Generated from the 18 bundled JSON profile files. This is an inventory of fields
 | `behavior["tls.resumption"]` | bool |
 | `behavior["tls.retry_local_alerts"]` | array |
 | `behavior["tls.session_cache_entries"]` | int |
+| `behavior["tls.session_cache_key"]` | str |
 | `behavior["tls.session_cache_sessions_per_entry"]` | int |
 | `behavior["tls.single_use_tickets"]` | bool |
 | `behavior["tls.ticket_age_quantum_ms"]` | int |
