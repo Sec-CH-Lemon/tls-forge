@@ -27,6 +27,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   a closed one waited out its minute and could be handed a request, which then
   went again on another.
 
+- Close an HTTP/3 connection whose server opens a bidirectional stream, as
+  Chrome closes it: H3_STREAM_CREATION_ERROR with quiche's reason, "154:Server
+  created bidirectional stream." HTTP/3 lets no server open one; the stream
+  was passed over and held against the connection's window, and the
+  connection stayed up, which tells a server it is not speaking to Chrome.
+  The Chrome profiles say `h3.server_bidi_stream_close_reason`.
+
 - Write a request's cookies over HTTP/3 a field a crumb, as Chrome's QPACK
   encoder writes them (quiche's ValueSplittingHeaderList, CookieCrumbling
   kEnabled): cut at each `;`, the space after it dropped. HTTP/3 sent the

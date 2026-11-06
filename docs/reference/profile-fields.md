@@ -169,6 +169,7 @@ Generated from the 18 bundled JSON profile files. This is an inventory of fields
 | `behavior["h3.retry_methods"]` | array |
 | `behavior["h3.retry_transport_errors"]` | array |
 | `behavior["h3.retry_unprocessed_attempts"]` | int |
+| `behavior["h3.server_bidi_stream_close_reason"]` | str |
 | `behavior["h3.settings"]` | array |
 | `behavior["h3.settings"][]` | object |
 | `behavior["h3.settings"][].id` | int |

@@ -262,6 +262,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h3.priority_frame_type` | `984832` |
 | `h3.priority_value` | `"u=0, i"` |
 | `h3.pseudo_header_order` | `[":method",":authority",":scheme",":path"]` |
+| `h3.server_bidi_stream_close_reason` | `"154:Server created bidirectional stream."` |
 | `h3.settings` | `[{"id":1,"value":0},{"id":6,"value":262144},{"id":7,"value":0},{"id":51,"value":1}]` |
 | `headers.accept_fetch` | `"*/*"` |
 | `headers.accept_preflight` | `"*/*"` |
@@ -411,6 +412,7 @@ values; no browser verdict is new for them.
 |---|---|
 | `h1.chunked_bare_lf` | A chunked HTTP/1.1 answer read as Chromium 156's HttpChunkedDecoder reads it: a line ends at LF, a CR before it dropped; a size is cut at its extension, then of trailing spaces (a tab is none); a chunk's data ends in an empty line of LF or CRLF, and so do the trailer's lines. Without it, RFC 9112's CRLF. A request a server reads keeps CRLF always. `true`. |
 | `h3.cookie_crumbs` | A `Cookie` written over HTTP/3 a field a crumb, as quiche's ValueSplittingHeaderList cuts it for Chrome's QPACK encoder (CookieCrumbling::kEnabled): at each `;`, the one space after it dropped. HTTP/2 crumbles it whatever the key. Without it, the value in one field. `true`. |
+| `h3.server_bidi_stream_close_reason` | The reason a connection is closed with, H3_STREAM_CREATION_ERROR (0x103), at a server's first bidirectional stream, which HTTP/3 lets no server open (RFC 9114, section 6.1), as quiche's QuicSpdyClientSession::ShouldCreateIncomingStream closes it (QUIC_HTTP_SERVER_INITIATED_BIDIRECTIONAL_STREAM). Without it the stream is passed over and the connection stays. `"154:Server created bidirectional stream."`. |
 
 ## URL host encoding integrity
 

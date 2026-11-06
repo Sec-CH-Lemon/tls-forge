@@ -255,6 +255,7 @@
     "h3.retry_methods": [],
     "h3.retry_transport_errors": [],
     "h3.retry_unprocessed_attempts": 2,
+    "h3.server_bidi_stream_close_reason": "154:Server created bidirectional stream.",
     "h3.settings": [
       {
         "id": 1,
