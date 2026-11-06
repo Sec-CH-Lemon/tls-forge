@@ -438,9 +438,12 @@ func (h *HTTP2) Akamai() string
 
     The four fields are the SETTINGS in order, the connection-level
     WINDOW_UPDATE increment, the PRIORITY frames, and the order of the
-    pseudo-headers. It complements the TLS fingerprint rather than duplicating
-    it: a client can copy a ClientHello byte for byte and still give itself away
-    one layer up by sending :path before :scheme.
+    pseudo-headers. A PRIORITY frame is stream:exclusive:depends-on:weight, the
+    weight as RFC 9113 counts it, the frame's byte and one, as Akamai's paper
+    and tls.peet.ws write it: Firefox's 200 on the wire is 201 (3:0:0:201).
+    It complements the TLS fingerprint rather than duplicating it: a client can
+    copy a ClientHello byte for byte and still give itself away one layer up by
+    sending :path before :scheme.
 
 func (h *HTTP2) Header(name string) (string, bool)
     Header returns the first value sent for a name, matched case-insensitively.

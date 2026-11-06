@@ -20,6 +20,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix the Akamai HTTP/2 fingerprint writing a PRIORITY frame's weight as its
+  byte on the wire: Firefox's frames came out `3:0:0:200`, where Akamai's
+  format and tls.peet.ws say `3:0:0:201`, the weight RFC 9113 counts.
+  Captures' `akamai_fingerprint`, the log's `akamai` and `compare` say it so
+  now. Chrome sends no PRIORITY frame, and its fingerprint is as it was.
+
 - Fix `compare` saying more than it shows. A match said "the client is
   indistinguishable from the browser", of one cold ClientHello and the first
   request of each protocol. It now says every field compared matches, and

@@ -55,7 +55,10 @@ type HTTP2 struct {
 //	1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p
 //
 // The four fields are the SETTINGS in order, the connection-level WINDOW_UPDATE
-// increment, the PRIORITY frames, and the order of the pseudo-headers. It
+// increment, the PRIORITY frames, and the order of the pseudo-headers. A
+// PRIORITY frame is stream:exclusive:depends-on:weight, the weight as RFC 9113
+// counts it, the frame's byte and one, as Akamai's paper and tls.peet.ws write
+// it: Firefox's 200 on the wire is 201 (3:0:0:201). It
 // complements the TLS fingerprint rather than duplicating it: a client can copy
 // a ClientHello byte for byte and still give itself away one layer up by
 // sending :path before :scheme.
@@ -81,7 +84,7 @@ func (h *HTTP2) Akamai() string {
 			if p.Exclusive {
 				exclusive = 1
 			}
-			parts[i] = fmt.Sprintf("%d:%d:%d:%d", p.StreamID, exclusive, p.DependsOn, p.Weight)
+			parts[i] = fmt.Sprintf("%d:%d:%d:%d", p.StreamID, exclusive, p.DependsOn, int(p.Weight)+1)
 		}
 		priorities = strings.Join(parts, ",")
 	}

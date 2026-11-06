@@ -122,8 +122,12 @@ func TestAkamaiWithStandalonePriorityFrames(t *testing.T) {
 	h.Priorities = []Priority{
 		{StreamID: 3, Exclusive: false, DependsOn: 0, Weight: 200},
 		{StreamID: 5, Exclusive: true, DependsOn: 3, Weight: 100},
+		{StreamID: 7, Weight: 0},
+		{StreamID: 9, Weight: 255},
 	}
-	const want = "1:65536;2:0;4:6291456;6:262144|15663105|3:0:0:200,5:1:3:100|m,a,s,p"
+	// Weights as RFC 9113 counts them, the byte and one, as Firefox's are
+	// written: 200 on the wire is 201, 0 is 1 and 255 is 256.
+	const want = "1:65536;2:0;4:6291456;6:262144|15663105|3:0:0:201,5:1:3:101,7:0:0:1,9:0:0:256|m,a,s,p"
 	if got := h.Akamai(); got != want {
 		t.Errorf("Akamai = %s\nwant    %s", got, want)
 	}
