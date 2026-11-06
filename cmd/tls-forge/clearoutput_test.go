@@ -32,6 +32,13 @@ func tree(t *testing.T, dir string, paths ...string) {
 	}
 }
 
+// bare lays out a bare repository at dir, as git init --bare does, but for
+// what is in its files.
+func bare(t *testing.T, dir string) {
+	t.Helper()
+	tree(t, dir, "HEAD", "config", "objects/info/packs", "refs/heads/main")
+}
+
 // untouched fails the test unless every path is still in dir.
 func untouched(t *testing.T, dir string, paths ...string) {
 	t.Helper()
@@ -150,6 +157,26 @@ func TestClearOutputDirRefusesADirectoryWhoseLossIsADisaster(t *testing.T) {
 			tree(t, tmp, "a/project/.git/HEAD")
 			return []string{"-o", tmp, server.URL}, tmp
 		}, "holds a git repository, "},
+		{"a repository's .git", func(t *testing.T, tmp string) ([]string, string) {
+			tree(t, tmp, "a/project/.git/HEAD")
+			return []string{"-o", filepath.Join(tmp, "a", "project", ".git"), server.URL}, tmp
+		}, "is a git repository's own directory;"},
+		{"a directory in a .git", func(t *testing.T, tmp string) ([]string, string) {
+			tree(t, tmp, "a/project/.git/refs/heads/main")
+			return []string{"-o", filepath.Join(tmp, "a", "project", ".git", "refs"), server.URL}, tmp
+		}, "is in a git repository's own directory, "},
+		{"a bare repository", func(t *testing.T, tmp string) ([]string, string) {
+			bare(t, filepath.Join(tmp, "a", "project.git"))
+			return []string{"-o", filepath.Join(tmp, "a", "project.git"), server.URL}, tmp
+		}, "is a git repository's own directory;"},
+		{"a directory in a bare repository", func(t *testing.T, tmp string) ([]string, string) {
+			bare(t, filepath.Join(tmp, "a", "project.git"))
+			return []string{"-o", filepath.Join(tmp, "a", "project.git", "objects"), server.URL}, tmp
+		}, "is in a git repository's own directory, "},
+		{"one with a bare repository in it", func(t *testing.T, tmp string) ([]string, string) {
+			bare(t, filepath.Join(tmp, "a", "project.git"))
+			return []string{"-o", tmp, server.URL}, tmp
+		}, string(filepath.Separator) + filepath.Join("a", "project.git") + "; nothing"},
 		{"the list it reads", func(t *testing.T, tmp string) ([]string, string) {
 			list := filepath.Join(tmp, "a", "urls.txt")
 			if err := os.WriteFile(list, []byte(server.URL+"\n"), 0o644); err != nil {
@@ -327,6 +354,41 @@ func TestRefusal(t *testing.T) {
 	homeDir = func() (string, error) { return "", errors.New("$HOME is not defined") }
 	if got := home(); got != "" {
 		t.Errorf("home without one = %q", got)
+	}
+}
+
+// A repository's own directory is known as git knows one: a HEAD file and an
+// objects and a refs directory, or the name .git; one with less is a
+// directory like another.
+func TestHeldBack(t *testing.T) {
+	tmp := resolve(t.TempDir())
+	tree(t, tmp, "work/.git/HEAD", "work/src/a.go", "loose/HEAD", "loose/objects/x", "half/HEAD", "half/refs/y",
+		"flat/HEAD", "flat/objects", "flat/refs")
+	bare(t, filepath.Join(tmp, "srv", "project.git"))
+	if err := os.MkdirAll(filepath.Join(tmp, "plain", "objects"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	tree(t, tmp, "plain/refs/x")
+	// HEAD a directory is no repository's.
+	if err := os.MkdirAll(filepath.Join(tmp, "plain", "HEAD"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	at := func(parts ...string) string { return filepath.Join(append([]string{tmp}, parts...)...) }
+	for _, tc := range []struct{ dir, want string }{
+		{at("work"), "holds a git repository, " + at("work", ".git")},
+		{at("work", ".git"), "is a git repository's own directory"},
+		{at("work", "src"), ""},
+		{at("srv"), "holds a git repository, " + at("srv", "project.git")},
+		{at("srv", "project.git"), "is a git repository's own directory"},
+		{at("srv", "project.git", "refs", "heads"), "is in a git repository's own directory, " + at("srv", "project.git")},
+		{at("loose"), ""},
+		{at("half"), ""},
+		{at("plain"), ""},
+		{at("flat"), ""},
+	} {
+		if got := heldBack(tc.dir, nil); got != tc.want {
+			t.Errorf("heldBack(%s) = %q, want %q", tc.dir, got, tc.want)
+		}
 	}
 }
 

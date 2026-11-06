@@ -20,6 +20,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix `--clear-output-dir` emptying a git repository's own directory. It
+  refused a directory holding a `.git`, but not a `.git` itself, a directory
+  in one, nor a bare repository (`HEAD`, `objects/`, `refs/`) or a directory
+  holding one. Each is now a usage error, before anything is removed.
+
 - Fix `fetch --exit-lookup` asking a site's probe (`/cdn-cgi/trace`) it could
   never believe. With a profile whose `http.instance_scope` is `request`,
   every shipped one, each request has connections of its own, so the probe

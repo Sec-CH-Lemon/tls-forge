@@ -909,7 +909,9 @@ went is said on standard error. Since it deletes, it refuses, with the reason
 and without removing anything, a directory whose loss would be a disaster
 rather than a clean slate: the root of the file system, the home directory or
 one that holds it, the directory the command runs in or one that holds it
-(`-o .`), one with a git repository in it, one holding a file the run reads
+(`-o .`), a git repository's own directory or one in it (a `.git`, a bare
+repository: `HEAD`, `objects/` and `refs/`) and one that holds either, one
+holding a file the run reads
 (`--input`, `--cookies`, `--exit-headers`, the profile it wears, and a `.json`
 `--save-cookies`,
 which a run reads to add its session to the ones there), and one holding the

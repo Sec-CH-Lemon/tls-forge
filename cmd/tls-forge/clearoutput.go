@@ -98,17 +98,30 @@ func refusal(dir, cwd, home string, reads map[string]string) string {
 	return ""
 }
 
-// heldBack is why what is in a directory keeps it from being emptied: a git
-// repository, or the file the run's output is being written to, which would
-// go on being written to with nobody able to read it. Nothing when nothing
-// does. What cannot be read is passed over: removing it will say so.
+// heldBack is why what a directory is, or what is in it, keeps it from being
+// emptied: a git repository's own directory, the directory itself or one it is
+// in, or one it holds, a working tree's .git or a bare repository; or the file
+// the run's output is being written to, which would go on being written to
+// with nobody able to read it. Nothing when nothing does. What cannot be read
+// is passed over: removing it will say so.
 func heldBack(dir string, streams []fs.FileInfo) string {
+	for at := dir; ; at = filepath.Dir(at) {
+		if filepath.Base(at) == ".git" || gitDir(at) {
+			if at == dir {
+				return "is a git repository's own directory"
+			}
+			return "is in a git repository's own directory, " + at
+		}
+		if filepath.Dir(at) == at {
+			break
+		}
+	}
 	why := ""
 	_ = filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil || path == dir {
 			return nil
 		}
-		if entry.Name() == ".git" {
+		if entry.Name() == ".git" || entry.IsDir() && gitDir(path) {
 			why = "holds a git repository, " + path
 			return filepath.SkipAll
 		}
@@ -123,6 +136,21 @@ func heldBack(dir string, streams []fs.FileInfo) string {
 		return nil
 	})
 	return why
+}
+
+// gitDir says whether dir is a repository's own directory as git tells one:
+// a HEAD file, and an objects and a refs directory, in it. A bare repository
+// is one, as is a working tree's .git, whatever it is called.
+func gitDir(dir string) bool {
+	if head, err := os.Stat(filepath.Join(dir, "HEAD")); err != nil || !head.Mode().IsRegular() {
+		return false
+	}
+	for _, sub := range []string{"objects", "refs"} {
+		if info, err := os.Stat(filepath.Join(dir, sub)); err != nil || !info.IsDir() {
+			return false
+		}
+	}
+	return true
 }
 
 // streamFiles are the files writers write to, of those that are files: the
