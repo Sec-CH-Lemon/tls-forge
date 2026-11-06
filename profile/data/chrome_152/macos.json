@@ -14,8 +14,27 @@
       "if-range",
       "priority"
     ],
+    "cache.heuristic_percent": 10,
+    "cache.heuristic_statuses": [
+      200,
+      203,
+      206
+    ],
+    "cache.heuristic_with_must_revalidate": false,
+    "cache.implicit_fresh_statuses": [
+      300,
+      301,
+      308,
+      410
+    ],
     "cache.invalid_freshness_policy": "ignore",
+    "cache.request_no_cache": "bypass",
+    "cache.response_pragma_no_cache": true,
+    "cache.store_any_status": true,
     "cache.total_bytes": 67108864,
+    "cache.validated_statuses": [
+      200
+    ],
     "cookie.identity": "name-domain-host-only-path",
     "cookie.ip_domain_host_only": true,
     "cookie.lax_unsafe_age_seconds": 120,

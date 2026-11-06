@@ -6,7 +6,7 @@
     "utls": {
       "module": "github.com/igor-lemon/utls",
       "repository": "https://github.com/igor-lemon/utls",
-      "commit": "cacbae08d97269096bc840776e3b0a078e792f21"
+      "commit": "4b54ea578c9d8f21ad0552b0cdc76db91ce3214e"
     },
     "fhttp": {
       "module": "github.com/igor-lemon/fhttp",

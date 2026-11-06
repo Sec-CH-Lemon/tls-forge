@@ -11,8 +11,16 @@ Generated from the 18 bundled JSON profile files. This is an inventory of fields
 | `behavior["cache.entry_bytes"]` | int |
 | `behavior["cache.freshness_quoted_values"]` | bool |
 | `behavior["cache.generated_header_order"]` | array |
+| `behavior["cache.heuristic_percent"]` | int |
+| `behavior["cache.heuristic_statuses"]` | array |
+| `behavior["cache.heuristic_with_must_revalidate"]` | bool |
+| `behavior["cache.implicit_fresh_statuses"]` | array |
 | `behavior["cache.invalid_freshness_policy"]` | str |
+| `behavior["cache.request_no_cache"]` | str |
+| `behavior["cache.response_pragma_no_cache"]` | bool |
+| `behavior["cache.store_any_status"]` | bool |
 | `behavior["cache.total_bytes"]` | int |
+| `behavior["cache.validated_statuses"]` | array |
 | `behavior["cookie.identity"]` | str |
 | `behavior["cookie.ip_domain_host_only"]` | bool |
 | `behavior["cookie.lax_unsafe_age_seconds"]` | int |

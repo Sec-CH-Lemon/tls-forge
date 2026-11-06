@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/igor-lemon/utls/behavior"
 	"io"
+	"math"
 	"net/http"
 	"slices"
 	"strings"
@@ -50,21 +51,50 @@ func cacheValue(h fhttp.Header, name string) string {
 	return strings.Join(fieldValues(h, strings.ToLower(name)), ", ")
 }
 
-func (c *responseCache) policy(h fhttp.Header, now time.Time) (fresh, age time.Duration, validate, store bool) {
+// forever is the freshness of a response fresh for ever: Chromium's
+// TimeDelta::Max of an implicitly fresh status.
+const forever = time.Duration(math.MaxInt64)
+
+// pragmaNoCache says a header's Pragma names no-cache, a token of any of its
+// values in any case, as Chromium's HasHeaderValue reads it.
+func pragmaNoCache(h fhttp.Header) bool {
+	for _, value := range fieldValues(h, "pragma") {
+		for _, token := range strings.Split(value, ",") {
+			if strings.EqualFold(strings.TrimSpace(token), "no-cache") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// policy is what a response of status with header h says of its keeping, as
+// Chromium's GetFreshnessLifetimes reads it: no-store keeps nothing;
+// no-cache, or a Pragma of no-cache where the profile reads it so, has it
+// validated every time; its freshness is its max-age, else what its Expires
+// leaves of its Date, else, where the profile says, a part of the time since
+// its Last-Modified for a status of the heuristic's, else for ever for a
+// status implicitly fresh; and it is kept with freshness or a validator.
+func (c *responseCache) policy(h fhttp.Header, status int, now time.Time) (fresh, age time.Duration, validate, store bool) {
 	d := cacheDirectives(h)
 	if d.has("no-store") {
 		return
 	}
-	validate = d.has("no-cache")
+	p := c.runtimeBehavior()
+	validate = d.has("no-cache") || p.Flag("cache.response_pragma_no_cache") && pragmaNoCache(h)
 	date, dateErr := http.ParseTime(cacheValue(h, "Date"))
-	if value, present := d.seconds("max-age", c.runtimeBehavior()); present {
+	if dateErr != nil {
+		date = now
+	}
+	if value, present := d.seconds("max-age", p); present {
 		fresh = value
 		store = true
 	} else if expires, err := http.ParseTime(cacheValue(h, "Expires")); err == nil {
-		if dateErr != nil {
-			date = now
-		}
 		fresh, store = max(0, expires.Sub(date)), true
+	} else if lifetime, ok := heuristic(p, h, d, status, date); ok {
+		fresh, store = lifetime, true
+	} else if slices.Contains(p.Numbers("cache.implicit_fresh_statuses"), uint64(status)) {
+		fresh, store = forever, true
 	}
 	// RFC9111 uses the first Age value. Saturate large numeric values safely.
 	ages := fieldValues(h, "age")
@@ -77,6 +107,40 @@ func (c *responseCache) policy(h fhttp.Header, now time.Time) (fresh, age time.D
 	}
 	store = store || cacheValue(h, "ETag") != "" || cacheValue(h, "Last-Modified") != ""
 	return
+}
+
+// heuristic is the freshness a response of status gets from its
+// Last-Modified, where the profile gives one: its percent of the time from
+// then to date, the response's Date or when it came, for a status of the
+// heuristic's and, unless the profile says otherwise, one that does not say
+// must-revalidate. None for a Last-Modified after the date.
+func heuristic(p behavior.Policy, h fhttp.Header, d cacheControl, status int, date time.Time) (time.Duration, bool) {
+	if !p.Has("cache.heuristic_percent") || !slices.Contains(p.Numbers("cache.heuristic_statuses"), uint64(status)) ||
+		d.has("must-revalidate") && !p.Flag("cache.heuristic_with_must_revalidate") {
+		return 0, false
+	}
+	modified, err := http.ParseTime(cacheValue(h, "Last-Modified"))
+	if err != nil || modified.After(date) {
+		return 0, false
+	}
+	return date.Sub(modified) / 100 * time.Duration(p.Uint("cache.heuristic_percent")), true
+}
+
+// storesStatus says a response of status is one the cache may keep: any
+// final one but 304 where the profile says so, else those it always kept.
+func (c *responseCache) storesStatus(status int) bool {
+	if c.runtimeBehavior().Flag("cache.store_any_status") {
+		return status >= 200 && status != 304
+	}
+	return status == 200 || status == 206 || status == 301 || status == 302 || status == 307 || status == 308
+}
+
+// validates says a kept response of status may be asked again conditionally:
+// any, unless the profile names the statuses (Chromium's ConditionalizeRequest
+// of a 200 alone).
+func (c *responseCache) validates(status int) bool {
+	p := c.runtimeBehavior()
+	return !p.Has("cache.validated_statuses") || slices.Contains(p.Numbers("cache.validated_statuses"), uint64(status))
 }
 
 func (c *responseCache) key(ch *chain, req *fhttp.Request) string {
@@ -144,11 +208,17 @@ func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.Roun
 	defer func() { release() }()
 	var entry *cachedResponse
 	conditional := false
-	if eligible {
+	// A request's no-cache, or its Pragma's, has a kept response validated, or,
+	// where the profile says bypass, goes to the network without a condition
+	// and its answer is kept in the cache's place (Chromium's
+	// LOAD_BYPASS_CACHE); a max-age of 0 has it validated.
+	noCache := d.has("no-cache") || pragmaNoCache(req.Header)
+	bypass := noCache && c.runtimeBehavior().Text("cache.request_no_cache") == "bypass"
+	if eligible && !bypass {
 		entry = c.find(key, req.Header)
 		if entry != nil {
 			maximum, present := d.seconds("max-age", c.runtimeBehavior())
-			forced := d.has("no-cache") || present && maximum == 0 || strings.EqualFold(cacheValue(req.Header, "Pragma"), "no-cache")
+			forced := noCache || present && maximum == 0
 			if entry.partialTotal != 0 {
 				if req.Method == "GET" && cacheValue(req.Header, "Range") == "" {
 					return c.completePrefix(key, req, entry, next)
@@ -165,7 +235,7 @@ func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.Roun
 				}
 			}
 		}
-		if entry != nil && cacheValue(req.Header, "Range") == "" {
+		if entry != nil && cacheValue(req.Header, "Range") == "" && c.validates(entry.status) {
 			for _, name := range c.runtimeBehavior().Strings("http.cache_validators") {
 				source := "ETag"
 				if name == "if-modified-since" {
@@ -202,9 +272,8 @@ func (c *responseCache) roundTrip(ch *chain, req *fhttp.Request, next fhttp.Roun
 		delete(c.entries, key)
 		c.mu.Unlock()
 	}
-	cacheStatus := res.StatusCode == 200 || res.StatusCode == 206 || res.StatusCode == 301 || res.StatusCode == 302 || res.StatusCode == 307 || res.StatusCode == 308
-	if eligible && req.Method == "GET" && cacheStatus {
-		_, _, _, store := c.policy(res.Header, time.Now())
+	if eligible && req.Method == "GET" && c.storesStatus(res.StatusCode) {
+		_, _, _, store := c.policy(res.Header, res.StatusCode, time.Now())
 		if store {
 			done := release
 			release = func() {}
@@ -288,7 +357,7 @@ func (c *responseCache) store(key string, request fhttp.Header, res *fhttp.Respo
 		return
 	}
 	now := time.Now()
-	fresh, age, validate, allowed := c.policy(res.Header, now)
+	fresh, age, validate, allowed := c.policy(res.Header, res.StatusCode, now)
 	if !allowed {
 		return
 	}

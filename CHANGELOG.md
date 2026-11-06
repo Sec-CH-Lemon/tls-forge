@@ -27,6 +27,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   a closed one waited out its minute and could be handed a request, which then
   went again on another.
 
+- Keep responses in a browser context's cache as Chrome keeps them, and for
+  as long, as measured on Chrome 156: a response of any status that says it
+  may be kept; a 300, 301, 308 or 410 with no freshness of its own fresh for
+  ever; a 200, 203 or 206 with none fresh for a tenth of the time since its
+  Last-Modified, unless it says must-revalidate; a response's
+  `Pragma: no-cache` taken as its `no-cache`; only a kept 200 asked again
+  conditionally; and a request's `Cache-Control: no-cache` or
+  `Pragma: no-cache` sent with no condition, its answer kept, where it was
+  sent conditionally. The Chrome profiles say it in eight `cache.` keys. utls
+  4b54ea5.
+
 - Fix `--pcap`, `--keylog` and `WithKeyLogWriter` for a connection whose
   Encrypted Client Hello the site accepted, over TCP and QUIC: its secrets
   went by the inner hello's random, which nothing in the file opened, so

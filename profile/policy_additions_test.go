@@ -215,6 +215,7 @@ var otherChoices = map[string]string{
 	"tls.session_cache_key":  "server-name",
 	"quic.session_cache_key": "server-name",
 	"cookie.identity":        "name-domain-path",
+	"cache.request_no_cache": "validate",
 }
 
 // otherValue is a value of the same kind as v the registry takes too, for
@@ -232,6 +233,10 @@ func otherValue(t *testing.T, key string, v json.RawMessage) json.RawMessage {
 		return out
 	case float64:
 		out, _ := json.Marshal(x + 1)
+		return out
+	case []any:
+		// A list one shorter, which the registry takes as well.
+		out, _ := json.Marshal(x[:len(x)-1])
 		return out
 	case string:
 		other, ok := otherChoices[key]

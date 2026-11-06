@@ -1,0 +1,392 @@
+{
+ "browser": "Google Chrome 156.0.8078.80, headless, macOS 27.0.1, a fresh profile for each launch",
+ "measured": "2026-11-06",
+ "how": "A page over plain http at 127.0.0.1 fetch()es each scenario's URLs in turn, a step's headers set by the script, against a server answering /s/STATUS as its query says (cc: Cache-Control, pragma: Pragma: no-cache, lm: a Last-Modified 10 days before its Date, etag: ETag \"v1\" and a 304 to it, to: Location); network is what of each step reached the server, the path and the cache's conditions it carried (If-None-Match, If-Modified-Since). Two launches, alike (net-fp-server captures/review-20261023 bench/cachebench, run.sh; runs cachebench-m2, -m3); heur-200-young, whose heuristic lasts half a second, left out.",
+ "scenarios": {
+  "resp-pragma": {
+   "steps": [
+    {
+     "url": "/s/200?cc=max-age%3D60&pragma=1&etag=1",
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?cc=max-age%3D60&pragma=1&etag=1",
+     "network": [
+      "/s/200 if-none-match"
+     ]
+    }
+   ]
+  },
+  "heur-200": {
+   "steps": [
+    {
+     "url": "/s/200?lm=10d",
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?lm=10d",
+     "network": []
+    }
+   ]
+  },
+  "heur-200-mr": {
+   "steps": [
+    {
+     "url": "/s/200?lm=10d&cc=must-revalidate",
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?lm=10d&cc=must-revalidate",
+     "network": [
+      "/s/200 if-modified-since"
+     ]
+    }
+   ]
+  },
+  "heur-203": {
+   "steps": [
+    {
+     "url": "/s/203?lm=10d",
+     "network": [
+      "/s/203"
+     ]
+    },
+    {
+     "url": "/s/203?lm=10d",
+     "network": []
+    }
+   ]
+  },
+  "heur-404": {
+   "steps": [
+    {
+     "url": "/s/404?lm=10d",
+     "network": [
+      "/s/404"
+     ]
+    },
+    {
+     "url": "/s/404?lm=10d",
+     "network": [
+      "/s/404"
+     ]
+    }
+   ]
+  },
+  "impl-300": {
+   "steps": [
+    {
+     "url": "/s/300",
+     "network": [
+      "/s/300"
+     ]
+    },
+    {
+     "url": "/s/300",
+     "network": []
+    }
+   ]
+  },
+  "impl-410": {
+   "steps": [
+    {
+     "url": "/s/410",
+     "network": [
+      "/s/410"
+     ]
+    },
+    {
+     "url": "/s/410",
+     "network": []
+    }
+   ]
+  },
+  "impl-301": {
+   "steps": [
+    {
+     "url": "/s/301?to=/t/301",
+     "network": [
+      "/s/301",
+      "/t/301"
+     ]
+    },
+    {
+     "url": "/s/301?to=/t/301",
+     "network": [
+      "/t/301"
+     ]
+    }
+   ]
+  },
+  "impl-308": {
+   "steps": [
+    {
+     "url": "/s/308?to=/t/308",
+     "network": [
+      "/s/308",
+      "/t/308"
+     ]
+    },
+    {
+     "url": "/s/308?to=/t/308",
+     "network": [
+      "/t/308"
+     ]
+    }
+   ]
+  },
+  "impl-302": {
+   "steps": [
+    {
+     "url": "/s/302?to=/t/302",
+     "network": [
+      "/s/302",
+      "/t/302"
+     ]
+    },
+    {
+     "url": "/s/302?to=/t/302",
+     "network": [
+      "/s/302",
+      "/t/302"
+     ]
+    }
+   ]
+  },
+  "stat-404-maxage": {
+   "steps": [
+    {
+     "url": "/s/404?cc=max-age%3D60",
+     "network": [
+      "/s/404"
+     ]
+    },
+    {
+     "url": "/s/404?cc=max-age%3D60",
+     "network": []
+    }
+   ]
+  },
+  "stat-500-maxage": {
+   "steps": [
+    {
+     "url": "/s/500?cc=max-age%3D60",
+     "network": [
+      "/s/500"
+     ]
+    },
+    {
+     "url": "/s/500?cc=max-age%3D60",
+     "network": []
+    }
+   ]
+  },
+  "req-no-cache": {
+   "steps": [
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "headers": {
+      "Cache-Control": "no-cache"
+     },
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "network": []
+    }
+   ]
+  },
+  "req-pragma": {
+   "steps": [
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "headers": {
+      "Pragma": "no-cache"
+     },
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "network": []
+    }
+   ]
+  },
+  "req-max-age-0": {
+   "steps": [
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "headers": {
+      "Cache-Control": "max-age=0"
+     },
+     "network": [
+      "/s/200 if-none-match"
+     ]
+    },
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "network": []
+    }
+   ]
+  },
+  "cond-404-etag": {
+   "steps": [
+    {
+     "url": "/s/404?etag=1&cc=max-age%3D0",
+     "network": [
+      "/s/404"
+     ]
+    },
+    {
+     "url": "/s/404?etag=1&cc=max-age%3D0",
+     "network": [
+      "/s/404"
+     ]
+    }
+   ]
+  },
+  "cond-203-etag": {
+   "steps": [
+    {
+     "url": "/s/203?etag=1&cc=max-age%3D0",
+     "network": [
+      "/s/203"
+     ]
+    },
+    {
+     "url": "/s/203?etag=1&cc=max-age%3D0",
+     "network": [
+      "/s/203"
+     ]
+    }
+   ]
+  },
+  "cond-200-etag": {
+   "steps": [
+    {
+     "url": "/s/200?etag=1&cc=max-age%3D0",
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?etag=1&cc=max-age%3D0",
+     "network": [
+      "/s/200 if-none-match"
+     ]
+    }
+   ]
+  },
+  "stat-204-maxage": {
+   "steps": [
+    {
+     "url": "/s/204?cc=max-age%3D60",
+     "network": [
+      "/s/204"
+     ]
+    },
+    {
+     "url": "/s/204?cc=max-age%3D60",
+     "network": []
+    }
+   ]
+  },
+  "stat-403-maxage": {
+   "steps": [
+    {
+     "url": "/s/403?cc=max-age%3D60",
+     "network": [
+      "/s/403"
+     ]
+    },
+    {
+     "url": "/s/403?cc=max-age%3D60",
+     "network": []
+    }
+   ]
+  },
+  "impl-410-cc0": {
+   "steps": [
+    {
+     "url": "/s/410?cc=max-age%3D0",
+     "network": [
+      "/s/410"
+     ]
+    },
+    {
+     "url": "/s/410?cc=max-age%3D0",
+     "network": [
+      "/s/410"
+     ]
+    }
+   ]
+  },
+  "resp-pragma-etag": {
+   "steps": [
+    {
+     "url": "/s/200?pragma=1&etag=1",
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?pragma=1&etag=1",
+     "network": [
+      "/s/200 if-none-match"
+     ]
+    }
+   ]
+  },
+  "req-if-range": {
+   "steps": [
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "headers": {
+      "If-Range": "\"v1\"",
+      "Range": "bytes=0-1"
+     },
+     "network": [
+      "/s/200"
+     ]
+    },
+    {
+     "url": "/s/200?cc=max-age%3D60&etag=1",
+     "network": []
+    }
+   ]
+  }
+ }
+}

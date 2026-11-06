@@ -193,7 +193,15 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 |---|---|
 | `cache.entries` | `256` |
 | `cache.entry_bytes` | `8388608` |
+| `cache.heuristic_percent` | `10` |
+| `cache.heuristic_statuses` | `[200, 203, 206]` |
+| `cache.heuristic_with_must_revalidate` | `false` |
+| `cache.implicit_fresh_statuses` | `[300, 301, 308, 410]` |
+| `cache.request_no_cache` | `"bypass"` |
+| `cache.response_pragma_no_cache` | `true` |
+| `cache.store_any_status` | `true` |
 | `cache.total_bytes` | `67108864` |
+| `cache.validated_statuses` | `[200]` |
 | `cookie.identity` | `"name-domain-host-only-path"` |
 | `cookie.ip_domain_host_only` | `true` |
 | `cookie.lax_unsafe_age_seconds` | `120` |
@@ -423,6 +431,7 @@ values; no browser verdict is new for them.
 | `tls.session_cache_key`, `quic.session_cache_key` | What the TLS and the QUIC session cache keep a session by: `host-port`, the host and port its connection was dialed for, as Chromium's SSLClientSessionCache::Key keys it by HostPortPair and quiche's QuicServerId by host and port (a QUIC connection made for an alternative is its origin's); `server-name`, the name sent in SNI, as crypto/tls keys it, so that a ticket of one port is offered on another. Without them, `server-name`. `"host-port"` and `"host-port"`. |
 | `tls.validate_server_hello_extensions` | A ServerHello's extensions held to those BoringSSL takes of it (tls13_client.cc, ssl_parse_extensions, ssl_scan_serverhello_tlsext): before the version is known, the list read and supported_versions alone, in a record of TLS 1.0; then, in a record of the version, of TLS 1.3 supported_versions, a key_share where the client sent shares and pre_shared_key where it offered one, each once, of a HelloRetryRequest cookie, key_share, supported_versions and encrypted_client_hello, of TLS 1.2 those of BoringSSL's kExtensions the client offered. Another is the profile's `tls.unsolicited_extension_alert`, one twice its `tls.duplicate_extension_alert`, a list that does not read its `tls.malformed_extension_alert`; a legacy version other than TLS 1.2 is the version. Without it, crypto/tls's reading, which passes over what it does not parse. `true`. |
 | `cookie.identity` | What makes two cookies one, so that the second replaces or removes the first: `name-domain-host-only-path`, under which a cookie its host's alone and one of a Domain naming that host, of the same name and path, are two, both sent and each replaced and removed by its own kind, as RFC 6265bis (5.7, step 22) has it and Chrome 156 keeps them (measured, `testdata/chrome156-cookie-identity.json`); `name-domain-path`, under which they are one, as RFC 6265 (5.3, step 11) and Go's jar have it. Only a jar of tls-forge's own reads it: a caller's (`WithCookieJar`) keeps its own rule. Without it, `name-domain-path`. `"name-domain-host-only-path"`. |
+| `cache.store_any_status`, `cache.validated_statuses`, `cache.response_pragma_no_cache`, `cache.request_no_cache`, `cache.heuristic_percent`, `cache.heuristic_statuses`, `cache.heuristic_with_must_revalidate`, `cache.implicit_fresh_statuses` | What a browser context's cache keeps and for how long, as Chromium's (GetFreshnessLifetimes, ConditionalizeRequest, kForceFetchHeaders) and as Chrome 156 was measured keeping (`testdata/chrome156-cache-rules.json`): a response of any final status but 304 that says it may be kept, where without `cache.store_any_status` only 200, 206, 301, 302, 307 and 308 are; a kept response asked again conditionally only of `cache.validated_statuses`, else again whole; a response's `Pragma: no-cache` its `Cache-Control: no-cache`; a request's `no-cache`, or its `Pragma: no-cache`, `validate`, a conditional request, or `bypass`, the network with no condition and the answer kept; a response with no max-age or Expires fresh for `cache.heuristic_percent` of the time from its Last-Modified to its Date when its status is one of `cache.heuristic_statuses` and, unless `cache.heuristic_with_must_revalidate`, it does not say must-revalidate, else for ever when its status is one of `cache.implicit_fresh_statuses`. Without them, the cache as it was. `true`, `[200]`, `true`, `"bypass"`, `10`, `[200, 203, 206]`, `false`, `[300, 301, 308, 410]`. |
 
 ## URL host encoding integrity
 
