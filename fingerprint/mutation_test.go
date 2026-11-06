@@ -189,6 +189,14 @@ func TestAnECHPayloadOfARuleNotKnownIsNotCompared(t *testing.T) {
 			t.Errorf("%d against 300: %s", tc.payload, report)
 		}
 	}
+	// A hello without GREASE is no BoringSSL one: NSS draws lengths of its
+	// own, one of BoringSSL's four among them, and none is held to a rule.
+	nss := func(payload int) *ClientHello {
+		return mustParse(t, newHello().withCiphers(0x1301).withExtension(ExtEncryptedClientHello, echBody(1, 1, payload)).records())
+	}
+	if report := CompareTLS(nss(279), nss(176)); !report.OK() {
+		t.Errorf("an NSS hello's payload was held to BoringSSL's: %s", report)
+	}
 }
 
 // compareAfter compares a fixture, as the builder renders it, with the same

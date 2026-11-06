@@ -354,7 +354,8 @@ func TLSFields(hello *ClientHello) []Field
         compared too: that each is a public key of its kind, and that keys of
         one kind are each their own (keys).
       - The length of the ECH payload, which Chrome draws from four for every
-        connection: shown, never compared (Varies).
+        connection: shown, not compared itself (Varies); whether it is one of
+        the four is (ech_grease).
       - The contents of server_name, which are the site's, and of padding,
         whose length follows from the rest.
 

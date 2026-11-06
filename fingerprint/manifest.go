@@ -238,7 +238,7 @@ func echShape(hello *ClientHello) (fixed, payload string) {
 	if ok {
 		fixed = fmt.Sprintf("%s, %s, key %s", hpkeName(hpkeKDFs, ech.KDF), hpkeName(hpkeAEADs, ech.AEAD),
 			size(ech.EncLength))
-		if slices.Contains(boringECHPayloads, ech.PayloadLength) {
+		if slices.ContainsFunc(hello.CipherSuites, IsGREASE) && slices.Contains(boringECHPayloads, ech.PayloadLength) {
 			fixed += ", payload drawn as BoringSSL draws it"
 		}
 		return fixed, fmt.Sprint(ech.PayloadLength)
@@ -253,6 +253,9 @@ func echShape(hello *ClientHello) (fixed, payload string) {
 // from, its 16-byte tag in (setup_ech_grease: 32 times 4 to 7, and the tag),
 // as Chrome 155 was measured drawing them: a payload of one of them is one
 // drawn by that rule, which is compared where the payload itself cannot be.
+// Only of a hello with GREASE cipher suites, BoringSSL's: NSS's (Firefox's)
+// has none and draws its payload by a rule of its own, some of whose lengths
+// are among these.
 var boringECHPayloads = []int{144, 176, 208, 240}
 
 // pskShape is pre_shared_key without its tickets and binders: how many
@@ -324,9 +327,9 @@ var manifest = []Rule{
 	{"tls", "compress_certificate", inOrder},
 	{"tls", "trust_anchors", "in order when the browser sends them sorted by their bytes, as Chrome 154 " +
 		"and later do; as a set when it does not, as an older Chrome drew their order for each process"},
-	{"tls", "ech_grease", "exactly: the cipher suite, the key's length, and whether the payload is one of " +
-		"the four lengths BoringSSL draws it from (144, 176, 208, 240); not the config id, key or payload, " +
-		"drawn for each connection: the key is held as keys"},
+	{"tls", "ech_grease", "exactly: the cipher suite, the key's length, and, in a hello with GREASE cipher " +
+		"suites, whether the payload is one of the four lengths BoringSSL draws it from (144, 176, 208, 240); " +
+		"not the config id, key or payload, drawn for each connection: the key is held as keys"},
 	{"tls", "ech_payload_length", "shown, not compared: " + drawn + "; ech_grease holds it to its rule"},
 	{"tls", "pre_shared_key", "exactly: how many identities, how long each binder; not the tickets or binders"},
 	{"tls", "extension_contents", "as a set: the contents of each extension that is the same on every " +

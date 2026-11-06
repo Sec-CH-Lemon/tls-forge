@@ -457,8 +457,12 @@ func TestShapesThatDoNotParse(t *testing.T) {
 	if fixed, _ := echShape(unknown); fixed != "0x0009, 0x0009, key 32 bytes" {
 		t.Errorf("an unknown suite: %q", fixed)
 	}
+	if fixed, _ := echShape(mustParse(t, newHello().withCiphers(0x1301).withExtension(ExtEncryptedClientHello,
+		echBody(1, 1, 176)).records())); fixed != "HKDF-SHA256, AES-128-GCM, key 32 bytes" {
+		t.Errorf("a hello without GREASE: %q", fixed)
+	}
 	for _, payload := range []int{144, 176, 208, 240} {
-		drawn := mustParse(t, newHello().withCiphers(0x1301).withExtension(ExtEncryptedClientHello, echBody(1, 1, payload)).records())
+		drawn := mustParse(t, newHello().withCiphers(0x0a0a, 0x1301).withExtension(ExtEncryptedClientHello, echBody(1, 1, payload)).records())
 		if fixed, said := echShape(drawn); fixed != "HKDF-SHA256, AES-128-GCM, key 32 bytes, payload drawn as BoringSSL draws it" ||
 			said != fmt.Sprint(payload) {
 			t.Errorf("%d: %q, %q", payload, fixed, said)
