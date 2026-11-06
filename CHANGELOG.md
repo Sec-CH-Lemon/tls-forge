@@ -20,6 +20,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix the site of a name that ends in a dot: the public suffix list cannot
+  read one, so `www.example.com.` was a site of its own and
+  `api.example.com.` cross-site to it. Its site is now its registrable
+  domain with the dot, `example.com.`, as Chromium's `GetDomainAndRegistry`
+  keeps it, and so another of that domain is same-site.
+
 - Fix a cookie's `Expires` read by Go's two layouts alone: a cookie deleted
   with `Expires=Thu, 01-Jan-70 00:00:01 GMT`, as many servers write it, lived
   on as a session's. A Chrome profile's jar now reads it as Chromium's

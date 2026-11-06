@@ -54,6 +54,12 @@ func TestTheRelationIsSecFetchSites(t *testing.T) {
 		{"https://localhost/", "https://localhost:8443/", "same-site"},
 		{"https://a.localhost/", "https://b.localhost/", "cross-site"},
 		{"https://bücher.de/", "https://xn--bcher-kva.de/x", "same-origin"},
+		// A name that ends in a dot is of its registrable domain's site with
+		// the dot, and of none without it.
+		{"https://www.example.com./", "https://api.example.com./", "same-site"},
+		{"https://www.example.com./", "https://example.com./", "same-site"},
+		{"https://www.example.com./", "https://www.example.com/", "cross-site"},
+		{"https://com./", "https://com./x", "same-origin"},
 	} {
 		if got := relation(originOf(mustURL(t, tc.from)), originOf(mustURL(t, tc.to))); got != tc.want {
 			t.Errorf("%s to %s: %s, want %s", tc.from, tc.to, got, tc.want)

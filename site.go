@@ -64,12 +64,19 @@ func (o origin) String() string {
 }
 
 // site is an origin's schemeful site: its scheme and registrable domain, the
-// host itself for an IP address or a host with no registrable domain.
+// host itself for an IP address or a host with no registrable domain. A name
+// that ends in a dot keeps it, as Chromium's GetDomainAndRegistry does: its
+// registrable domain is read without it, which the public suffix list cannot
+// read with it.
 func (o origin) site() string {
 	domain := o.host
 	if net.ParseIP(o.host) == nil {
-		if registrable, err := publicsuffix.EffectiveTLDPlusOne(o.host); err == nil {
+		name, dot := strings.CutSuffix(o.host, ".")
+		if registrable, err := publicsuffix.EffectiveTLDPlusOne(name); err == nil {
 			domain = registrable
+			if dot {
+				domain += "."
+			}
 		}
 	}
 	return o.scheme + "://" + domain
