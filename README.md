@@ -1142,6 +1142,16 @@ and its answer, but not the site's TLS inside it, which it shows as HTTP
 continuation data (Wireshark 4.6.9): the site's secrets are in the file all
 the same.
 
+A connection whose Encrypted Client Hello the site accepted is read too. Its
+handshake's secrets go by the random of the inner hello, which the outer one
+carries encrypted, so the file also says what opens it, by the outer hello's
+random, as NSS writes it: `ECH_SECRET`, the HPKE shared secret of the offer,
+and `ECH_CONFIG`, the config offered. Wireshark opens the inner hello with
+them and the rest with the handshake's secrets (4.6.9, over TCP and QUIC), and
+`--pcap` keeps both with the connection. Without them a capture of such a
+connection showed its outer hello alone, the name in the clear the config's
+public one.
+
 So does anybody else who has the file: it reads every cookie, credential and
 body of the run. It is created with mode `0600`, added to rather than replaced,
 as the browsers do, so that one file serves every run of a capture, and is for

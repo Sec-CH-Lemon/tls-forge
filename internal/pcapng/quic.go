@@ -16,6 +16,26 @@ import (
 // reads them. False when the datagrams hold no ClientHello's first 38 bytes,
 // in whatever order its CRYPTO frames came, or are not QUIC version 1's.
 func QUICClientRandom(sent [][]byte) (string, bool) {
+	hello := quicHello(sent, func(hello []byte) bool { return len(hello) >= 38 })
+	if len(hello) < 38 || hello[0] != 1 {
+		return "", false
+	}
+	return hex.EncodeToString(hello[6:38]), true
+}
+
+// QUICClientHello is the ClientHello message a QUIC client began a
+// connection with, its header included, once the Initial packets of the
+// datagrams it sent hold it whole.
+func QUICClientHello(sent [][]byte) ([]byte, bool) {
+	return wholeHello(quicHello(sent, func(hello []byte) bool {
+		_, ok := wholeHello(hello)
+		return ok
+	}))
+}
+
+// quicHello is the start of the CRYPTO stream the client's Initial packets
+// carry, as far as it is whole, read until enough says it is.
+func quicHello(sent [][]byte, enough func([]byte) bool) []byte {
 	var hello []byte // the ClientHello's start, as far as it is whole
 	pieces := map[uint64][]byte{}
 	var largest uint64
@@ -37,16 +57,12 @@ func QUICClientRandom(sent [][]byte) (string, bool) {
 			for offset, data := range cryptoFrames(payload) {
 				pieces[offset] = data
 			}
-			hello = joined(pieces)
-			if len(hello) >= 38 {
-				if hello[0] != 1 {
-					return "", false
-				}
-				return hex.EncodeToString(hello[6:38]), true
+			if hello = joined(pieces); enough(hello) {
+				return hello
 			}
 		}
 	}
-	return "", false
+	return hello
 }
 
 // quicVersion1 is the version an Initial packet is read for.

@@ -362,6 +362,42 @@ func ClientRandom(sent []byte) (string, bool) {
 	return hex.EncodeToString(sent[random : random+32]), true
 }
 
+// ClientHello is the ClientHello message a client began a connection with,
+// its header included, once what it sent holds it whole: after the request
+// for a tunnel, across the handshake records it came in. False while it is
+// cut short, and for what begins with no ClientHello.
+func ClientHello(sent []byte) ([]byte, bool) {
+	sent, whole := Tunnelled(sent)
+	if !whole {
+		return nil, false
+	}
+	var message []byte
+	for len(sent) >= 5 && sent[0] == 22 {
+		n := int(binary.BigEndian.Uint16(sent[3:5]))
+		if len(sent) < 5+n {
+			break
+		}
+		message, sent = append(message, sent[5:5+n]...), sent[5+n:]
+		if hello, ok := wholeHello(message); ok {
+			return hello, true
+		}
+	}
+	return nil, false
+}
+
+// wholeHello is the ClientHello message message begins with, once it holds
+// it whole.
+func wholeHello(message []byte) ([]byte, bool) {
+	if len(message) < 4 || message[0] != 1 {
+		return nil, false
+	}
+	size := 4 + (int(message[1])<<16 | int(message[2])<<8 | int(message[3]))
+	if len(message) < size {
+		return nil, false
+	}
+	return message[:size], true
+}
+
 // Tunnelled is what a client sent through the tunnel it asked a proxy for in
 // the clear, and whole says it had asked: what it sent after an HTTP proxy's
 // CONNECT and the blank line that ends it; after a SOCKS5 proxy's greeting,

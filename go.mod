@@ -22,7 +22,7 @@ require (
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/igor-lemon/fhttp v0.6.10-0.20261106171632-6959ccf0752c
 	github.com/igor-lemon/tls-client v1.15.2-0.20261106124849-ef58241568a3
-	github.com/igor-lemon/utls v1.7.8-barnius.0.20261106171632-5d91e3d71f8a
+	github.com/igor-lemon/utls v1.7.8-barnius.0.20261106183754-cacbae08d972
 	github.com/quic-go/qpack v0.6.0
 	github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 // indirect
 	golang.org/x/sys v0.49.0

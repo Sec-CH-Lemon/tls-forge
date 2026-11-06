@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -37,6 +38,11 @@ const (
 	maxInitials = 16
 )
 
+// maxEarly is the most lines of an ECH offer the wire holds for a random no
+// connection has sent yet: a QUIC handshake writes its offer to the key log
+// before the socket sends the hello that carries it.
+const maxEarly = 64
+
 // wire is what the connections of a run carried, kept for --pcap: every byte
 // each way and when, which requests went out on each, and the TLS secrets of
 // those that began with a ClientHello. A connection is let go of once it is
@@ -50,10 +56,20 @@ type wire struct {
 	// ended yet.
 	secrets map[string][]byte
 	part    []byte
+	// offers are what the key log said of each connection's ECH offer, by its
+	// outer random: the lines that open its inner hello, whose random the
+	// handshake's secrets are written by when the server accepted it. early
+	// are such lines of a random no connection has sent yet, maxEarly at most.
+	offers map[string]*echOffer
+	early  []string
 }
 
+// echOffer is what the key log said of an ECH offer: its KEM's shared secret
+// and its ECHConfig.
+type echOffer struct{ secret, config []byte }
+
 func newWire() *wire {
-	return &wire{secrets: map[string][]byte{}}
+	return &wire{secrets: map[string][]byte{}, offers: map[string]*echOffer{}}
 }
 
 // wiredConn is a connection a request was dialed, as the wire keeps it: a TCP
@@ -80,8 +96,13 @@ type wiredConn struct {
 	initials [][]byte
 	random   string
 	looked   bool
-	users    map[int]bool
-	closed   bool
+	// hello is the ClientHello the connection began with, whole, and inner
+	// the random of the inner hello its ECH offer carried, opened by what the
+	// key log said of the offer.
+	hello  []byte
+	inner  string
+	users  map[int]bool
+	closed bool
 }
 
 func (c *wiredConn) Read(p []byte) (int, error) {
@@ -201,10 +222,23 @@ func (w *wire) sent(c *wiredConn, data []byte) {
 	if c.looked {
 		return
 	}
-	if random, ok := pcapng.ClientRandom(c.head); ok {
-		c.random = random
-		w.secrets[random] = nil
-	} else if len(c.head) < maxHead && beginsTLS(c.head) {
+	if c.random == "" {
+		random, ok := pcapng.ClientRandom(c.head)
+		switch {
+		case ok:
+			w.want(c, random)
+		case len(c.head) < maxHead && beginsTLS(c.head):
+			return
+		default:
+			c.looked, c.head = true, nil
+			return
+		}
+	}
+	// The whole ClientHello, for the inner hello of its ECH offer.
+	if hello, ok := pcapng.ClientHello(c.head); ok {
+		c.hello = hello
+		w.openInner(c)
+	} else if len(c.head) < maxHead {
 		return
 	}
 	c.looked, c.head = true, nil
@@ -221,13 +255,54 @@ func (w *wire) wrote(c *wiredConn, data []byte) {
 		return
 	}
 	c.initials = append(c.initials, data)
-	if random, ok := pcapng.QUICClientRandom(c.initials); ok {
-		c.random = random
-		w.secrets[random] = nil
-	} else if len(c.initials) < maxInitials && len(data) > 0 && data[0]&0x80 != 0 {
+	more := len(c.initials) < maxInitials && len(data) > 0 && data[0]&0x80 != 0
+	if c.random == "" {
+		random, ok := pcapng.QUICClientRandom(c.initials)
+		switch {
+		case ok:
+			w.want(c, random)
+		case more:
+			return
+		default:
+			c.looked, c.initials = true, nil
+			return
+		}
+	}
+	if hello, ok := pcapng.QUICClientHello(c.initials); ok {
+		c.hello = hello
+		w.openInner(c)
+	} else if more {
 		return
 	}
 	c.looked, c.initials = true, nil
+}
+
+// want has the wire keep the secrets of random, a connection's client random,
+// those of an ECH offer written before it was sent among them.
+func (w *wire) want(c *wiredConn, random string) {
+	c.random = random
+	w.secrets[random] = nil
+	early := w.early
+	w.early = nil
+	for _, line := range early {
+		w.keepLine(line)
+	}
+}
+
+// openInner opens the inner hello of c's ECH offer, once the key log has said
+// what it needs (an offer of no secret or config yet opens nothing), and has
+// the wire keep the secrets of its random too.
+func (w *wire) openInner(c *wiredConn) {
+	offer := w.offers[c.random]
+	if c.inner != "" || c.hello == nil || offer == nil {
+		return
+	}
+	if inner, ok := pcapng.ECHInnerRandom(c.hello, offer.secret, offer.config); ok {
+		c.inner = inner
+		if _, kept := w.secrets[inner]; !kept {
+			w.secrets[inner] = nil
+		}
+	}
 }
 
 // beginsTLS says whether what a client sent so far may yet begin with a
@@ -272,6 +347,10 @@ func (w *wire) letGo() {
 		gone := c.closed && len(c.users) == 0
 		if gone && c.random != "" {
 			delete(w.secrets, c.random)
+			delete(w.offers, c.random)
+		}
+		if gone && c.inner != "" {
+			delete(w.secrets, c.inner)
 		}
 		return gone
 	})
@@ -289,16 +368,56 @@ func (w *wire) Write(p []byte) (int, error) {
 		if end < 0 {
 			return len(p), nil
 		}
-		line := w.part[:end+1]
+		line := string(w.part[:end+1])
 		w.part = w.part[end+1:]
-		// LABEL CLIENT_RANDOM SECRET, the random in hex.
-		fields := strings.Fields(string(line))
-		if len(fields) != 3 {
-			continue
+		w.keepLine(line)
+	}
+}
+
+// keepLine keeps a line of the key log, LABEL CLIENT_RANDOM SECRET, the
+// random and the secret in hex, when it is of a connection's random, and
+// says what it says of an ECH offer; an offer's line of a random no
+// connection has sent yet waits for one.
+func (w *wire) keepLine(line string) {
+	fields := strings.Fields(line)
+	if len(fields) != 3 {
+		return
+	}
+	label, random := fields[0], strings.ToLower(fields[1])
+	offer := label == pcapng.ECHSecretLabel || label == pcapng.ECHConfigLabel
+	kept, wanted := w.secrets[random]
+	switch {
+	case wanted:
+		w.secrets[random] = append(kept, line...)
+	case offer:
+		w.early = append(w.early, line)
+		if len(w.early) > maxEarly {
+			w.early = w.early[len(w.early)-maxEarly:]
 		}
-		random := strings.ToLower(fields[1])
-		if kept, wanted := w.secrets[random]; wanted {
-			w.secrets[random] = append(kept, line...)
+		return
+	default:
+		return
+	}
+	if !offer {
+		return
+	}
+	value, err := hex.DecodeString(fields[2])
+	if err != nil {
+		return
+	}
+	o := w.offers[random]
+	if o == nil {
+		o = &echOffer{}
+		w.offers[random] = o
+	}
+	if label == pcapng.ECHSecretLabel {
+		o.secret = value
+	} else {
+		o.config = value
+	}
+	for _, c := range w.conns {
+		if c.random == random {
+			w.openInner(c)
 		}
 	}
 }
@@ -326,6 +445,9 @@ func (w *wire) capture(id int) ([]pcapng.Stream, []byte) {
 		streams = append(streams, pcapng.Stream{Client: client, Server: c.server, Opened: c.opened,
 			Connected: c.connected, Events: events, Datagrams: c.quic})
 		secrets = append(secrets, w.secrets[c.random]...)
+		if c.inner != "" {
+			secrets = append(secrets, w.secrets[c.inner]...)
+		}
 		delete(c.users, id)
 	}
 	w.letGo()

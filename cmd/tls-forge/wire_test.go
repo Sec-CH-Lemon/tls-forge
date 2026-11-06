@@ -562,8 +562,10 @@ func dialedPair(t *testing.T, w *wire, id int, local, remote net.Addr) (net.Conn
 	return w.tap(id).Dialed(pipeConn{Conn: near, local: local, remote: remote}, time.Now()), far
 }
 
+// helloOf is a handshake record of a ClientHello whole, of a random of one
+// byte, and nothing after it but no suites and no compression.
 func helloOf(random byte) []byte {
-	return append(append([]byte{22, 3, 1, 0, 200, 1, 0, 0, 196, 3, 3}, bytes.Repeat([]byte{random}, 32)...), 0)
+	return append(append([]byte{22, 3, 1, 0, 43, 1, 0, 0, 39, 3, 3}, bytes.Repeat([]byte{random}, 32)...), 0, 0, 0, 1, 0)
 }
 
 func TestTheWireKeepsTheSecretsOfTheConnectionsItHas(t *testing.T) {
@@ -604,6 +606,11 @@ func TestTheWireKeepsTheSecretsOfTheConnectionsItHas(t *testing.T) {
 func TestTheWireFindsTheClientHelloAConnectionBeganWith(t *testing.T) {
 	hello := helloOf(0x11)
 	random := hex.EncodeToString(bytes.Repeat([]byte{0x11}, 32))
+	// A hello whose random comes in a write before the rest of it, and one
+	// longer than the wire waits for.
+	long := append(append([]byte{22, 3, 1, 0, 100, 1, 0, 0, 96, 3, 3}, bytes.Repeat([]byte{0x11}, 32)...), make([]byte, 62)...)
+	endless := append(append([]byte{22, 3, 1, 0xff, 0xff, 1, 0, 0xff, 0xfb, 3, 3}, bytes.Repeat([]byte{0x11}, 32)...),
+		make([]byte, maxHead)...)
 	for _, tc := range []struct {
 		name   string
 		writes [][]byte
@@ -624,6 +631,9 @@ func TestTheWireFindsTheClientHelloAConnectionBeganWith(t *testing.T) {
 		{"after a SOCKS5 handshake, plain HTTP", [][]byte{{5, 1, 0}, {5, 1, 0, 1, 127, 0, 0, 1, 0, 80},
 			[]byte("GET / HTTP/1.1\r\n")}, "", true},
 		{"a handshake record too long to wait for", [][]byte{{22, 3, 1}, make([]byte, maxHead)}, "", true},
+		{"its random before the rest of it", [][]byte{long[:60]}, random, false},
+		{"its random, then the rest of it", [][]byte{long[:60], long[60:]}, random, true},
+		{"a hello too long to wait for whole", [][]byte{endless}, random, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w := newWire()
@@ -641,6 +651,46 @@ func TestTheWireFindsTheClientHelloAConnectionBeganWith(t *testing.T) {
 				t.Errorf("random %q, looked %v, head of %d, wanted %v", c.random, c.looked, len(c.head), wanted)
 			}
 		})
+	}
+}
+
+// What the key log says of an ECH offer is kept with its connection's
+// secrets; the lines of an offer whose connection has not sent its hello yet
+// wait, maxEarly at most, the oldest let go; a secret that does not read is
+// kept and says nothing of the offer, and one that does not open its hello
+// opens none.
+func TestTheWireKeepsWhatTheKeyLogSaysOfAnECHOffer(t *testing.T) {
+	w := newWire()
+	for i := range maxEarly + 1 {
+		_, _ = fmt.Fprintf(w, "ECH_SECRET %064x 01\n", i)
+	}
+	if len(w.early) != maxEarly || !strings.Contains(w.early[0], fmt.Sprintf("%064x", 1)) {
+		t.Errorf("%d lines wait, the first %q", len(w.early), w.early[0])
+	}
+	conn, far := dialedPair(t, w, 1, stringAddr("127.0.0.1:5000"), stringAddr("127.0.0.1:443"))
+	go func() { _, _ = io.Copy(io.Discard, far) }()
+	if _, err := conn.Write(helloOf(0xab)); err != nil {
+		t.Fatal(err)
+	}
+	mine := hex.EncodeToString(bytes.Repeat([]byte{0xab}, 32))
+	lines := "ECH_SECRET " + mine + " zz\nECH_CONFIG " + mine + " fe0d0000\n"
+	_, _ = io.WriteString(w, lines)
+	if o := w.offers[mine]; o == nil || o.secret != nil || o.config == nil {
+		t.Errorf("the offer %+v", o)
+	}
+	_, _ = io.WriteString(w, "ECH_SECRET "+mine+" 0101\n")
+	if c := w.conns[0]; c.hello == nil || c.inner != "" {
+		t.Errorf("a hello of no offer opened %q", c.inner)
+	}
+	if _, secrets := w.capture(1); string(secrets) != lines+"ECH_SECRET "+mine+" 0101\n" {
+		t.Errorf("secrets\n%s", secrets)
+	}
+	// A connection let go of takes the secrets of its inner hello with it.
+	w.conns[0].inner = "inner"
+	w.secrets["inner"] = []byte("CLIENT_HANDSHAKE_TRAFFIC_SECRET inner 01\n")
+	_ = conn.Close()
+	if len(w.conns) != 0 || len(w.secrets) != 0 || len(w.offers) != 0 {
+		t.Errorf("left %d connections, secrets %v, offers %v", len(w.conns), w.secrets, w.offers)
 	}
 }
 

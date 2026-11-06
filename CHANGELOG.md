@@ -27,6 +27,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   a closed one waited out its minute and could be handed a request, which then
   went again on another.
 
+- Fix `--pcap`, `--keylog` and `WithKeyLogWriter` for a connection whose
+  Encrypted Client Hello the site accepted, over TCP and QUIC: its secrets
+  went by the inner hello's random, which nothing in the file opened, so
+  Wireshark read none of it, and `--pcap` left them out. The key log now says
+  what opens the inner hello, by the outer hello's random, as NSS writes it
+  (`ECH_SECRET`, `ECH_CONFIG`), and `--pcap` opens it to keep the inner
+  hello's secrets with the connection; Wireshark 4.6.9 reads such a capture
+  whole. The ECH configs from DNS that the Chrome profiles offer made every
+  such run's capture unreadable. utls cacbae0.
+
 - Keep a cookie its host's alone apart from one of a `Domain` naming that
   host, as Chrome keeps them: both are sent, in the order they were set, and
   each is replaced and removed by its own kind alone. Go's jar took them for

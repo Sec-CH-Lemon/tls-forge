@@ -1023,7 +1023,11 @@ dumpcap) as the client wrote and read it, and so does anybody else who has
 them, which is why the file above is made with mode `0600`, and why it is for
 looking into a run, never for keeping. A site's TLS inside an HTTPS proxy's
 tunnel, TLS within TLS, Wireshark 4.6.9 shows as HTTP continuation data; its
-secrets are written all the same.
+secrets are written all the same. A connection that offers Encrypted Client
+Hello also writes what opens its inner hello, by the outer hello's random, as
+NSS does: `ECH_SECRET` (the HPKE shared secret) and `ECH_CONFIG` (the config
+offered); the handshake's secrets go by the inner hello's random, so a capture
+of a connection whose ECH was accepted is read with them.
 
 Each line is one write, and tls-forge makes no two at once, of this client or
 of any other, so `w` need not be safe for concurrent use. A write that fails
