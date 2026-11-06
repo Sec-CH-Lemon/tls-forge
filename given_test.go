@@ -100,8 +100,22 @@ var placed = strings.NewReplacer("{AA}", "https://api.example.com", "{A}", "http
 var unplaced = strings.NewReplacer("https://api.example.com", "{AA}", "https://www.example.com", "{A}",
 	"api.example.com", "a.localhost", "www.example.com", "localhost")
 
+// givenFixtures are the fixtures of what Chrome sent of the fields it was
+// given over DevTools, each with the profile of the Chrome measured.
+var givenFixtures = []struct{ file, profile string }{
+	{"testdata/chrome155-given.json", "chrome_155_macos"},
+	// A Referer given, on the hops of a redirect to its origin and to another.
+	{"testdata/chrome156-given-referer.json", "chrome_156_macos"},
+}
+
 func TestARequestWithoutAContextGivesItsFieldsAsChromeOverDevToolsDid(t *testing.T) {
-	raw, err := os.ReadFile("testdata/chrome155-given.json")
+	for _, measured := range givenFixtures {
+		replayGiven(t, measured.file, measured.profile)
+	}
+}
+
+func replayGiven(t *testing.T, file, worn string) {
+	raw, err := os.ReadFile(file)
 	if err != nil {
 		t.Fatalf("fixture: %v", err)
 	}
@@ -117,7 +131,7 @@ func TestARequestWithoutAContextGivesItsFieldsAsChromeOverDevToolsDid(t *testing
 				}
 				chrome := map[string][]givenRequest{"h2": scenario.H2, "h1": scenario.H1}[proto]
 				server := newRecorder(t, proto, answeringAsTheOrderServer)
-				client := contextClient(t, server)
+				client := contextClient(t, server, WithProfile(worn))
 				var given Header
 				last := ""
 				for _, step := range scenario.Steps {
@@ -125,7 +139,7 @@ func TestARequestWithoutAContextGivesItsFieldsAsChromeOverDevToolsDid(t *testing
 					case step.Headers != nil:
 						given = nil
 						for _, f := range step.Headers {
-							given = append(given, Header{{Name: f[0], Value: f[1]}}...)
+							given = append(given, Header{{Name: f[0], Value: placed.Replace(f[1])}}...)
 						}
 						continue
 					case step.Navigate != "":

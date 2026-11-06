@@ -649,6 +649,8 @@ func (ch *chain) next(req, previous *fhttp.Request, crossed, dropped bool) (hop,
 		if h.referrer != "" {
 			ch.referrer, _ = url.Parse(h.referrer)
 		}
+		// A Referer the request was given goes as the hop works it out.
+		h.given = h.given.without("referer")
 	}
 	h.origin = r.originHeader(h)
 	// An Origin the hop before went without, or one the network stack

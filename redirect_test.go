@@ -144,10 +144,18 @@ func TestARedirectSendsOnlyTheRefererARequestWasGiven(t *testing.T) {
 			t.Errorf("the hop said %s: %s", h[0], h[1])
 		}
 	}
-	// Typed, and as given.
-	for _, opts := range [][]Option{nil, {WithProfileValue(asGivenProfile(t, "chrome_155_macos"))}} {
+	// Typed, the Referer given worked out for the hop to another origin, its
+	// origin alone, as Chrome does (testdata/chrome156-given-referer.json);
+	// and as given, as it was given.
+	for _, tc := range []struct {
+		opts []Option
+		want string
+	}{
+		{nil, "https://shop.example/"},
+		{[]Option{WithProfileValue(asGivenProfile(t, "chrome_155_macos"))}, "https://shop.example/a https://shop.example/b"},
+	} {
 		got, err = sent(t, &Request{URL: "https://www.example.com/r/302/x?to=https://www.example.net/p/y",
-			Header: NewHeader("Referer", "https://shop.example/a", "Referer", "https://shop.example/b")}, opts...)
+			Header: NewHeader("Referer", "https://shop.example/a", "Referer", "https://shop.example/b")}, tc.opts...)
 		if err != nil {
 			t.Fatalf("Do: %v", err)
 		}
@@ -157,8 +165,8 @@ func TestARedirectSendsOnlyTheRefererARequestWasGiven(t *testing.T) {
 				referers = append(referers, h[1])
 			}
 		}
-		if strings.Join(referers, " ") != "https://shop.example/a https://shop.example/b" {
-			t.Errorf("the hop said Referer %v", referers)
+		if strings.Join(referers, " ") != tc.want {
+			t.Errorf("the hop said Referer %v, want %s", referers, tc.want)
 		}
 	}
 }

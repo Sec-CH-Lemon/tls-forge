@@ -773,8 +773,15 @@ func (c *Client) send(ctx context.Context, req *Request, inner *fhttp.Request, b
 		first.restarted = restarted
 		first.authorization = ch.arrive(first.method, parsed, user, ch.authenticates(first))
 		ch.last, ch.policy = first, browser.policy
-		if first.referrer != "" {
+		switch given := first.given.Get("referer"); {
+		case first.referrer != "":
 			ch.referrer, _ = url.Parse(first.referrer)
+		case given != "":
+			// A Referer it was given is the request's referrer, which each
+			// hop works out again under the policy, as Chrome does with the
+			// one DevTools gives (measured on Chrome 156): whole to the
+			// origin it is of, its origin alone to another.
+			ch.referrer, _ = url.Parse(given)
 		}
 		blocks = ch.layoutsOf(first, parsed.Host)
 	default:
