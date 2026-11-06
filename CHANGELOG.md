@@ -20,6 +20,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix the HTTPS records asked on Windows of servers the addresses do not
+  come from. tls-forge took the DNS servers of every adapter that is up,
+  where Go's resolver, which looks up the addresses, takes only an adapter's
+  with a gateway and passes over `fec0` ones, the site-local servers Windows
+  names where none is set. Where every adapter was such, Go asked
+  `127.0.0.1:53` for the addresses and nothing resolved. The records are now
+  asked of Go's servers, and where Go has none the machine's resolver finds
+  the addresses, as where the machine names no server.
+
 - Fix a script's request asking a preflight for a header Chrome sends
   without one. tls-forge let the Fetch standard's four through alone;
   Chromium 156's CORS also lets through a simple `Range` (`bytes=0-100`,
