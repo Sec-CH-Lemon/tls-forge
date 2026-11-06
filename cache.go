@@ -395,6 +395,24 @@ func leftUnread(res *fhttp.Response) {
 	res.Body = b.ReadCloser
 }
 
+// Leave and Detach are the transport body's, which a drain (fhttp.DrainBody,
+// AwaitBody) asks of the body it lets go of, as ResponseBodyReleased is: an
+// answer left unread that the cache would keep with its whole body (a
+// Critical-CH restart's) is drained as the transport's own is, its HTTP/2
+// stream out of the priority lists, its request's end no longer cutting it,
+// and kept if what the drain reads of it is all of it.
+func (r *cacheBody) Leave() {
+	if l, ok := r.ReadCloser.(interface{ Leave() }); ok {
+		l.Leave()
+	}
+}
+
+func (r *cacheBody) Detach() {
+	if d, ok := r.ReadCloser.(interface{ Detach() }); ok {
+		d.Detach()
+	}
+}
+
 func (r *cacheBody) Close() error {
 	err := r.ReadCloser.Close()
 	if r.observedDone != nil {

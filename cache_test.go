@@ -411,6 +411,16 @@ type detachable struct {
 func (b *detachable) Detach()    { b.detached.Store(true) }
 func (*detachable) Close() error { return nil }
 
+// releasedBody is a body of the transport's a drain tells it is let go of in each
+// way it can be.
+type releasedBody struct {
+	detachable
+	left, released atomic.Bool
+}
+
+func (b *releasedBody) Leave()                { b.left.Store(true) }
+func (b *releasedBody) ResponseBodyReleased() { b.released.Store(true) }
+
 func TestARedirectLeftUnreadIsKeptWithoutItsBody(t *testing.T) {
 	c := cacheOf(t, nil)
 	body := &detachable{Reader: strings.NewReader("hop")}
@@ -473,6 +483,42 @@ func TestAnAnswerLeftUnreadThatIsNoRedirectIsKeptOnlyWithItsBody(t *testing.T) {
 	if body, _ := io.ReadAll(res.Body); string(body) != "hop" || len(c.entries[c.key(&chain{browser: &browserRequest{}}, other)]) != 0 {
 		t.Errorf("a redirect not kept: %q, entries %v", body, c.entries)
 	}
+}
+
+// An answer left unread that the cache would keep with its whole body, a
+// Critical-CH restart's, is drained as the transport's own body is: through
+// the cache's, the transport's told it is let go of, and kept when the drain
+// read all of it.
+func TestAnAnswerLeftUnreadThatIsNoRedirectIsDrainedAsTheTransportsOwn(t *testing.T) {
+	client := newTestClient(t, WithProfile("chrome_155_macos"))
+	for _, major := range []int{1, 2} {
+		c := cacheOf(t, nil)
+		body := &releasedBody{detachable: detachable{Reader: strings.NewReader("page")}}
+		origin := &cacheOrigin{answers: []func(*fhttp.Request) (*fhttp.Response, error){
+			func(req *fhttp.Request) (*fhttp.Response, error) {
+				res, _ := cacheAnswer(200, "", "Cache-Control", "max-age=60")(req)
+				res.Body, res.ProtoMajor = body, major
+				return res, nil
+			},
+		}}
+		req := mustRequest(t, "https://www.example.com/page")
+		res, err := c.roundTrip(&chain{browser: &browserRequest{}}, req, origin)
+		if err != nil {
+			t.Fatal(err)
+		}
+		client.leave("restart", res, -1)
+		if !body.detached.Load() || !body.left.Load() || !body.released.Load() || res.Body != fhttp.NoBody {
+			t.Errorf("HTTP/%d: detached %v, left %v, released %v, the body left %T", major, body.detached.Load(),
+				body.left.Load(), body.released.Load(), res.Body)
+		}
+		if entries := c.entries[c.key(&chain{browser: &browserRequest{}}, req)]; len(entries) != 1 ||
+			string(entries[0].body) != "page" {
+			t.Errorf("HTTP/%d: kept %v", major, entries)
+		}
+	}
+	// A body that is not the transport's has none of it to be told.
+	(&cacheBody{ReadCloser: io.NopCloser(strings.NewReader(""))}).Leave()
+	(&cacheBody{ReadCloser: io.NopCloser(strings.NewReader(""))}).Detach()
 }
 
 func TestABodyCutShortIsNotKept(t *testing.T) {

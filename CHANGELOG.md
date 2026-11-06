@@ -20,6 +20,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix an answer the cache would keep, left unread at a Critical-CH restart,
+  drained as no body of the transport's: its HTTP/2 stream stayed in the
+  priority lists, and its request's end cut the drain over HTTP/1.1, closing
+  the connection. The cache's body now tells the transport's it is let go
+  of, as a redirect's already did.
+
 - Fix a client's preflight cache keeping every allowance it was ever given:
   what has expired is dropped as another is kept, so that a session holds no
   more than a Max-Age (2 hours at most) of them, as Chrome erases a stale
