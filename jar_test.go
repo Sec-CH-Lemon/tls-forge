@@ -23,7 +23,7 @@ func mustURL(t *testing.T, raw string) *url.URL {
 // newTestJar wraps the jar a client gets by default: the transport's RFC 6265
 // one, with the public suffix list.
 func newTestJar() *keptJar {
-	inner, err := newDefaultCookieJar()
+	inner, err := newDefaultCookieJar(false)
 	if err != nil {
 		panic(err)
 	}

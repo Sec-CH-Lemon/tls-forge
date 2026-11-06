@@ -13,6 +13,7 @@ Generated from the 18 bundled JSON profile files. This is an inventory of fields
 | `behavior["cache.generated_header_order"]` | array |
 | `behavior["cache.invalid_freshness_policy"]` | str |
 | `behavior["cache.total_bytes"]` | int |
+| `behavior["cookie.identity"]` | str |
 | `behavior["cookie.ip_domain_host_only"]` | bool |
 | `behavior["cookie.lax_unsafe_age_seconds"]` | int |
 | `behavior["cookie.max_age_seconds"]` | int |

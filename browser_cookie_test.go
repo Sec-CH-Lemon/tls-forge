@@ -75,7 +75,7 @@ func TestAPartitionedCookieIsKeptApartOrNotAtAll(t *testing.T) {
 	if len(cookies) != 1 || cookies[0].Name != "kept" {
 		t.Fatalf("partition holds %v", cookies)
 	}
-	if facts := part.kept[cookieKey{"kept", "www.example.com", "/"}]; !facts.hostOnly {
+	if facts := part.kept[cookieKey{name: "kept", domain: "www.example.com", path: "/"}]; !facts.hostOnly {
 		t.Errorf("facts %+v", facts)
 	}
 	// A request that carries no credentials keeps none.
@@ -89,7 +89,7 @@ func TestAPartitionedCookieIsKeptApartOrNotAtAll(t *testing.T) {
 	broken := chromeJar(t)
 	original := newDefaultCookieJar
 	t.Cleanup(func() { newDefaultCookieJar = original })
-	newDefaultCookieJar = func() (fhttp.CookieJar, error) { return nil, errors.New("no jar") }
+	newDefaultCookieJar = func(bool) (fhttp.CookieJar, error) { return nil, errors.New("no jar") }
 	broken.SetCookies(u, []*fhttp.Cookie{partitioned("kept", true)})
 	if len(broken.partitions) != 0 {
 		t.Errorf("a partition without a jar: %v", broken.partitions)

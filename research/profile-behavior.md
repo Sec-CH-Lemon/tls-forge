@@ -194,6 +194,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `cache.entries` | `256` |
 | `cache.entry_bytes` | `8388608` |
 | `cache.total_bytes` | `67108864` |
+| `cookie.identity` | `"name-domain-host-only-path"` |
 | `cookie.ip_domain_host_only` | `true` |
 | `cookie.lax_unsafe_age_seconds` | `120` |
 | `cookie.max_age_seconds` | `34560000` |
@@ -421,6 +422,7 @@ values; no browser verdict is new for them.
 | `h3.server_bidi_stream_close_reason` | The reason a connection is closed with, H3_STREAM_CREATION_ERROR (0x103), at a server's first bidirectional stream, which HTTP/3 lets no server open (RFC 9114, section 6.1), as quiche's QuicSpdyClientSession::ShouldCreateIncomingStream closes it (QUIC_HTTP_SERVER_INITIATED_BIDIRECTIONAL_STREAM). Without it the stream is passed over and the connection stays. `"154:Server created bidirectional stream."`. |
 | `tls.session_cache_key`, `quic.session_cache_key` | What the TLS and the QUIC session cache keep a session by: `host-port`, the host and port its connection was dialed for, as Chromium's SSLClientSessionCache::Key keys it by HostPortPair and quiche's QuicServerId by host and port (a QUIC connection made for an alternative is its origin's); `server-name`, the name sent in SNI, as crypto/tls keys it, so that a ticket of one port is offered on another. Without them, `server-name`. `"host-port"` and `"host-port"`. |
 | `tls.validate_server_hello_extensions` | A ServerHello's extensions held to those BoringSSL takes of it (tls13_client.cc, ssl_parse_extensions, ssl_scan_serverhello_tlsext): before the version is known, the list read and supported_versions alone, in a record of TLS 1.0; then, in a record of the version, of TLS 1.3 supported_versions, a key_share where the client sent shares and pre_shared_key where it offered one, each once, of a HelloRetryRequest cookie, key_share, supported_versions and encrypted_client_hello, of TLS 1.2 those of BoringSSL's kExtensions the client offered. Another is the profile's `tls.unsolicited_extension_alert`, one twice its `tls.duplicate_extension_alert`, a list that does not read its `tls.malformed_extension_alert`; a legacy version other than TLS 1.2 is the version. Without it, crypto/tls's reading, which passes over what it does not parse. `true`. |
+| `cookie.identity` | What makes two cookies one, so that the second replaces or removes the first: `name-domain-host-only-path`, under which a cookie its host's alone and one of a Domain naming that host, of the same name and path, are two, both sent and each replaced and removed by its own kind, as RFC 6265bis (5.7, step 22) has it and Chrome 156 keeps them (measured, `testdata/chrome156-cookie-identity.json`); `name-domain-path`, under which they are one, as RFC 6265 (5.3, step 11) and Go's jar have it. Only a jar of tls-forge's own reads it: a caller's (`WithCookieJar`) keeps its own rule. Without it, `name-domain-path`. `"name-domain-host-only-path"`. |
 
 ## URL host encoding integrity
 

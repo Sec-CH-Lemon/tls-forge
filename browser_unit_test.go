@@ -609,10 +609,10 @@ func TestACookieSetAgainKeepsWhenItWasFirstSet(t *testing.T) {
 	jar := newTestJar()
 	u := mustURL(t, "https://www.example.com/")
 	jar.SetCookies(u, []*fhttp.Cookie{{Name: "a", Value: "1"}})
-	first := jar.kept[cookieKey{"a", "www.example.com", "/"}].created
+	first := jar.kept[cookieKey{name: "a", domain: "www.example.com", path: "/"}].created
 	time.Sleep(2 * time.Millisecond)
 	jar.SetCookies(u, []*fhttp.Cookie{{Name: "a", Value: "2", SameSite: fhttp.SameSiteLaxMode}})
-	again := jar.kept[cookieKey{"a", "www.example.com", "/"}]
+	again := jar.kept[cookieKey{name: "a", domain: "www.example.com", path: "/"}]
 	if first.IsZero() || !again.created.Equal(first) || again.sameSite != fhttp.SameSiteLaxMode {
 		t.Errorf("first set %v, set again %+v", first, again)
 	}

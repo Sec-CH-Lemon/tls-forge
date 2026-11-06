@@ -117,8 +117,10 @@ const DefaultMaxResponseBody int64 = 64 << 20
 // configured in-memory limit.
 var ErrResponseTooLarge = errors.New("tlsforge: response body exceeds the configured limit")
 
-var newDefaultCookieJar = func() (fhttp.CookieJar, error) {
-	return cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+// newDefaultCookieJar is the jar a client keeps its cookies in: one that keeps
+// a cookie its host's alone apart from its domain's where apart.
+var newDefaultCookieJar = func(apart bool) (fhttp.CookieJar, error) {
+	return cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List, HostOnlyApart: apart})
 }
 
 // Request is one HTTP request.
@@ -321,8 +323,11 @@ func New(opts ...Option) (*Client, error) {
 	// A nil jar reaches the transport as nil, which then keeps no cookies at
 	// all. That is what WithoutCookieJar asks for.
 	given := cfg.jar
+	// Only a jar of tls-forge's own keeps a host's cookies apart as the
+	// profile says: a caller's says nothing of which is which.
+	apart := given == nil && prof.RuntimeBehavior().Text("cookie.identity") == "name-domain-host-only-path"
 	if given == nil && !cfg.noJar {
-		given, err = newDefaultCookieJar()
+		given, err = newDefaultCookieJar(apart)
 		if err != nil {
 			return nil, fmt.Errorf("tlsforge: cookie jar: %w", err)
 		}
@@ -334,6 +339,7 @@ func New(opts ...Option) (*Client, error) {
 	if given != nil {
 		jar = newKeptJar(given)
 		jar.behavior = prof.RuntimeBehavior().Clone()
+		jar.apart = apart
 		transportJar = jar
 	}
 	milliseconds := cfg.timeout.Milliseconds()

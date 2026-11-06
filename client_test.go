@@ -1096,7 +1096,7 @@ func TestNewRejectsNonPositiveTimeouts(t *testing.T) {
 
 func TestNewReportsDefaultCookieJarFailure(t *testing.T) {
 	original := newDefaultCookieJar
-	newDefaultCookieJar = func() (fhttp.CookieJar, error) {
+	newDefaultCookieJar = func(bool) (fhttp.CookieJar, error) {
 		return nil, errors.New("jar failed")
 	}
 	t.Cleanup(func() { newDefaultCookieJar = original })

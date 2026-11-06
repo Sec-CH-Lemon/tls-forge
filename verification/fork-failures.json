@@ -6,12 +6,12 @@
     "utls": {
       "module": "github.com/igor-lemon/utls",
       "repository": "https://github.com/igor-lemon/utls",
-      "commit": "5d680c356a9e24e68e761c9e11f80adcac31a56c"
+      "commit": "5d91e3d71f8a795b6ce7ed7d465f75cc8185a34e"
     },
     "fhttp": {
       "module": "github.com/igor-lemon/fhttp",
       "repository": "https://github.com/igor-lemon/fhttp",
-      "commit": "64d6de4e4e13decb07f4a67bbb2d75498341ca43"
+      "commit": "6959ccf0752c8cc9e2921ed1e567b570f59d9b74"
     },
     "tls-client": {
       "module": "github.com/igor-lemon/tls-client",

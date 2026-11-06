@@ -27,6 +27,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   a closed one waited out its minute and could be handed a request, which then
   went again on another.
 
+- Keep a cookie its host's alone apart from one of a `Domain` naming that
+  host, as Chrome keeps them: both are sent, in the order they were set, and
+  each is replaced and removed by its own kind alone. Go's jar took them for
+  one cookie, the second replacing the first, so a site that set both got
+  one back. The Chrome profiles say `cookie.identity`; a jar of the caller's
+  keeps its own rule. utls 5d91e3d, fhttp 6959ccf.
+
 - Refuse a ServerHello with an extension BoringSSL does not take of it, as
   Chrome refuses it: one the client did not offer, one of TLS 1.2 in a TLS 1.3
   ServerHello, one twice, or a list that does not read, each with the

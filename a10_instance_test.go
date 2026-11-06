@@ -285,7 +285,7 @@ func TestA10ConstructionAndCloseRacesSendNothing(t *testing.T) {
 }
 
 func TestA10OpaqueJarCannotCrossBrowserOwnership(t *testing.T) {
-	jar, err := newDefaultCookieJar()
+	jar, err := newDefaultCookieJar(false)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -34,7 +34,12 @@ type keptJar struct {
 	kept     map[cookieKey]cookieFacts
 	chrome   bool // Deprecated fixture compatibility; new clients carry explicit policy.
 	behavior behavior.Policy
-	serial   uint64
+	// apart is a jar whose inner one keeps a cookie its host's alone apart
+	// from its domain's of the same name, domain and path
+	// (cookie.identity name-domain-host-only-path), and answers a domain's
+	// with a Domain that begins with a dot.
+	apart  bool
+	serial uint64
 	// rules are what a request in a browser context lets through, by the URL
 	// the transport asks the jar about for it: its own, for each hop.
 	rules sync.Map
@@ -44,8 +49,31 @@ type keptJar struct {
 }
 
 // cookieKey is a cookie's identity in a jar: a second cookie of the same name,
-// domain and path replaces the first.
-type cookieKey struct{ name, domain, path string }
+// domain and path replaces the first, and where the jar keeps them apart, of
+// the same kind too: its host's alone, or its domain's.
+type cookieKey struct {
+	name, domain, path string
+	hostOnly           bool
+}
+
+// keyOf is key with whether its cookie is its host's alone, where the jar
+// keeps those apart from its domain's; elsewhere the two are one.
+func (j *keptJar) keyOf(key cookieKey, hostOnly bool) cookieKey {
+	key.hostOnly = j.apart && hostOnly
+	return key
+}
+
+// heldKey is the identity of a cookie the inner jar answered with: where it
+// keeps a host's cookies apart, one whose Domain begins with a dot is its
+// domain's, and the rest are their hosts'.
+func (j *keptJar) heldKey(c *fhttp.Cookie) cookieKey {
+	key := cookieKey{name: c.Name, domain: c.Domain, path: c.Path}
+	if j.apart {
+		domain, isDomains := strings.CutPrefix(c.Domain, ".")
+		key.domain, key.hostOnly = domain, !isDomains
+	}
+	return key
+}
 
 // cookieFacts are what the jar does not say of a cookie, and whether it is
 // Secure, which a cookie set from an origin that is not secure leaves alone.
@@ -105,13 +133,14 @@ func (j *keptJar) SetCookies(u *url.URL, cookies []*fhttp.Cookie) {
 			}
 			part := j.partitions[key]
 			if part == nil {
-				inner, err := newDefaultCookieJar()
+				inner, err := newDefaultCookieJar(j.apart)
 				if err != nil {
 					continue
 				}
 				part = newKeptJar(inner)
 				part.chrome = j.chrome
 				part.behavior = j.behavior
+				part.apart = j.apart
 				j.partitions[key] = part
 			}
 			copy := *c
@@ -160,6 +189,7 @@ func (j *keptJar) fileLocked(u *url.URL, cookies []*fhttp.Cookie) {
 	j.inner.SetCookies(cookiePathURL(u), capped)
 	for _, c := range capped {
 		key, hostOnly, filed := jarKeyOf(u, c)
+		key = j.keyOf(key, hostOnly)
 		switch {
 		case !filed:
 		case c.MaxAge < 0 || (c.MaxAge == 0 && !c.Expires.IsZero() && !c.Expires.After(now)):
@@ -218,7 +248,7 @@ func (j *keptJar) Cookies(u *url.URL) []*fhttp.Cookie {
 	defer j.mu.Unlock()
 	kept := held[:0:0]
 	for _, c := range held {
-		facts, known := j.kept[cookieKey{c.Name, c.Domain, c.Path}]
+		facts, known := j.kept[j.heldKey(c)]
 		if rule.allows(facts, known, now, j.cookiePolicy()) {
 			kept = append(kept, c)
 		}
@@ -236,7 +266,7 @@ func (j *keptJar) sortCookies(cookies []*fhttp.Cookie) {
 		return
 	}
 	order := func(c *fhttp.Cookie) uint64 {
-		if f, ok := j.kept[cookieKey{c.Name, c.Domain, c.Path}]; ok {
+		if f, ok := j.kept[j.heldKey(c)]; ok {
 			return f.order
 		}
 		return ^uint64(0)
@@ -457,8 +487,9 @@ func (j *keptJar) forURL(u *url.URL) []Cookie {
 	defer j.mu.Unlock()
 	out := make([]Cookie, 0, len(held))
 	for _, c := range held {
-		facts, known := j.kept[cookieKey{c.Name, c.Domain, c.Path}]
-		out = append(out, asCookie(c, facts, known))
+		key := j.heldKey(c)
+		facts, known := j.kept[key]
+		out = append(out, asCookie(c, key, facts, known))
 	}
 	return out
 }
@@ -478,9 +509,9 @@ func (j *keptJar) all() []Cookie {
 	found := map[cookieKey]Cookie{}
 	for place := range places {
 		for _, c := range j.inner.Cookies(placeURL(place[0], place[1])) {
-			key := cookieKey{c.Name, c.Domain, c.Path}
+			key := j.heldKey(c)
 			if facts, known := j.kept[key]; known {
-				found[key] = asCookie(c, facts, true)
+				found[key] = asCookie(c, key, facts, true)
 			}
 		}
 	}
@@ -516,13 +547,13 @@ func placeURL(domain, path string) *url.URL {
 	return &url.URL{Scheme: "https", Host: host, Path: path}
 }
 
-// asCookie is a cookie of the jar's with what it does not say. A cookie the
-// wrapper never saw set, through a jar shared with somebody else, is taken for
-// its domain's, as every cookie used to be, and for a session's when its
-// expiry is the jar's own word for never.
-func asCookie(c *fhttp.Cookie, facts cookieFacts, known bool) Cookie {
+// asCookie is a cookie of the jar's, whose identity is key, with what it does
+// not say. A cookie the wrapper never saw set, through a jar shared with
+// somebody else, is taken for its domain's, as every cookie used to be, and
+// for a session's when its expiry is the jar's own word for never.
+func asCookie(c *fhttp.Cookie, key cookieKey, facts cookieFacts, known bool) Cookie {
 	out := Cookie{
-		Name: c.Name, Value: c.Value, Domain: c.Domain, Path: c.Path,
+		Name: c.Name, Value: c.Value, Domain: key.domain, Path: c.Path,
 		Secure: c.Secure, HTTPOnly: c.HttpOnly, Expires: c.Expires,
 	}
 	switch {

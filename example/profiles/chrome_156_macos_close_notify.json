@@ -16,6 +16,7 @@
     ],
     "cache.invalid_freshness_policy": "ignore",
     "cache.total_bytes": 67108864,
+    "cookie.identity": "name-domain-host-only-path",
     "cookie.ip_domain_host_only": true,
     "cookie.lax_unsafe_age_seconds": 120,
     "cookie.max_age_seconds": 34560000,

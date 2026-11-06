@@ -1,0 +1,141 @@
+{
+ "browser": "Google Chrome 156.0.8078.80, headless, macOS 27.0.1, a fresh profile for each launch",
+ "measured": "2026-11-06",
+ "how": "Chrome given a page over plain http at each host (--host-resolver-rules mapping example.test and its subdomains to 127.0.0.1) that fetch()es /set?c=COOKIE, answered Set-Cookie: COOKIE, then /show of the page's host or of sub.example.test (credentials include), answered with the Cookie field as it came; two launches a host, alike (net-fp-server captures/review-20261023 bench/hostonly, run.sh; runs hostonly-x1, -x2 at example.test, hostonly-c1, -c2 at www.example.test)",
+ "pages": {
+  "example.test": {
+   "steps": [
+    {
+     "set": "a=host"
+    },
+    {
+     "set": "a=dom; Domain=example.test"
+    },
+    {
+     "show": "a=host; a=dom"
+    },
+    {
+     "subshow": "a=dom"
+    },
+    {
+     "set": "a=dom2; Domain=example.test"
+    },
+    {
+     "show": "a=host; a=dom2"
+    },
+    {
+     "set": "a=host2"
+    },
+    {
+     "show": "a=dom2; a=host2"
+    },
+    {
+     "set": "a=; Max-Age=0"
+    },
+    {
+     "show": "a=dom2"
+    },
+    {
+     "subshow": "a=dom2"
+    },
+    {
+     "set": "a=h3"
+    },
+    {
+     "show": "a=dom2; a=h3"
+    },
+    {
+     "set": "a=; Domain=example.test; Max-Age=0"
+    },
+    {
+     "show": "a=h3"
+    },
+    {
+     "subshow": ""
+    },
+    {
+     "set": "b=dom; Domain=example.test"
+    },
+    {
+     "set": "b=host"
+    },
+    {
+     "show": "a=h3; b=dom; b=host"
+    },
+    {
+     "set": "b=dom; Domain=www.example.test"
+    },
+    {
+     "show": "a=h3; b=dom; b=host"
+    }
+   ]
+  },
+  "www.example.test": {
+   "steps": [
+    {
+     "set": "a=host"
+    },
+    {
+     "set": "a=dom; Domain=example.test"
+    },
+    {
+     "show": "a=host; a=dom"
+    },
+    {
+     "subshow": "a=dom"
+    },
+    {
+     "set": "a=dom2; Domain=example.test"
+    },
+    {
+     "show": "a=host; a=dom2"
+    },
+    {
+     "set": "a=host2"
+    },
+    {
+     "show": "a=dom2; a=host2"
+    },
+    {
+     "set": "a=; Max-Age=0"
+    },
+    {
+     "show": "a=dom2"
+    },
+    {
+     "subshow": "a=dom2"
+    },
+    {
+     "set": "a=h3"
+    },
+    {
+     "show": "a=dom2; a=h3"
+    },
+    {
+     "set": "a=; Domain=example.test; Max-Age=0"
+    },
+    {
+     "show": "a=h3"
+    },
+    {
+     "subshow": ""
+    },
+    {
+     "set": "b=dom; Domain=example.test"
+    },
+    {
+     "set": "b=host"
+    },
+    {
+     "show": "a=h3; b=dom; b=host"
+    },
+    {
+     "set": "b=dom; Domain=www.example.test"
+    },
+    {
+     "show": "a=h3; b=dom; b=host; b=dom"
+    }
+   ]
+  }
+ }
+}

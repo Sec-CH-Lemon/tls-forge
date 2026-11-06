@@ -214,6 +214,7 @@ func TestPolicyAdditionsPreserveEveryEarlierLayer(t *testing.T) {
 var otherChoices = map[string]string{
 	"tls.session_cache_key":  "server-name",
 	"quic.session_cache_key": "server-name",
+	"cookie.identity":        "name-domain-path",
 }
 
 // otherValue is a value of the same kind as v the registry takes too, for
