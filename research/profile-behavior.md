@@ -252,6 +252,7 @@ The values below are the migrated macOS 155 profile policy, not a standards-wide
 | `h2.window_update_denominator` | `2` |
 | `h2.zero_window_stream_error` | `3` |
 | `h3.body_copy_bytes` | `8192` |
+| `h3.cookie_crumbs` | `true` |
 | `h3.grease_frame_n_bits` | `32` |
 | `h3.grease_frames` | `true` |
 | `h3.grease_setting_n_max` | `9999999999` |
@@ -409,6 +410,7 @@ values; no browser verdict is new for them.
 | Field | Meaning; Chrome's value |
 |---|---|
 | `h1.chunked_bare_lf` | A chunked HTTP/1.1 answer read as Chromium 156's HttpChunkedDecoder reads it: a line ends at LF, a CR before it dropped; a size is cut at its extension, then of trailing spaces (a tab is none); a chunk's data ends in an empty line of LF or CRLF, and so do the trailer's lines. Without it, RFC 9112's CRLF. A request a server reads keeps CRLF always. `true`. |
+| `h3.cookie_crumbs` | A `Cookie` written over HTTP/3 a field a crumb, as quiche's ValueSplittingHeaderList cuts it for Chrome's QPACK encoder (CookieCrumbling::kEnabled): at each `;`, the one space after it dropped. HTTP/2 crumbles it whatever the key. Without it, the value in one field. `true`. |
 
 ## URL host encoding integrity
 

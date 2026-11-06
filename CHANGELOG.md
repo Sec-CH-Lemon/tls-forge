@@ -27,6 +27,13 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   a closed one waited out its minute and could be handed a request, which then
   went again on another.
 
+- Write a request's cookies over HTTP/3 a field a crumb, as Chrome's QPACK
+  encoder writes them (quiche's ValueSplittingHeaderList, CookieCrumbling
+  kEnabled): cut at each `;`, the space after it dropped. HTTP/3 sent the
+  value in one field, where HTTP/2 crumbled it already, so a request of two
+  cookies or more went in other field lines and other dynamic table inserts
+  than Chrome's. The Chrome profiles say `h3.cookie_crumbs`.
+
 - Fix an HTTP/1.1 answer failing whose chunked body ends its lines in LF
   alone. Chrome 156 reads it (HttpChunkedDecoder): a line ends at LF, a size
   is cut at its extension and trailing spaces, and a chunk's data and the

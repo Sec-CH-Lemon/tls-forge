@@ -192,6 +192,7 @@
       "grease"
     ],
     "h3.control_stream": "with-finished",
+    "h3.cookie_crumbs": true,
     "h3.grease_frame_n_bits": 32,
     "h3.grease_frames": true,
     "h3.grease_payload_lengths": [

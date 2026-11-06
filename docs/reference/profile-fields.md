@@ -122,6 +122,7 @@ Generated from the 18 bundled JSON profile files. This is an inventory of fields
 | `behavior["h3.body_copy_bytes"]` | int |
 | `behavior["h3.control_order"]` | array |
 | `behavior["h3.control_stream"]` | str |
+| `behavior["h3.cookie_crumbs"]` | bool |
 | `behavior["h3.grease_frame_n_bits"]` | int |
 | `behavior["h3.grease_frames"]` | bool |
 | `behavior["h3.grease_payload_lengths"]` | array |
