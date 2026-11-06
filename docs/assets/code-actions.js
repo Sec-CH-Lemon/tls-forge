@@ -52,11 +52,37 @@
 
     document.querySelectorAll(".md-typeset .highlight").forEach((block) => {
       if (block.closest(".tabbed-set")) return;
-      const title = block.querySelector("th.filename");
+      const title = block.querySelector("th.filename, :scope > span.filename");
       const button = block.querySelector(".md-code__nav");
       if (title && button && !title.contains(button)) title.appendChild(button);
     });
 
+    // A reference section whose text runs past its code keeps the code in
+    // view, no taller than the window, scrolling in its column when it is
+    // taller; where the code runs longer than the text, the section scrolls as
+    // one and every line comes into view with it.
+    const sections = [...document.querySelectorAll(".md-typeset .tf-ref")]
+      .map((section) => [section, section.querySelector(":scope > .tf-ref__code"), section.querySelector(":scope > .tf-ref__docs")])
+      .filter(([, code, docs]) => code && docs);
+    if (sections.length) {
+      let pending = false;
+      const measure = () => {
+        pending = false;
+        sections.forEach(([section, code, docs]) => {
+          const text = docs.getBoundingClientRect().bottom - code.getBoundingClientRect().top;
+          section.classList.toggle("tf-ref--sticks", text > code.scrollHeight);
+        });
+      };
+      const later = () => {
+        if (!pending) requestAnimationFrame(measure);
+        pending = true;
+      };
+      const watch = new ResizeObserver(later);
+      sections.forEach(([, code, docs]) => {
+        watch.observe(code);
+        watch.observe(docs);
+      });
+    }
   }
 
   if (document.readyState === "loading") {

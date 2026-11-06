@@ -14,11 +14,19 @@ Captured ClientHello bytes are one input to a live handshake. The engine regener
 
 ## Constants
 
+<div class="tf-ref" markdown>
+
 ### Schema { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 const Schema = 4
 ```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 Schema is the version of the profile format this tls-forge writes, and the newest it reads.
 
@@ -26,47 +34,107 @@ A profile that says its schema is read strictly: a field the format does not hav
 
 Schema 2 added client\_hints. A profile of schema 1 is read as strictly, and has none: no tls-forge that wrote 1 knew of them. Schema 3 adds explicit behavior policy; its browser name and user agent are metadata only. Schema 4 adds engine\_major, independent of the browser version and schema.
 
+</div>
+
+</div>
+
 ## Variables
 
+<div class="tf-ref" markdown>
+
 ### ClientHintOrder { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 var ClientHintOrder = behavior.Legacy().Strings("headers.client_hint_order")
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 ClientHintOrder is every client hint Chrome 155 sends when a server asks for it with Accept-CH, in the order it sends them, as measured (testdata/chrome155-requests.json): the device's and the network's, some under two names, the user agent's, and the user's preferences. Three of the user agent's, sec-ch-ua, sec-ch-ua-mobile and sec-ch-ua-platform, go with every request, and are a profile's headers; a profile's ClientHints are the values of the rest.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Default { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 var Default = NewRegistry()
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Default is the registry the package-level functions use.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### ErrNoHandshake { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 var ErrNoHandshake = fmt.Errorf("profile: neither client_hello, tls_spec nor base is set")
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 ErrNoHandshake reports a profile that names neither a captured ClientHello nor a base profile, and so cannot produce a handshake.
+
+</div>
+
+</div>
 
 ## Functions
 
+<div class="tf-ref" markdown>
+
 ### AskedClientHints() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func AskedClientHints() []string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 AskedClientHints are the client hints Chrome sends only to a server that asks for them, in the order it sends them: those a profile's client\_hints may say.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### DefaultDir() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func DefaultDir() string
 ```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 DefaultDir is where profiles measured on this machine are kept.
 
@@ -74,97 +142,237 @@ Under the user's config directory rather than beside the binary, because a profi
 
 TLSFORGE\_PROFILES moves it, which is how a run in a container or a test says where to look without touching a real one.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### DefaultHintOrder() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func DefaultHintOrder() []string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 DefaultHintOrder is the process-default capture helper's data snapshot. Active clients always use their own Profile.HintOrder, not this cache.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### DefaultUnaskedHints() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func DefaultUnaskedHints() []string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 DefaultUnaskedHints are the hints of DefaultHintOrder that go to every server unasked, from the same snapshot.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### FilePath() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func FilePath(name, platform string) (string, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 FilePath is the directory layout shared by capture and registry lookup. Both components are identifiers; neither can supply a path or traversal.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### HostPlatform() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func HostPlatform() string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 HostPlatform is this machine, spelled the way a profile file is named.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### LegacyBehavior() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func LegacyBehavior() behavior.Policy
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 LegacyBehavior is for migration and standalone compatibility helpers only.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Major() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func Major(n int) *int
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Major declares compatibility explicitly when constructing a profile in Go.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Names() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func Names() []string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Names lists the default registry's profiles.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Register() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func Register(p *Profile) error
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Register adds a profile to the default registry.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Ships() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func Ships(name string) bool
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Ships reports a profile tls-forge ships by the name it is filed under, chrome\_155\_macos: one kept under that name in the directory of profiles answers for it from then on, the directory being read first (Get).
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Split() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func Split(name string) (version, platform string)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Split separates a name into the version and the platform it names, if it names one. Only a platform this project knows counts: "chrome\_151" is a version whose last word happens to be a number, not a platform called 151. The phones' are among them, for a browser measured on one rather than here.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### ValidName() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func ValidName(name string) bool
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 ValidName reports an identifier safe for a profile file, never a path.
+
+</div>
+
+</div>
 
 ## Types
 
+<div class="tf-ref" markdown>
+
 ### CaptureProvenance { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type CaptureProvenance struct {
@@ -181,17 +389,41 @@ type CaptureProvenance struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 CaptureProvenance is separate from the runnable browser profile. Its hashes bind the final profile, the full policy basis and the original capture. Capturing a field does not establish its invariance or browser acceptance.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### ProvenanceForCapture() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func ProvenanceForCapture(candidate, basis *Profile, c *capture.Capture, mode string) (*CaptureProvenance, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 ProvenanceForCapture binds a completed candidate after any explicit caller edits. It does not select policy, mutate inputs or mark inherited data measured.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Drawn { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Drawn struct {
@@ -209,17 +441,41 @@ type Drawn struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Drawn is what a browser drew anew for each connection, measured from the hellos of a capture: the measured one and those of the other connections its page opened (echo.WithManual).
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### DrawnOf() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func DrawnOf(c *capture.Capture) (*Drawn, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 DrawnOf measures what the browser of a capture drew for each connection, or nil for a capture with too few hellos to tell. GREASE, padding and pre\_shared\_key are set aside: what is drawn for each, the length of the hello and a ticket decide.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Field { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Field struct {
@@ -228,9 +484,21 @@ type Field struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Field is one header. A slice of these rather than a map, because order is fingerprinted and a map has none.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### FieldOrigin { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type FieldOrigin struct {
@@ -239,9 +507,21 @@ type FieldOrigin struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 FieldOrigin describes provenance, not executable policy or a browser verdict.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Group { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Group struct {
@@ -254,11 +534,23 @@ type Group struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Group is one measured profile and the platforms it was measured on.
 
 A version measured on three platforms is one profile with three spellings rather than three profiles: the handshake is the same on all of them, and only the user-agent and the platform hint differ.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### HTTP1 { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type HTTP1 struct {
@@ -267,9 +559,21 @@ type HTTP1 struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 HTTP1 is the part of a request fingerprint HTTP/2 cannot describe. HeaderOrder preserves wire spelling as well as order. Headers contains protocol-only values, or values that differ from the shared Headers block.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### HTTP2 { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type HTTP2 struct {
@@ -282,9 +586,21 @@ type HTTP2 struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 HTTP2 is the connection preamble a client sends before its first request.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### NetworkHintsPolicy { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type NetworkHintsPolicy struct {
@@ -293,17 +609,41 @@ type NetworkHintsPolicy struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 NetworkHintsPolicy makes literal network persona data distinct from an actual estimator. Estimated mode has no captured production hint values; its policy describes selection, measurement, generation and lifecycle mechanisms.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### NetworkHintsPolicy.UnmarshalJSON() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *NetworkHintsPolicy) UnmarshalJSON(raw []byte) error
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 UnmarshalJSON rejects missing, duplicate, unknown, case-folded or null choices.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### PerConnection { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type PerConnection struct {
@@ -317,9 +657,21 @@ type PerConnection struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 PerConnection is what a browser's TLS stack draws afresh for every connection, said outright: FromCapture says it of the browser it captures, and a profile written by hand can say it of the browser it describes.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Priority { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Priority struct {
@@ -330,11 +682,23 @@ type Priority struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Priority is an HTTP/2 priority, either standalone or carried on HEADERS.
 
 Weight is the value as it appears ON THE WIRE, which is one less than the weight people quote: Chrome's "weight 256" is a 255 here. Storing the wire value keeps the round-trip through a capture exact.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Profile { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Profile struct {
@@ -391,199 +755,487 @@ type Profile struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Profile is a complete browser identity.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### CaptureBasis() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func CaptureBasis(family, platform string) (*Profile, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 CaptureBasis returns the newest shipped full profile for a measured family and platform. Local aliases and Go catalogue presets are not implicit bases. Browser identity selects explicit data here, never runtime engine behavior.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### FromCapture() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func FromCapture(name string, c *capture.Capture, basis ...*Profile) (*Profile, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 FromCapture turns a browser measurement into a reusable profile.
 
 Exactly one explicit, executable policy basis is required. Only observed fields replace it; unmeasured generation, protocol and lifecycle policies remain inherited data. Names, User-Agent and brands never select policy here. The variadic signature keeps old callers source-compatible, but omission is an error rather than an implicit legacy/browser preset.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Get() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func Get(name string) (*Profile, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Get resolves a name against the default registry.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Inspect() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func Inspect(data []byte) (*Profile, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Inspect decodes an archived profile for offline inspection. It does not grant permission to execute, nor add or change engine\_major. Execution uses Load/New.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Load() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func Load(data []byte) (*Profile, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Load reads a profile from JSON, as its schema says: see Schema.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.AskedHints() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) AskedHints() []string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 AskedHints are the hints of HintOrder that go only to a server that asks for them: all but the profile's headers.default\_client\_hints.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.BareBase() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) BareBase() bool
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 BareBase reports a profile that only names a base of the transport's catalogue, and is that base: no handshake and no HTTP/2 settings of its own.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.Catalogue() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) Catalogue() bool
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Catalogue reports that this object was read from the embedded export/import catalogue. It describes provenance, never selects transport behavior. File Load does not invent that origin; Clone preserves it.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.Chromium() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) Chromium() bool
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Chromium reports a profile of a Chromium browser: Chrome, Chromium, Edge, Brave, Opera and the like, on any platform but iOS, where every browser is Safari underneath. What tls-forge has measured of how a browser sends each kind of request, it measured on Chrome, and applies to these alone.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.ClientProfile() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) ClientProfile() (profiles.ClientProfile, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 ClientProfile converts to the form the transport consumes, the order of the TLS extensions drawn for every connection when the browser draws one (ShufflesExtensions).
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.ClientProfileShuffled() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 ClientProfileShuffled is ClientProfile with the order of the extensions of every connection's ClientHello drawn for it when shuffle is true, every order of those that move as likely as any other, as Chromium draws one (shuffleExtensions), and the declared order when false. A bare base resolves the same materialized JSON descriptor as an ordinary catalogue lookup.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.Clone() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) Clone() *Profile
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Clone returns an independent copy of the profile.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.Header() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) Header(name string) (string, bool)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Header returns a default header's value.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.HeaderOrder() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) HeaderOrder() []string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 HeaderOrder is the header names in profile order, which is what the transport needs to reproduce the browser's ordering.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.HintOrder() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) HintOrder() []string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 HintOrder is the order the profile sends its client hints in, as its behavior's headers.client\_hint\_order says.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.Migrate() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) Migrate(name string) (*Profile, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Migrate explicitly creates a separately identified current-engine candidate. It preserves the source and capture provenance. The caller must perform the relevant browser/wire acceptance; this operation is not an equivalence claim.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.RuntimeBehavior() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) RuntimeBehavior() behavior.Policy
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 RuntimeBehavior is the explicit data consumed by all network layers. Schema 0-2 compatibility is materialized on load/save, never for schema 3.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.Save() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) Save() ([]byte, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Save writes a profile as indented JSON, the form meant to be committed and reviewed. Indented and newline-terminated so a profile update shows up in a diff as the fields that changed rather than as one very long line. It is written in the current schema, whichever it was read in.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.ShufflesExtensions() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) ShufflesExtensions() bool
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 ShufflesExtensions reports whether this browser randomises the TLS extension order on each connection, as PerConnection says. A profile that does not say is guessed at by its family: Chromium browsers do; Firefox and Safari do not; the user agent is a fallback for custom captured profile names.
 
 Nothing on an iPhone or an iPad does, whatever it is called: every browser there connects through Apple's own stack, so Chrome on iOS sends Safari's handshake, in Safari's order.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.Source() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) Source() string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Source is the file this profile was read from, or empty for one that ships inside the binary or came from the catalogue.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.Spec() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) Spec() (tls.ClientHelloSpec, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Spec builds a fresh ClientHelloSpec.
 
 Fresh on every call, deliberately. utls extensions are pointers with mutable state, and a spec shared between connections is a spec whose key share is reused — which is both a bug and a fingerprint, since no browser reuses one.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.Validate() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) Validate() error
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Validate accepts an executable identity before any request-related I/O. Inspect and Save preserve representable archives without this permission. Engine compatibility remains an independent, mandatory first gate.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Profile.ValidateEngine() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (p *Profile) ValidateEngine() error
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 ValidateEngine checks the actual compiled execution contract, not Schema or Name.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### QUICTLSSpec { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type QUICTLSSpec struct {
@@ -593,17 +1245,41 @@ type QUICTLSSpec struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 QUICTLSSpec independently describes QUIC TLS. CipherSuites in Hello is the fixed vector or the hardware-AES branch; neither branch is a browser constant.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### QUICTLSSpec.UnmarshalJSON() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (q *QUICTLSSpec) UnmarshalJSON(data []byte) error
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 UnmarshalJSON requires an exact, complete declarative QUIC TLS descriptor.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Registry { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Registry struct {
@@ -611,85 +1287,205 @@ type Registry struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Registry resolves a profile name.
 
 Four sources, in order: profiles registered at runtime, profiles kept in this machine's own directory, profiles measured and committed here, and the tls-client catalogue. The order matters: someone who captures their own Chrome and keeps it under "chrome\_151" should get theirs, not the one that shipped, because theirs is the browser a server will be comparing against.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### NewRegistry() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func NewRegistry() *Registry
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 NewRegistry returns a registry over the built-in sources and this machine's own profile directory.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Registry.Dir() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (r *Registry) Dir() string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Dir is where this registry looks for profiles kept on this machine.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Registry.Get() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (r *Registry) Get(name string) (*Profile, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Get resolves a name to a profile.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Registry.HasHandshake() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (r *Registry) HasHandshake(name string) bool
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 HasHandshake reports whether a name resolves to a profile built from a real captured ClientHello rather than to a catalogue entry. It is what lets a caller tell "this is my browser" from "this is close to some browser".
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Registry.KeptHere() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (r *Registry) KeptHere() []string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 KeptHere lists the profiles in this machine's own directory, which are the ones that win over anything shipped.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Registry.Measured() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (r *Registry) Measured() []Group
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Measured lists the profiles taken from a real browser, grouped by version.
 
 Both sources at once, not one instead of the other: a machine that has measured Chrome 151 on its own platform still resolves the shipped profile for the others, and a listing that showed only the local one would be saying less than is true.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Registry.Names() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (r *Registry) Names() []string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Names lists every profile that can be resolved, measured ones first.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Registry.Register() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (r *Registry) Register(p *Profile) error
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Register adds or replaces a profile.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Registry.SetDir() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (r *Registry) SetDir(dir string)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 SetDir points the registry at another directory.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Resumption { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Resumption struct {
@@ -705,25 +1501,61 @@ type Resumption struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Resumption is how the browser of a capture resumed a session, against the hello it sent cold: tls-forge resumes as Chrome does, with the cold hello and pre\_shared\_key last, one ticket offered (withResumption).
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### ResumptionOf() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func ResumptionOf(c *capture.Capture) (Resumption, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 ResumptionOf is how the browser of a capture resumed a session, against its cold hello; not Measured for a capture with no resumed hello.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Resumption.AsTLSForge() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (r Resumption) AsTLSForge() bool
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 AsTLSForge says the browser resumed as tls-forge resumes.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Setting { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Setting struct {
@@ -732,9 +1564,21 @@ type Setting struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Setting is one HTTP/2 setting. Order matters, so this is a list.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### TLSExtension { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type TLSExtension struct {
@@ -743,9 +1587,21 @@ type TLSExtension struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 TLSExtension selects a supported protocol primitive and its data. Parameters are strictly typed by that primitive, including for programmatic profiles.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### TLSSpec { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type TLSSpec struct {
@@ -760,17 +1616,41 @@ type TLSSpec struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 TLSSpec is declarative input, not a recorded handshake. Generated and session values have named sources; a profile cannot supply keys, randoms or binders.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### TLSSpec.UnmarshalJSON() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *TLSSpec) UnmarshalJSON(data []byte) error
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 UnmarshalJSON requires the complete, unambiguous declarative representation.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Variant { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Variant struct {
@@ -781,4 +1661,12 @@ type Variant struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Variant is one platform a version was measured on.
+
+</div>
+
+</div>

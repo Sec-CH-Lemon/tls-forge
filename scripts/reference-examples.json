@@ -1,0 +1,468 @@
+{
+ "python-api.md": {
+  "Client": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "import tlsforge\n\nwith tlsforge.Client(profile=\"chrome\", timeout=45.0) as client:\n    response = client.get(\"https://example.com/\")\n    print(response.status)"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "200",
+    "plain": true
+   }
+  ],
+  "Client.get()": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "response = client.get(\"https://example.com/\")\nprint(response.status, response.url)\nprint(response.headers[\"content-type\"])"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "200 https://example.com/\n('text/html; charset=utf-8',)",
+    "plain": true
+   }
+  ],
+  "Client.post()": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "response = client.post(\n    \"https://httpbin.org/post\",\n    '{\"hello\":\"world\"}',\n    headers={\"content-type\": \"application/json\"},\n    browser_context={\"kind\": \"fetch\", \"initiator\": \"https://httpbin.org/\"},\n)\nprint(response.body)"
+   },
+   {
+    "title": "Response",
+    "lang": "json",
+    "code": "{\n  \"headers\": {\n    \"Accept\": \"*/*\",\n    \"Content-Type\": \"application/json\",\n    \"Origin\": \"https://httpbin.org\",\n    \"Sec-Fetch-Mode\": \"cors\",\n    \"Sec-Fetch-Site\": \"same-origin\",\n    …\n  },\n  \"method\": \"POST\",\n  \"url\": \"https://httpbin.org/post\",\n  …\n  \"json\": {\n    \"hello\": \"world\"\n  }\n}",
+    "plain": true
+   }
+  ],
+  "Client.request()": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "response = client.request(\n    \"https://httpbin.org/anything\",\n    method=\"PUT\",\n    body='{\"id\": 1}',\n    headers={\"content-type\": \"application/json\"},\n    browser_context={\"kind\": \"fetch\", \"initiator\": \"https://httpbin.org/\"},\n)\ndata = response.json()\nprint(response.status, data[\"method\"], data[\"json\"])"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "200 PUT {'id': 1}",
+    "plain": true
+   }
+  ],
+  "Client.hello()": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "hello = client.hello()\nprint(hello.protocol, hello.engine_major, hello.version)\nprint(\"browser_context\" in hello.capabilities)"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "3 1 1.0.0\nTrue",
+    "plain": true
+   }
+  ],
+  "Client.close()": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "client = tlsforge.Client(profile=\"chrome\")\ntry:\n    response = client.get(\"https://example.com/\")\nfinally:\n    client.close()"
+   }
+  ],
+  "BrowserContext": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "context: tlsforge.BrowserContext = {\n    \"kind\": \"fetch\",\n    \"initiator\": \"https://example.com/\",\n    \"mode\": \"cors\",\n    \"credentials\": \"include\",\n}\nresponse = client.get(\"https://example.com/\", browser_context=context)"
+   }
+  ],
+  "NetworkContext": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "network: tlsforge.NetworkContext = {\n    \"type\": \"wifi\",\n    \"id\": \"office\",\n    \"generation\": 1,\n    \"signal\": 4,\n}\nresponse = client.get(\"https://example.com/\", network_context=network)"
+   }
+  ],
+  "Hello": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "print(client.hello())"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "Hello(protocol=3, capabilities=('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), engine_major=1, version='1.0.0')",
+    "plain": true
+   }
+  ],
+  "Response": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "response = client.get(\"https://example.com/\")\nprint(response.ok, len(response.content))\nprint(response.cookies)"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "True 577\n()",
+    "plain": true
+   }
+  ],
+  "Response.json()": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "data = response.json()\nprint(data[\"json\"])"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "{'hello': 'world'}",
+    "plain": true
+   }
+  ],
+  "RequestFailed": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "try:\n    client.request(\"https://example.com/\", method=\"DELETE\")\nexcept tlsforge.RequestFailed as error:\n    print(error)"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "tlsforge: DELETE https://example.com/ needs a browser context: without one it goes as a navigation typed into the address bar, a GET with no body; say the form, fetch() or XHR that sends it, and from which page",
+    "plain": true
+   }
+  ],
+  "resolve_binary()": [
+   {
+    "title": "Example",
+    "lang": "python",
+    "code": "print(tlsforge.resolve_binary())"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "/usr/local/bin/tls-forge",
+    "plain": true
+   }
+  ]
+ },
+ "node-api.md": {
+  "Client": [
+   {
+    "title": "Example",
+    "lang": "js",
+    "code": "import { Client } from \"tls-forge\";\n\nconst client = new Client({ profile: \"chrome\", timeout: 45000 });\nconst response = await client.get(\"https://example.com/\");\nconsole.log(response.status);\nclient.close();"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "200",
+    "plain": true
+   }
+  ],
+  "Client.get()": [
+   {
+    "title": "Example",
+    "lang": "js",
+    "code": "const response = await client.get(\"https://example.com/\");\nconsole.log(response.status, response.url);\nconsole.log(response.headers[\"content-type\"]);"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "200 https://example.com/\n[ 'text/html; charset=utf-8' ]",
+    "plain": true
+   }
+  ],
+  "Client.post()": [
+   {
+    "title": "Example",
+    "lang": "js",
+    "code": "const response = await client.post(\n  \"https://httpbin.org/post\",\n  '{\"hello\":\"world\"}',\n  {\n    headers: { \"content-type\": \"application/json\" },\n    browserContext: { kind: \"fetch\", initiator: \"https://httpbin.org/\" },\n  },\n);\nconsole.log(response.body);"
+   },
+   {
+    "title": "Response",
+    "lang": "json",
+    "code": "{\n  \"headers\": {\n    \"Accept\": \"*/*\",\n    \"Content-Type\": \"application/json\",\n    \"Origin\": \"https://httpbin.org\",\n    \"Sec-Fetch-Mode\": \"cors\",\n    \"Sec-Fetch-Site\": \"same-origin\",\n    …\n  },\n  \"method\": \"POST\",\n  \"url\": \"https://httpbin.org/post\",\n  …\n  \"json\": {\n    \"hello\": \"world\"\n  }\n}",
+    "plain": true
+   }
+  ],
+  "Client.request()": [
+   {
+    "title": "Example",
+    "lang": "js",
+    "code": "const response = await client.request({\n  url: \"https://httpbin.org/anything\",\n  method: \"PUT\",\n  body: '{\"id\": 1}',\n  headers: { \"content-type\": \"application/json\" },\n  browserContext: { kind: \"fetch\", initiator: \"https://httpbin.org/\" },\n});\nconst data = JSON.parse(response.body);\nconsole.log(response.status, data.method, data.json);"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "200 PUT { id: 1 }",
+    "plain": true
+   }
+  ],
+  "Client.hello()": [
+   {
+    "title": "Example",
+    "lang": "js",
+    "code": "const hello = await client.hello();\nconsole.log(hello.protocol, hello.engine_major, hello.version);\nconsole.log(hello.capabilities.includes(\"browser_context\"));"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "3 1 1.0.0\ntrue",
+    "plain": true
+   }
+  ],
+  "Client.close()": [
+   {
+    "title": "Example",
+    "lang": "js",
+    "code": "const client = new Client({ profile: \"chrome\" });\ntry {\n  const response = await client.get(\"https://example.com/\");\n} finally {\n  client.close();\n}"
+   }
+  ],
+  "BrowserContext": [
+   {
+    "title": "Example",
+    "lang": "js",
+    "code": "const response = await client.get(\"https://example.com/\", {\n  browserContext: {\n    kind: \"fetch\",\n    initiator: \"https://example.com/\",\n    mode: \"cors\",\n    credentials: \"include\",\n  },\n});"
+   }
+  ],
+  "NetworkContext": [
+   {
+    "title": "Example",
+    "lang": "js",
+    "code": "const response = await client.get(\"https://example.com/\", {\n  networkContext: { type: \"wifi\", id: \"office\", generation: 1, signal: 4 },\n});"
+   }
+  ],
+  "Response": [
+   {
+    "title": "Example",
+    "lang": "js",
+    "code": "const response = await client.get(\"https://example.com/\");\nconsole.log(response.status, response.content.length, response.cookies);"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "200 577 []",
+    "plain": true
+   }
+  ],
+  "RequestFailed": [
+   {
+    "title": "Example",
+    "lang": "js",
+    "code": "import { RequestFailed } from \"tls-forge\";\n\ntry {\n  await client.request({ url: \"https://example.com/\", method: \"DELETE\" });\n} catch (error) {\n  if (error instanceof RequestFailed) console.log(error.message);\n}"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "tlsforge: DELETE https://example.com/ needs a browser context: without one it goes as a navigation typed into the address bar, a GET with no body; say the form, fetch() or XHR that sends it, and from which page",
+    "plain": true
+   }
+  ],
+  "resolveBinary()": [
+   {
+    "title": "Example",
+    "lang": "js",
+    "code": "import { resolveBinary } from \"tls-forge\";\n\nconsole.log(resolveBinary());"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "/usr/local/bin/tls-forge",
+    "plain": true
+   }
+  ]
+ },
+ "cli.md": {
+  "fetch": [
+   {
+    "title": "Example",
+    "lang": "bash",
+    "code": "tls-forge fetch -i https://example.com/"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "200 https://example.com/\ncontent-type: text/html; charset=utf-8\nserver: cloudflare\n…\n\n<!doctype html><html lang=en><head><meta charset=utf-8>…",
+    "plain": true
+   }
+  ],
+  "capture": [
+   {
+    "title": "Example",
+    "lang": "bash",
+    "code": "tls-forge capture --headless"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "────────────────────────────────────────────────────────────────────────\n  user-agent       Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36\n  JA4              t13d1517h2_8daaf6152771_cb7bf5808d99\n  ALPN             h2, http/1.1\n  HTTP/2           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p\n  …\n  client hints     21 of the 21 a server asks for, sent when asked\n────────────────────────────────────────────────────────────────────────\n\nRe-run with --install to keep this profile, or --save <path> to write it out.",
+    "plain": true
+   }
+  ],
+  "compare": [
+   {
+    "title": "Example",
+    "lang": "bash",
+    "code": "tls-forge compare --headless"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "--- browser  Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36\n             Google Chrome 156.0.8078.80, macOS 27.0.1, arm 64, headless\n+++ client   profile chrome_156_macos\n\nTLS\n  ja4                    t13d1517h2_8daaf6152771_cb7bf5808d99\n  …\n\nHTTP/2\n  http2_akamai           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p\n- header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36, …\n+ header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … Chrome/156.0.0.0 Safari/537.36, …\n  …\n\n2 field(s) differ. Fix by measuring this browser and using the profile\nit produces:\n  tls-forge capture --save my-browser.json",
+    "plain": true
+   }
+  ],
+  "profiles": [
+   {
+    "title": "Example",
+    "lang": "bash",
+    "code": "tls-forge profiles"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "Measured from a real browser.\n  * kept on this machine, and used ahead of anything shipped\n  < what you get when no profile is named\n\n  chrome_151\n  …\n  chrome_156\n    chrome_156_linux\n    chrome_156_macos          <\n    chrome_156_windows\n\nFrom the tls-client catalogue, a handshake but no headers of its own:\n\n  …",
+    "plain": true
+   }
+  ],
+  "proxy": [
+   {
+    "title": "Example",
+    "lang": "bash",
+    "code": "tls-forge proxy --addr 127.0.0.1:8080"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "────────────────────────────────────────────────────────────────────────\n  profile     chrome_156_macos · shipped with tls-forge\n  browser     Chrome 156 on macOS\n  …\n────────────────────────────────────────────────────────────────────────\nproxy listening on 127.0.0.1:8080\n\n  export HTTPS_PROXY=http://127.0.0.1:8080\n  curl --proxy http://127.0.0.1:8080 --cacert '/Users/you/Library/Application Support/tls-forge/ca.pem' https://tls.browserleaks.com/json\n\n…\nCtrl-C to stop.",
+    "plain": true
+   }
+  ],
+  "serve": [
+   {
+    "title": "Example",
+    "lang": "bash",
+    "code": "tls-forge serve"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "https://localhost:62079\n  /          a page that measures the browser that opens it\n  /api/all   this connection's fingerprint, as JSON\n\nThe certificate is self-signed and generated for this run, so clients\nmust be told to accept it (curl -k, tlsforge --insecure).\nCtrl-C to stop.",
+    "plain": true
+   }
+  ],
+  "daemon": [
+   {
+    "title": "Example",
+    "lang": "bash",
+    "code": "echo '{\"id\":1,\"engine_major\":1,\"url\":\"https://example.com/\"}' | tls-forge daemon"
+   },
+   {
+    "title": "Response",
+    "lang": "json",
+    "code": "{\"id\":1,\"status\":200,\"url\":\"https://example.com/\",\"body\":\"<!doctype html><html lang=en>…\",\"headers\":{\"content-type\":[\"text/html; charset=utf-8\"],…},\"cookies\":[]}",
+    "plain": true
+   }
+  ],
+  "version": [
+   {
+    "title": "Example",
+    "lang": "bash",
+    "code": "tls-forge version"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "tls-forge v1.0.0",
+    "plain": true
+   }
+  ]
+ },
+ "go/tlsforge.md": {
+  "New()": [
+   {
+    "title": "Example",
+    "lang": "go",
+    "code": "client, err := tlsforge.New(tlsforge.WithProfile(\"chrome\"))\nif err != nil {\n\tlog.Fatal(err)\n}\ndefer client.Close()\n\nresponse, err := client.Get(\"https://example.com/\")\nif err != nil {\n\tlog.Fatal(err)\n}\nfmt.Println(response.Status, response.URL)"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "200 https://example.com/",
+    "plain": true
+   }
+  ],
+  "Client.Get()": [
+   {
+    "title": "Example",
+    "lang": "go",
+    "code": "response, err := client.Get(\"https://example.com/\")\nif err != nil {\n\tlog.Fatal(err)\n}\nfmt.Println(response.Status, response.URL)\nfmt.Println(response.Header[\"content-type\"])"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "200 https://example.com/\n[text/html; charset=utf-8]",
+    "plain": true
+   }
+  ],
+  "Client.Do()": [
+   {
+    "title": "Example",
+    "lang": "go",
+    "code": "response, err := client.Do(&tlsforge.Request{\n\tMethod: \"POST\",\n\tURL:    \"https://httpbin.org/post\",\n\tHeader: tlsforge.NewHeader(\"content-type\", \"application/json\"),\n\tBody:   []byte(`{\"hello\":\"world\"}`),\n\tBrowser: &tlsforge.BrowserContext{\n\t\tKind:      tlsforge.KindFetch,\n\t\tInitiator: \"https://httpbin.org/\",\n\t},\n})\nif err != nil {\n\tlog.Fatal(err)\n}\nfmt.Println(response.Status, response.Method)"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "200 POST",
+    "plain": true
+   }
+  ],
+  "Response": [
+   {
+    "title": "Example",
+    "lang": "go",
+    "code": "fmt.Println(response.OK(), len(response.Body))"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "true 577",
+    "plain": true
+   }
+  ],
+  "Client.Profile()": [
+   {
+    "title": "Example",
+    "lang": "go",
+    "code": "fmt.Println(client.Profile().Name)"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "chrome_156_macos",
+    "plain": true
+   }
+  ],
+  "Version()": [
+   {
+    "title": "Example",
+    "lang": "go",
+    "code": "fmt.Println(tlsforge.Version(), tlsforge.EngineMajor())"
+   },
+   {
+    "title": "Response",
+    "lang": "text",
+    "code": "1.0.0 1",
+    "plain": true
+   }
+  ]
+ }
+}

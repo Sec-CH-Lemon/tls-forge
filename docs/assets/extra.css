@@ -23,6 +23,7 @@
   --tf-10: 7.5rem;
   --tf-shell-width: 90rem;
   --tf-rail-width: 15rem;
+  --tf-map-width: 15rem;
   --tf-reading-width: 54rem;
   --tf-column-gap: var(--tf-4);
 }
@@ -91,7 +92,10 @@ body[data-md-color-scheme="default"] {
   --md-code-fg-color: #234153;
 }
 
+/* An anchor lands a step under the header: the page's scroll padding alone,
+   so Material's scroll margin on headings, which added 93px, is none. */
 html { font-size: 16px; scroll-padding-top: 9rem; }
+.md-typeset [id] { scroll-margin-top: 0; }
 body { color: var(--tf-text); background: var(--tf-bg); -webkit-font-smoothing: antialiased; }
 ::selection { color: #071019; background: #9df0e1; }
 a:focus-visible, button:focus-visible, label:focus-visible, input:focus-visible {
@@ -330,7 +334,12 @@ body[dir] .md-search-result .md-search-result__article :is(h1, h2) code {
 .md-tabs__item--active .md-tabs__link { color: var(--tf-accent); box-shadow: inset 0 -2px 0 var(--tf-accent); }
 
 /* The desktop sidebar contains only the current section. */
-.md-main { background: var(--tf-bg); }
+/* Material's page map marks a section once its heading passes the header's
+   height and four fifths of what lies between the main area's top and its
+   grid's. A step of that, under the header, makes it the anchors' line: a
+   heading that lands a step under the header is the section the map marks.
+   Nothing moves; only the main area reaches up under the header. */
+.md-main { margin-top: calc(-1 * var(--tf-3)); padding-top: var(--tf-3); background: var(--tf-bg); }
 .md-main__inner.md-grid { max-width: none; min-height: calc(100vh - var(--tf-10)); margin: 0; }
 .md-sidebar--primary {
   width: 15rem;
@@ -345,6 +354,51 @@ body[dir] .md-search-result .md-search-result__article :is(h1, h2) code {
 }
 .md-sidebar--primary .md-sidebar__inner { padding: 0; }
 .md-sidebar--secondary { display: none !important; }
+
+/* The page's map in the right rail: each chapter and what is under it, the one
+   in view marked by the accent and a bar on the line they hang from. */
+.md-sidebar--secondary .md-sidebar__inner { padding: 0; }
+.md-sidebar--secondary .md-nav--secondary > .md-nav__title {
+  position: static;
+  display: flex;
+  height: auto;
+  margin: 0 0 var(--tf-1);
+  padding: 0 0 var(--tf-1);
+  overflow: visible;
+  color: var(--tf-muted);
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--tf-line);
+  font-size: 0;
+  font-weight: 740;
+  line-height: var(--tf-2);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.md-sidebar--secondary .md-nav--secondary > .md-nav__title::before { content: "On this page"; font-size: .75rem; }
+.md-sidebar--secondary .md-nav--secondary .md-nav__list { margin: 0; padding: 0; }
+.md-sidebar--secondary .md-nav--secondary > .md-nav__list { box-shadow: inset 1px 0 0 var(--tf-line); }
+.md-sidebar--secondary .md-nav--secondary .md-nav { margin: 0; }
+.md-sidebar--secondary .md-nav--secondary .md-nav__item { margin: 0; padding: 0; line-height: var(--tf-2); }
+.md-sidebar--secondary .md-nav--secondary > .md-nav__list > .md-nav__item + .md-nav__item { margin-top: var(--tf-1); }
+body[dir] .md-sidebar--secondary .md-nav--secondary .md-nav__link {
+  display: block;
+  min-height: var(--tf-2);
+  margin: 0;
+  padding: 0 0 0 var(--tf-1);
+  border-radius: 0;
+  color: var(--tf-muted);
+  background: transparent;
+  font-size: .8125rem;
+  font-weight: 400;
+  line-height: var(--tf-2);
+  overflow-wrap: anywhere;
+}
+body[dir] .md-sidebar--secondary .md-nav--secondary .md-nav .md-nav__link { padding-left: var(--tf-2); }
+body[dir] .md-sidebar--secondary .md-nav--secondary .md-nav .md-nav .md-nav__link { padding-left: var(--tf-3); }
+body[dir] .md-sidebar--secondary .md-nav--secondary .md-nav .md-nav .md-nav .md-nav__link { padding-left: var(--tf-4); }
+body[dir] .md-sidebar--secondary .md-nav--secondary .md-nav__link:hover { color: var(--tf-text); background: transparent; }
+body[dir] .md-sidebar--secondary .md-nav--secondary .md-nav__link--active { color: var(--tf-accent); box-shadow: inset 2px 0 0 var(--tf-accent); }
+body[dir] .md-sidebar--secondary .md-nav--secondary .md-nav__link .md-ellipsis { overflow: visible; white-space: normal; text-overflow: clip; }
 .md-nav { margin: 0; font-size: .875rem; line-height: var(--tf-2); }
 .md-nav__list { padding: 0; }
 .md-nav .md-nav__item { padding: 0; line-height: var(--tf-2); }
@@ -516,25 +570,58 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
 /* The tab set is a flex box, which keeps its last margin: none is left. */
 .md-typeset .tabbed-block > :last-child { margin-bottom: 0; }
 
-/* Generated reference, one symbol at a time as Stripe's reads: its name, its
-   signature in a panel, what it does, then its parameters as a list. */
+/* Generated reference, one symbol at a time as Stripe's reads. A section
+   (.tf-ref) has its name, its code (the signature and its examples) and what
+   it says (its documentation and parameters). In one column the code comes
+   first; from 1440px they stand side by side, and the code stays in view
+   while its section scrolls. A symbol's section opens with a divider. */
 .md-typeset .tf-symbol,
 .md-typeset .tf-member {
+  margin: 0 0 var(--tf-1);
+  padding: 0;
+  border: 0;
   font-family: var(--md-code-font);
   font-weight: 650;
   line-height: var(--tf-2);
   letter-spacing: -.01em;
   overflow-wrap: anywhere;
 }
-.md-typeset .tf-symbol {
-  margin: var(--tf-4) 0 var(--tf-1);
-  padding-top: var(--tf-4);
-  border: 0;
-  box-shadow: inset 0 1px 0 var(--tf-line);
-  font-size: 1.125rem;
+.md-typeset .tf-symbol { font-size: 1.125rem; }
+.md-typeset .tf-member { font-size: 1rem; }
+.md-typeset .tf-ref {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "code" "docs";
+  margin: var(--tf-3) 0 0;
 }
-.md-typeset h2 + .tf-symbol { margin-top: var(--tf-2); padding-top: 0; box-shadow: none; }
-.md-typeset .tf-member { margin: var(--tf-3) 0 var(--tf-1); font-size: 1rem; }
+.md-typeset .tf-ref:has(> .tf-symbol) { margin-top: var(--tf-4); padding-top: var(--tf-4); box-shadow: inset 0 1px 0 var(--tf-line); }
+.md-typeset h2 + .tf-ref:has(> .tf-symbol) { margin-top: var(--tf-2); padding-top: 0; box-shadow: none; }
+.md-typeset .tf-ref > :is(h2, h3, h4, h5, h6) { grid-area: head; }
+.md-typeset .tf-ref__code { grid-area: code; min-width: 0; }
+.md-typeset .tf-ref__code > .highlight { margin: 0 0 var(--tf-1); }
+.md-typeset .tf-ref__code > .highlight:last-child { margin-bottom: 0; }
+.md-typeset .tf-ref__docs { grid-area: docs; min-width: 0; margin-top: var(--tf-2); }
+.md-typeset .tf-ref__docs > :first-child { margin-top: 0; }
+.md-typeset .tf-ref__docs > :last-child { margin-bottom: 0; }
+
+/* A code panel's title without numbered lines: the same row of 48px. */
+.md-typeset .highlight > span.filename {
+  position: relative;
+  display: block;
+  height: var(--tf-4);
+  margin: 0;
+  padding: var(--tf-1) var(--tf-2);
+  border: 0;
+  border-radius: 0;
+  color: var(--tf-code-text);
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--tf-code-border);
+  font: 600 .8125rem/var(--tf-2) var(--md-code-font);
+}
+.md-typeset .highlight > span.filename::after { display: none; }
+.md-typeset .highlight:has(> span.filename) { background: linear-gradient(var(--tf-code-head) 0 var(--tf-4), var(--tf-code-panel) 0); }
+.md-typeset .highlight:has(> span.filename) > pre > code { padding-right: var(--tf-2); }
+.md-typeset .highlight > span.filename .md-code__nav { top: 50%; right: var(--tf-1); transform: translateY(-50%); }
 .md-typeset .tf-params { margin: var(--tf-2) 0; }
 .md-typeset .tf-params__title {
   margin: 0;
@@ -686,6 +773,29 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
 .tf-api-panel > code { display: block; padding: var(--tf-1); border-radius: var(--tf-1); color: var(--tf-text); background: var(--tf-code); font-size: .8125rem; line-height: var(--tf-2); }
 .tf-api-panel p { margin: var(--tf-1) 0 0; font-size: .875rem; }
 
+/* Reference pages: the shell grows to 1728px, the page's map narrows to 216px,
+   and each section stands in two columns, the code a fifth wider than what it
+   says, kept in view under the header while its section scrolls. */
+@media screen and (min-width: 90em) {
+  html:has(.tf-ref) { --tf-shell-width: 108rem; --tf-reading-width: 1fr; --tf-map-width: 13.5rem; }
+  .md-typeset .tf-ref {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 5fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "head code" "docs code";
+    column-gap: var(--tf-2);
+  }
+  .md-typeset .tf-ref__docs { margin-top: 0; }
+  .md-typeset .tf-ref__code { position: sticky; top: calc(var(--tf-10) + var(--tf-2)); align-self: start; }
+  /* Where the text runs past the code (code-actions.js says so), code taller
+     than the window scrolls in its column, a step clear of the window's
+     bottom, so none of it stays out of sight while it sticks. */
+  .md-typeset .tf-ref--sticks > .tf-ref__code {
+    max-height: round(down, calc(100vh - var(--tf-10) - var(--tf-4)), var(--tf-1));
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+}
+
 @media screen and (max-width: 50em) {
   .md-typeset .tf-feature-code pre { overflow-x: visible; overflow-wrap: break-word; white-space: pre-wrap; }
   .md-typeset .tf-feature-code pre code { overflow-wrap: inherit; white-space: inherit; }
@@ -695,7 +805,7 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
   .md-main__inner.md-grid {
     display: grid;
     width: min(calc(100% - var(--tf-4)), var(--tf-shell-width));
-    grid-template-columns: var(--tf-rail-width) minmax(0, var(--tf-reading-width)) var(--tf-rail-width);
+    grid-template-columns: var(--tf-rail-width) minmax(0, var(--tf-reading-width)) var(--tf-map-width);
     column-gap: var(--tf-column-gap);
     justify-content: center;
     align-items: start;
@@ -762,6 +872,16 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
   .md-content__inner.md-typeset { width: 100%; max-width: none; margin: 0 !important; padding: var(--tf-3) 0 var(--tf-8); }
   .md-sidebar--primary .md-nav--primary > .md-nav__title { display: none; }
   .md-sidebar--primary .md-nav__title { box-shadow: none; }
+  html:not(.tf-home) .md-sidebar--secondary:has(.md-nav--secondary .md-nav__list li) {
+    display: block !important;
+    grid-column: 3;
+    width: 100%;
+    height: calc(100vh - var(--tf-10));
+    margin: 0;
+    padding: 0;
+  }
+  .md-sidebar--secondary .md-sidebar__scrollwrap { margin: 0; padding: var(--tf-3) 0 var(--tf-4); scrollbar-width: thin; }
+  .tf-home .md-sidebar--secondary { display: none !important; }
   .md-nav--primary > .md-nav__list > .md-nav__item:not(.md-nav__item--active) { display: none; }
   .tf-home .md-sidebar--primary { display: none; }
   .tf-home .md-content { grid-column: 1 / -1; max-width: 72rem; margin: 0 auto; }
@@ -971,7 +1091,7 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
   .md-typeset__table { margin: 0 !important; padding: 0 !important; }
   .md-typeset .highlight pre > code { padding-left: var(--tf-1); }
   .md-typeset .highlighttable .linenos { padding-left: var(--tf-1); }
-  .md-typeset .highlighttable th.filename span { padding-left: var(--tf-1); }
+  .md-typeset .highlighttable th.filename span, .md-typeset .highlight > span.filename { padding-left: var(--tf-1); }
   body .md-typeset .tabbed-labels > label:not(:has(> a)), body .md-typeset .tabbed-labels > label > a { padding: var(--tf-1); }
   .tf-lede { font-size: 1.0625rem; }
   .tf-feature, .tf-api-intro { grid-template-columns: 1fr; gap: var(--tf-2); }

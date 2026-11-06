@@ -34,13 +34,25 @@ function withoutCode(markdown) {
   return withoutFences(markdown).replace(/`[^`\n]*`/g, '');
 }
 
+// attributeList is a heading's trailing attribute list as MkDocs reads it
+// ({ .class #id key=value }, the colon optional), which the published site
+// leaves out of the heading.
+const attributeList = /\s*\{:?((?:\s*(?:[.#][\w-]+|[\w-]+=(?:"[^"]*"|'[^']*'|[^\s}]+)))+)\s*\}$/;
+
 // anchorsOf are the fragments the headings of markdown make: the second of one
-// slug is that slug with -1, the third with -2.
+// slug is that slug with -1, the third with -2. A heading whose attribute list
+// gives it an id is that id; one with a list otherwise is the text before it.
 export function anchorsOf(markdown) {
   const seen = new Map();
   const anchors = new Set();
   for (const [, text] of withoutFences(markdown).matchAll(/^#{1,6}[ \t]+(.+?)[ \t#]*$/gm)) {
-    const base = slug(text);
+    const list = text.match(attributeList);
+    const id = list && list[1].match(/(?:^|\s)#([\w-]+)/);
+    if (id) {
+      anchors.add(id[1]);
+      continue;
+    }
+    const base = slug(list ? text.slice(0, list.index) : text);
     const count = seen.get(base) ?? 0;
     seen.set(base, count + 1);
     anchors.add(count === 0 ? base : `${base}-${count}`);

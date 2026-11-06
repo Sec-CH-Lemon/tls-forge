@@ -30,6 +30,18 @@ test('the anchors of a file are its headings, the repeated ones numbered', () =>
   assert.deepEqual([...anchors].sort(), ['title', 'usage', 'usage-1', 'usage-2']);
 });
 
+test('a heading with an attribute list is the text before it, or the id it gives', () => {
+  const anchors = anchorsOf([
+    '## proxy { .tf-symbol }',
+    '### Client.get() { .tf-member }',
+    '## proxy {.tf-symbol}',
+    '## Named {: #custom .wide data-x="a b" }',
+    '## Braces {not attributes}',
+    '## Empty {}',
+  ].join('\n'));
+  assert.deepEqual([...anchors].sort(), ['braces-not-attributes', 'clientget', 'custom', 'empty-', 'proxy', 'proxy-1']);
+});
+
 test('the links of a file, inline and by reference, but not in code', () => {
   const links = linksOf([
     'See [the protocol](docs/protocol.md#the-init-line) and [Go](GO.md "the Go library").',

@@ -14,7 +14,11 @@ Nothing here touches the user's real browser profile. Every launch gets a fresh 
 
 ## Types
 
+<div class="tf-ref" markdown>
+
 ### Browser { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Browser struct {
@@ -25,27 +29,63 @@ type Browser struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Browser is a launchable browser found on this machine.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Find() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func Find(name string) (*Browser, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Find locates a browser. An empty name searches; a name containing a path separator is taken as an executable path and used as given.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Browser.Open() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (b *Browser) Open(ctx context.Context, url string, opts Options) (close func(), err error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Open launches the browser at a URL and returns a function that closes it.
 
 The temporary profile directory is removed by the returned function. The context kills the browser; the caller should still call the close function to clean up the directory. Either ends every process the browser started, not only its own: a browser is many processes.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Options { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Options struct {
@@ -61,4 +101,12 @@ type Options struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Options controls a launch.
+
+</div>
+
+</div>

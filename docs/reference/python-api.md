@@ -2,7 +2,11 @@
 
 Generated from the public `tlsforge` exports and their runtime signatures. See the [Python integration guide](../integrations/python.md) for examples.
 
+<div class="tf-ref" markdown>
+
 ## Client { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 Client(
@@ -17,6 +21,22 @@ Client(
     on_stderr: Callable[[str], None] | None = None,
 )
 ```
+
+```python title="Example"
+import tlsforge
+
+with tlsforge.Client(profile="chrome", timeout=45.0) as client:
+    response = client.get("https://example.com/")
+    print(response.status)
+```
+
+```text title="Response" linenums="0"
+200
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 One browser identity: one fingerprint, one cookie jar, one exit IP.
 
@@ -41,7 +61,15 @@ Close it when done, or use it as a context manager. Closing is final: a client i
 <div class="tf-param"><div class="tf-param__head"><a href="#binarynotfound"><code class="tf-param__name">BinaryNotFound</code></a></div><div class="tf-param__text">when there is no binary to run.</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Client.get() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 Client.get(
@@ -55,9 +83,32 @@ Client.get(
 ) -> Response
 ```
 
+```python title="Example"
+response = client.get("https://example.com/")
+print(response.status, response.url)
+print(response.headers["content-type"])
+```
+
+```text title="Response" linenums="0"
+200 https://example.com/
+('text/html; charset=utf-8',)
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 GET a URL.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Client.post() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 Client.post(
@@ -72,13 +123,69 @@ Client.post(
 ) -> Response
 ```
 
+```python title="Example"
+response = client.post(
+    "https://httpbin.org/post",
+    '{"hello":"world"}',
+    headers={"content-type": "application/json"},
+    browser_context={"kind": "fetch", "initiator": "https://httpbin.org/"},
+)
+print(response.body)
+```
+
+```json title="Response" linenums="0"
+{
+  "headers": {
+    "Accept": "*/*",
+    "Content-Type": "application/json",
+    "Origin": "https://httpbin.org",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
+    …
+  },
+  "method": "POST",
+  "url": "https://httpbin.org/post",
+  …
+  "json": {
+    "hello": "world"
+  }
+}
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 POST a body, in the browser context of the form or script that posts it: a request without one is a navigation typed into the address bar, which posts nothing, and is refused.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Client.hello() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 Client.hello() -> Hello
 ```
+
+```python title="Example"
+hello = client.hello()
+print(hello.protocol, hello.engine_major, hello.version)
+print("browser_context" in hello.capabilities)
+```
+
+```text title="Response" linenums="0"
+3 1 1.0.0
+True
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 What the transport is: the protocol it speaks and what it can do, asked without a connection, and once. One older than the question speaks protocol 1, and can do nothing a client has to ask about.
 
@@ -88,7 +195,15 @@ What the transport is: the protocol it speaks and what it can do, asked without 
 <div class="tf-param"><div class="tf-param__head"><a href="#timeout"><code class="tf-param__name">Timeout</code></a></div><div class="tf-param__text">the deadline passed with no answer; asked again next time.</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Client.request() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 Client.request(
@@ -103,6 +218,26 @@ Client.request(
     network_context: NetworkContext | None = None,
 ) -> Response
 ```
+
+```python title="Example"
+response = client.request(
+    "https://httpbin.org/anything",
+    method="PUT",
+    body='{"id": 1}',
+    headers={"content-type": "application/json"},
+    browser_context={"kind": "fetch", "initiator": "https://httpbin.org/"},
+)
+data = response.json()
+print(response.status, data["method"], data["json"])
+```
+
+```text title="Response" linenums="0"
+200 PUT {'id': 1}
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 Make a request.
 
@@ -127,21 +262,63 @@ Make a request.
 <div class="tf-param"><div class="tf-param__head"><code class="tf-param__name">TypeError</code></div><div class="tf-param__text">a browser context that is no mapping, or has a key there is none of; nothing was asked.</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Client.close() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 Client.close() -> None
 ```
 
+```python title="Example"
+client = tlsforge.Client(profile="chrome")
+try:
+    response = client.get("https://example.com/")
+finally:
+    client.close()
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Stop the transport. Idempotent, and final.
 
 At once: a request in flight, or one waiting for it, is not waited for, and raises TransportError. A write stuck on a pipe the transport has stopped reading is ended by stopping the transport first.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## BrowserContext { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 class BrowserContext(TypedDict)
 ```
+
+```python title="Example"
+context: tlsforge.BrowserContext = {
+    "kind": "fetch",
+    "initiator": "https://example.com/",
+    "mode": "cors",
+    "credentials": "include",
+}
+response = client.get("https://example.com/", browser_context=context)
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 What in a browser a request stands for: it goes out as Chrome sends that kind, CORS and all. See GO.md, «Browser contexts».
 
@@ -156,11 +333,33 @@ The keys are this package's names for the daemon's fields, which the client send
 <div class="tf-param" id="browsercontext-credentials"><div class="tf-param__head"><code class="tf-param__name">credentials</code><span class="tf-param__type">Literal[&#x27;same-origin&#x27;, &#x27;include&#x27;, &#x27;omit&#x27;]</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">fetch()&#x27;s credentials mode; same-origin when omitted. An XHR takes same-origin or include, which is withCredentials.</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## NetworkContext { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 class NetworkContext(TypedDict)
 ```
+
+```python title="Example"
+network: tlsforge.NetworkContext = {
+    "type": "wifi",
+    "id": "office",
+    "generation": 1,
+    "signal": 4,
+}
+response = client.get("https://example.com/", network_context=network)
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 Actual network metadata, with no precomputed RTT or downlink values.
 
@@ -172,7 +371,15 @@ Actual network metadata, with no precomputed RTT or downlink values.
 <div class="tf-param" id="networkcontext-signal"><div class="tf-param__head"><code class="tf-param__name">signal</code><span class="tf-param__type">Optional[int]</span></div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## Hello { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 Hello(
@@ -182,6 +389,18 @@ Hello(
     version: str | None = None,
 )
 ```
+
+```python title="Example"
+print(client.hello())
+```
+
+```text title="Response" linenums="0"
+Hello(protocol=3, capabilities=('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), engine_major=1, version='1.0.0')
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 What a transport is, as it says when asked: the protocol it speaks, and what it can do that a client has to ask about before relying on it. One older than the question speaks protocol 1 and can do nothing it is asked about.
 
@@ -193,7 +412,15 @@ What a transport is, as it says when asked: the protocol it speaks, and what it 
 <div class="tf-param" id="hello-version"><div class="tf-param__head"><code class="tf-param__name">version</code><span class="tf-param__type">str | None</span><span class="tf-param__label">default <code>None</code></span></div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## Response { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 Response(
@@ -205,6 +432,21 @@ Response(
     cookies: tuple[str, ...] = (),
 )
 ```
+
+```python title="Example"
+response = client.get("https://example.com/")
+print(response.ok, len(response.content))
+print(response.cookies)
+```
+
+```text title="Response" linenums="0"
+True 577
+()
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 What came back.
 
@@ -218,109 +460,277 @@ What came back.
 <div class="tf-param" id="response-cookies"><div class="tf-param__head"><code class="tf-param__name">cookies</code><span class="tf-param__type">tuple[str, ...]</span><span class="tf-param__label">default <code>()</code></span></div><div class="tf-param__text">What the jar holds for this URL afterwards.</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Response.ok { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 Response.ok: bool
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Did the server answer with a 2xx?
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Response.json() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 Response.json(**kwargs: Any) -> Any
 ```
 
+```python title="Example"
+data = response.json()
+print(data["json"])
+```
+
+```text title="Response" linenums="0"
+{'hello': 'world'}
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 The body parsed as JSON. Raises `json.JSONDecodeError` if it is not.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## DEFAULT\_TIMEOUT { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 DEFAULT_TIMEOUT = 45.0
 ```
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## MAX\_REQUEST\_BYTES { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 MAX_REQUEST_BYTES = 16 * 1024 * 1024
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 The most a request can be as the transport reads it: one line of JSON, its newline included, in UTF-8. A longer one would end the transport, and the session in it, so it is refused before it is sent.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## TLSForgeError { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 class TLSForgeError(Exception)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Base for everything this package raises.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## BinaryNotFound { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 class BinaryNotFound(TLSForgeError)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 The transport binary could not be found or does not exist.
 
 An install problem rather than a request problem: no retry will help, and the message says which of the four places were looked in.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## TransportError { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 class TransportError(TLSForgeError)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 The transport process failed: it would not start, died, or spoke nonsense.
 
 The request did not happen, or happened and the answer was lost. The client stays usable — the next request starts a fresh process.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## SessionReset { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 class SessionReset(TransportError)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 The request was not sent: the transport the client's session was in has gone, and its cookies, TLS sessions and connections went with it.
 
 Raised for every request waiting when that happens, or for the next one made when none was waiting. Requests after that start a new session in a new transport: the client never promises the identity it had before. A TransportError, so that code catching those catches this too.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## RequestFailed { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 class RequestFailed(TLSForgeError)
 ```
 
+```python title="Example"
+try:
+    client.request("https://example.com/", method="DELETE")
+except tlsforge.RequestFailed as error:
+    print(error)
+```
+
+```text title="Response" linenums="0"
+tlsforge: DELETE https://example.com/ needs a browser context: without one it goes as a navigation typed into the address bar, a GET with no body; say the form, fetch() or XHR that sends it, and from which page
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 The transport ran the request and the request itself failed.
 
 A refused connection, a DNS failure, a TLS error: the far end's doing, not the transport's. Distinct from TransportError because retrying this one can make sense and there is nothing wrong locally.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## Timeout { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 class Timeout(TLSForgeError, TimeoutError)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 The deadline passed with no answer.
 
 Also a builtin TimeoutError, so code that already catches those catches this without knowing about this package.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## Unsupported { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 class Unsupported(TLSForgeError)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 The transport cannot make the request as asked, and it was not sent.
 
 It does not do what the request needs, as it says when asked with Client.hello(), or it is older than the question. A newer tls-forge, or a request that does not need it, is the fix.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## resolve\_binary() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 resolve_binary(explicit: str | os.PathLike[str] | None = None) -> str
 ```
+
+```python title="Example"
+print(tlsforge.resolve_binary())
+```
+
+```text title="Response" linenums="0"
+/usr/local/bin/tls-forge
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 Find the transport binary.
 
@@ -334,26 +744,66 @@ Find the transport binary.
 <div class="tf-param"><div class="tf-param__head"><a href="#binarynotfound"><code class="tf-param__name">BinaryNotFound</code></a></div><div class="tf-param__text">when nothing was found, or when a path that was named does not exist.</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## bundled\_binary() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 bundled_binary(platform: str = sys.platform) -> Path
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 The binary shipped inside this package, whether or not it is there.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## exe\_name() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 exe_name(platform: str = sys.platform) -> str
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 The executable's name, which is the command's name, not the package's.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## ENV\_VAR { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```python linenums="0"
 ENV_VAR = 'TLSFORGE_BIN'
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 The environment variable that overrides every other source.
+
+</div>
+
+</div>

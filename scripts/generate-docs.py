@@ -9,6 +9,11 @@ signature or declaration in a code panel without line numbers, what its
 documentation says, and its parameters, fields or flags as a list of name,
 type and description. A construct the parsers below do not know is an error,
 not something left out.
+
+Each symbol is then a section of two columns, as Stripe's reference reads: its
+documentation on the left, and on the right its signature with the examples
+scripts/reference-examples.json gives it, a request and what came back. An
+example for a symbol a page does not have is an error too.
 """
 
 from __future__ import annotations
@@ -32,6 +37,7 @@ import typing
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "docs" / "reference"
+EXAMPLES = ROOT / "scripts" / "reference-examples.json"
 GO_PACKAGES = (".", "./profile", "./proxy", "./cookie", "./capture", "./fingerprint", "./echo", "./daemon", "./browser")
 GO_DESCRIPTIONS = {
     "tlsforge": "Client, requests, responses, and options",
@@ -860,6 +866,83 @@ def fields_page() -> str:
     return "\n".join(page)
 
 
+# Sections of two columns.
+
+SYMBOL_HEADING = re.compile(r"^(#{2,6}) (.+) \{ \.(tf-symbol|tf-member) \}$")
+ANY_HEADING = re.compile(r"^(#{1,6}) ")
+
+
+def example_panels(examples: list[dict[str, typing.Any]]) -> list[str]:
+    """Examples as code panels: code with its lines numbered, output without."""
+    out: list[str] = []
+    for example in examples:
+        if set(example) - {"title", "lang", "code", "plain"} or not {"title", "lang", "code"} <= set(example):
+            raise RuntimeError(f"reference examples: an example of other fields: {sorted(example)}")
+        numbers = ' linenums="0"' if example.get("plain") else ""
+        out += [f'```{example["lang"]} title="{example["title"]}"{numbers}', example["code"], "```", ""]
+    return out
+
+
+def sectioned(page: str, examples: dict[str, list[dict[str, typing.Any]]]) -> str:
+    """A page whose every symbol is a section: its heading, then its code (the
+    signature right under the heading, and its examples), then the rest of what
+    it says. A section ends at a heading of its level or above, or another
+    symbol's; a heading of its own documentation stays in it."""
+    lines = page.split("\n")
+    out: list[str] = []
+    used: set[str] = set()
+    i = 0
+    while i < len(lines):
+        symbol = SYMBOL_HEADING.match(lines[i])
+        if not symbol:
+            out.append(lines[i])
+            i += 1
+            continue
+        level, body, j, fenced = len(symbol.group(1)), [], i + 1, False
+        while j < len(lines):
+            heading_line = None if fenced else ANY_HEADING.match(lines[j])
+            if heading_line and (len(heading_line.group(1)) <= level or SYMBOL_HEADING.match(lines[j])):
+                break
+            if lines[j].startswith("```"):
+                fenced = not fenced
+            body.append(lines[j])
+            j += 1
+        while body and not body[0].strip():
+            body.pop(0)
+        code: list[str] = []
+        if body and body[0].startswith("```"):
+            end = next(k for k in range(1, len(body)) if body[k].startswith("```"))
+            code, body = body[:end + 1] + [""], body[end + 1:]
+        name = re.sub(r"\\(.)", r"\1", symbol.group(2))
+        if name in examples:
+            code += example_panels(examples[name])
+            used.add(name)
+        while body and not body[0].strip():
+            body.pop(0)
+        while body and not body[-1].strip():
+            body.pop()
+        out += ['<div class="tf-ref" markdown>', "", lines[i], ""]
+        if code:
+            out += ['<div class="tf-ref__code" markdown>', "", *code, "</div>", ""]
+        if body:
+            out += ['<div class="tf-ref__docs" markdown>', "", *body, "", "</div>", ""]
+        out += ["</div>", ""]
+        i = j
+    unused = sorted(set(examples) - used)
+    if unused:
+        raise RuntimeError(f"reference examples for symbols the page does not have: {', '.join(unused)}")
+    return "\n".join(out)
+
+
+def with_examples(pages: dict[str, str], examples: dict[str, dict[str, list[dict[str, typing.Any]]]]) -> dict[str, str]:
+    """Every page of symbols as sections, with the examples given for it."""
+    unknown = sorted(set(examples) - set(pages))
+    if unknown:
+        raise RuntimeError(f"reference examples for pages there are not: {', '.join(unknown)}")
+    return {name: sectioned(page, examples.get(name, {})) if name != "profile-fields.md" and name != "go-api.md" else page
+            for name, page in pages.items()}
+
+
 def generate() -> dict[str, str]:
     with tempfile.TemporaryDirectory(prefix="tls-forge-docs-") as temporary:
         temporary_path = Path(temporary)
@@ -873,7 +956,7 @@ def generate() -> dict[str, str]:
             "profile-fields.md": fields_page(),
         }
         pages.update(go_pages(env))
-        return pages
+        return with_examples(pages, json.loads(EXAMPLES.read_text()))
 
 
 def main() -> int:

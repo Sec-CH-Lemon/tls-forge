@@ -24,11 +24,32 @@ Run `tls-forge <command> --help` for a command's flags.
 
 Start with `tls-forge compare`: it opens your browser, measures it, measures this library, and prints the differences. There should not be any.
 
+<div class="tf-ref" markdown>
+
 ## fetch { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```bash linenums="0"
 tls-forge fetch [flags] [url...]
 ```
+
+```bash title="Example"
+tls-forge fetch -i https://example.com/
+```
+
+```text title="Response" linenums="0"
+200 https://example.com/
+content-type: text/html; charset=utf-8
+server: cloudflare
+…
+
+<!doctype html><html lang=en><head><meta charset=utf-8>…
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 <div class="tf-params">
 <p class="tf-params__title">What to fetch</p>
@@ -109,11 +130,40 @@ tls-forge fetch [flags] [url...]
 <div class="tf-param" id="fetch-keylog"><div class="tf-param__head"><code class="tf-param__name">--keylog</code><span class="tf-param__type">string</span></div><div class="tf-param__text">add the TLS secrets of every connection the run makes, to its sites and its proxy, to this file, as browsers do to the one SSLKEYLOGFILE names: Wireshark given it reads a capture of the run as plainly as it was sent, and so does anybody else who has it</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## capture { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```bash linenums="0"
 tls-forge capture [flags]
 ```
+
+```bash title="Example"
+tls-forge capture --headless
+```
+
+```text title="Response" linenums="0"
+────────────────────────────────────────────────────────────────────────
+  user-agent       Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36
+  JA4              t13d1517h2_8daaf6152771_cb7bf5808d99
+  ALPN             h2, http/1.1
+  HTTP/2           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p
+  …
+  client hints     21 of the 21 a server asks for, sent when asked
+────────────────────────────────────────────────────────────────────────
+
+Re-run with --install to keep this profile, or --save <path> to write it out.
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 <div class="tf-params">
 <p class="tf-params__title">Flags</p>
@@ -133,11 +183,47 @@ tls-forge capture [flags]
 <div class="tf-param" id="capture-set"><div class="tf-param__head"><code class="tf-param__name">--set</code><span class="tf-param__type">stringArray</span></div><div class="tf-param__text">with --save or --install, a value the profile keeps of this machine, NAME=VALUE as its header carries it; again for more</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## compare { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```bash linenums="0"
 tls-forge compare [flags]
 ```
+
+```bash title="Example"
+tls-forge compare --headless
+```
+
+```text title="Response" linenums="0"
+--- browser  Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36
+             Google Chrome 156.0.8078.80, macOS 27.0.1, arm 64, headless
++++ client   profile chrome_156_macos
+
+TLS
+  ja4                    t13d1517h2_8daaf6152771_cb7bf5808d99
+  …
+
+HTTP/2
+  http2_akamai           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p
+- header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36, …
++ header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … Chrome/156.0.0.0 Safari/537.36, …
+  …
+
+2 field(s) differ. Fix by measuring this browser and using the profile
+it produces:
+  tls-forge capture --save my-browser.json
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 <div class="tf-params">
 <p class="tf-params__title">Flags</p>
@@ -154,19 +240,83 @@ tls-forge compare [flags]
 <div class="tf-param" id="compare-host"><div class="tf-param__head"><code class="tf-param__name">--host</code><span class="tf-param__type">string</span><span class="tf-param__label">default <code>&quot;localhost&quot;</code></span></div><div class="tf-param__text">with --manual, the name or address the page is opened at, which its certificate is made for</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## profiles { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```bash linenums="0"
 tls-forge profiles [flags]
 ```
 
+```bash title="Example"
+tls-forge profiles
+```
+
+```text title="Response" linenums="0"
+Measured from a real browser.
+  * kept on this machine, and used ahead of anything shipped
+  < what you get when no profile is named
+
+  chrome_151
+  …
+  chrome_156
+    chrome_156_linux
+    chrome_156_macos          <
+    chrome_156_windows
+
+From the tls-client catalogue, a handshake but no headers of its own:
+
+  …
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 This command takes no flags.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## proxy { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```bash linenums="0"
 tls-forge proxy [flags]
 ```
+
+```bash title="Example"
+tls-forge proxy --addr 127.0.0.1:8080
+```
+
+```text title="Response" linenums="0"
+────────────────────────────────────────────────────────────────────────
+  profile     chrome_156_macos · shipped with tls-forge
+  browser     Chrome 156 on macOS
+  …
+────────────────────────────────────────────────────────────────────────
+proxy listening on 127.0.0.1:8080
+
+  export HTTPS_PROXY=http://127.0.0.1:8080
+  curl --proxy http://127.0.0.1:8080 --cacert '/Users/you/Library/Application Support/tls-forge/ca.pem' https://tls.browserleaks.com/json
+
+…
+Ctrl-C to stop.
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 <div class="tf-params">
 <p class="tf-params__title">Flags</p>
@@ -183,11 +333,37 @@ tls-forge proxy [flags]
 <div class="tf-param" id="proxy-max-request-body"><div class="tf-param__head"><code class="tf-param__name">--max-request-body</code><span class="tf-param__type">int</span><span class="tf-param__label">default <code>16777216</code></span></div><div class="tf-param__text">largest request body to buffer, in bytes</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## serve { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```bash linenums="0"
 tls-forge serve [flags]
 ```
+
+```bash title="Example"
+tls-forge serve
+```
+
+```text title="Response" linenums="0"
+https://localhost:62079
+  /          a page that measures the browser that opens it
+  /api/all   this connection's fingerprint, as JSON
+
+The certificate is self-signed and generated for this run, so clients
+must be told to accept it (curl -k, tlsforge --insecure).
+Ctrl-C to stop.
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 <div class="tf-params">
 <p class="tf-params__title">Flags</p>
@@ -196,11 +372,31 @@ tls-forge serve [flags]
 <div class="tf-param" id="serve-session-tickets"><div class="tf-param__head"><code class="tf-param__name">--session-tickets</code></div><div class="tf-param__text">allow TLS session resumption</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## daemon { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```bash linenums="0"
 tls-forge daemon [flags]
 ```
+
+```bash title="Example"
+echo '{"id":1,"engine_major":1,"url":"https://example.com/"}' | tls-forge daemon
+```
+
+```json title="Response" linenums="0"
+{"id":1,"status":200,"url":"https://example.com/","body":"<!doctype html><html lang=en>…","headers":{"content-type":["text/html; charset=utf-8"],…},"cookies":[]}
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 <div class="tf-params">
 <p class="tf-params__title">Flags</p>
@@ -216,10 +412,34 @@ tls-forge daemon [flags]
 <div class="tf-param" id="daemon-proxy-stdin"><div class="tf-param__head"><code class="tf-param__name">--proxy-stdin</code></div><div class="tf-param__text">take the proxy URL from the first line of standard input, an init line, which keeps it off the command line and out of the environment</div></div>
 </div>
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ## version { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```bash linenums="0"
 tls-forge version [flags]
 ```
 
+```bash title="Example"
+tls-forge version
+```
+
+```text title="Response" linenums="0"
+tls-forge v1.0.0
+```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 This command takes no flags.
+
+</div>
+
+</div>

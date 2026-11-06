@@ -14,7 +14,11 @@ The authoritative field is RawClientHello: the bytes as they arrived. Every list
 
 ## Constants
 
+<div class="tf-ref" markdown>
+
 ### SourceBrowser, SourceTLSFetch { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 const (
@@ -23,11 +27,23 @@ const (
 )
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Source labels which side produced a capture.
+
+</div>
+
+</div>
 
 ## Types
 
+<div class="tf-ref" markdown>
+
 ### Brand { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Brand struct {
@@ -36,9 +52,21 @@ type Brand struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Brand is one entry of navigator.userAgentData.brands.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Capture { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Capture struct {
@@ -71,27 +99,63 @@ type Capture struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Capture is one client's complete self-description.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Capture.Hello() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (c *Capture) Hello() (*fingerprint.ClientHello, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Hello re-parses the authoritative bytes.
 
 Comparison goes through here rather than through the rendered lists so that a mistake in the rendering cannot make two different handshakes compare equal.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Capture.UserAgent() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (c *Capture) UserAgent() string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 UserAgent returns the user-agent the request carried, which is the one that has to agree with the TLS handshake.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### HTTP1 { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type HTTP1 struct {
@@ -113,17 +177,41 @@ type HTTP1 struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 HTTP1 is what an HTTP/1.1 client sent.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### HTTP1.Fingerprint() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (h *HTTP1) Fingerprint() *fingerprint.HTTP1
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Fingerprint converts the rendered HTTP/1.1 view into its comparable form.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### HTTP2 { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type HTTP2 struct {
@@ -145,25 +233,61 @@ type HTTP2 struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 HTTP2 is the readable rendering of the connection preamble and first request.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### FromHTTP2() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func FromHTTP2(h *fingerprint.HTTP2) *HTTP2
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 FromHTTP2 renders observed HTTP/2 traffic for humans.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### HTTP2.Fingerprint() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (h *HTTP2) Fingerprint() *fingerprint.HTTP2
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Fingerprint converts the rendered HTTP/2 view back into the comparable form.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### HeaderField { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type HeaderField struct {
@@ -172,9 +296,21 @@ type HeaderField struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 HeaderField is one header in wire order.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Navigator { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Navigator struct {
@@ -197,11 +333,23 @@ type Navigator struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Navigator is what the browser says about itself in JavaScript.
 
 It is collected because the HTTP layer has to agree with it: a request whose user-agent claims Chrome 151 while sec-ch-ua-platform-version claims a macOS that shipped with Chrome 120 is a contradiction no real browser produces. The high-entropy hints are stored verbatim rather than re-derived for the same reason — inventing one would be inventing a machine.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Priority { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Priority struct {
@@ -212,9 +360,21 @@ type Priority struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Priority is a standalone PRIORITY frame.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Setting { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Setting struct {
@@ -224,9 +384,21 @@ type Setting struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Setting is one HTTP/2 setting, named.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### TLS { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type TLS struct {
@@ -257,17 +429,41 @@ type TLS struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 TLS is the readable rendering of a ClientHello.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### FromClientHello() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func FromClientHello(hello *fingerprint.ClientHello) TLS
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 FromClientHello renders a parsed hello for humans.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Value { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Value struct {
@@ -276,4 +472,12 @@ type Value struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Value is a wire code together with its human name, so the JSON is readable without a registry lookup and still exact.
+
+</div>
+
+</div>

@@ -27,7 +27,11 @@ So the id is echoed on EVERY response, including every error path, and a caller 
 
 ## Constants
 
+<div class="tf-ref" markdown>
+
 ### BodyUTF8, BodyBase64 { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 const (
@@ -36,49 +40,109 @@ const (
 )
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 How a body is spelled on the wire.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Protocol { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 const Protocol = 3
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Protocol is the version of the protocol this daemon speaks: 3 requires an exact engine\_major on requests and init, and reports compiled identity; 2 answers control lines. A daemon of protocol 1 predates them, and answers hello as a request with no url.
+
+</div>
+
+</div>
 
 ## Functions
 
+<div class="tf-ref" markdown>
+
 ### AnswerInit() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func AnswerInit(out io.Writer, id uint64, err error) error
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 AnswerInit writes the answer to the init line to out: none of an error, the daemon being ready for requests, or the error, without the password of the proxy or of any URL it quotes.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Serve() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func Serve(in io.Reader, out io.Writer, client Client) error
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Serve reads requests until the input ends.
 
 It returns an error only for a broken pipe. Everything a request can do wrong comes back as a response with an Error field, attached to that request's id — a daemon that exited on a bad URL would take the session's cookie jar with it.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### ServeContext() { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func ServeContext(ctx context.Context, in io.Reader, out io.Writer, client Client) error
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 ServeContext is Serve until ctx is done.
 
 Once it is, no more requests are taken, the request in flight is cancelled and answered with why, and ServeContext returns ctx's error. The input and the output are the caller's, and are not closed. A read already waiting on the input goes on waiting, on a goroutine of its own, until the input ends, which is when its owner closes it: the daemon command's process ends. A write waiting on the output is given a deadline in the past once the answer to the request in flight has had answerGrace to be written, when the output takes one, as a net.Conn does; one that does not is its owner's to release.
 
+</div>
+
+</div>
+
 ## Types
 
+<div class="tf-ref" markdown>
+
 ### BrowserContext { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type BrowserContext struct {
@@ -90,9 +154,21 @@ type BrowserContext struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 BrowserContext is a request's browser context as a line carries it: the library's tlsforge.BrowserContext, field for field.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Client { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Client interface {
@@ -101,9 +177,21 @@ type Client interface {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Client is the part of \*tlsforge.Client the daemon needs, named so tests can substitute one without opening a socket.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Init { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Init struct {
@@ -112,17 +200,41 @@ type Init struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Init is what the init line says: the first line of a daemon that takes its proxy on its input, read before the client that goes through it is made, as {"id":1,"control":"init","proxy":"http://user:pass@host:port"}. A command line is what ps shows every user of the machine, and the environment is what the process's owner can read while it runs; the input is read once, and gone.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### ReadInit() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func ReadInit(in io.Reader) (Init, io.Reader, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 ReadInit reads the init line from in, and is the input after it, where the requests are. A line that is no init line, or that names no proxy, is an error, with the line's id when it has one; so is an input that ends first.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Request { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Request struct {
@@ -169,9 +281,21 @@ type Request struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Request is one line of input.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Response { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Response struct {
@@ -202,4 +326,12 @@ type Response struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Response is one line of output.
+
+</div>
+
+</div>

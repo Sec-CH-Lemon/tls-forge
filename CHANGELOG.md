@@ -419,6 +419,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   the search results, tables, cards and the phone menu follow the same
   steps. Borders and dividers are drawn as outlines and inset shadows, which
   take no room. Hovering anything moves nothing.
+- Lay the reference out as Stripe's is, and give every page a map. From
+  1440px wide, a section's code stands to the right of its text: the
+  signature, an example and, where the call answers, the response it got,
+  shortened with an ellipsis. While the text scrolls, the code stays in view
+  under the header; code taller than the window then scrolls in its column.
+  On the right, a map of the page marks the section being read and jumps to
+  any other. The examples are real runs of the CLI and the Go, Node.js and
+  Python packages, kept in `scripts/reference-examples.json`. A link to a
+  section put its heading 93px further down than the step under the header:
+  Material's scroll margin on headings came on top of the page's own.
+  `make docs-check` reads a heading's attribute list as MkDocs does: since
+  the reference's headings carried one, the link to `cli.md#proxy` failed it.
 
 ## [1.0.0] - Unreleased
 

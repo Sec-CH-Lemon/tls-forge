@@ -224,5 +224,72 @@ class NodeTests(unittest.TestCase):
         self.assertIn("binary.d.ts declares no lost", str(refused.exception))
 
 
+class SectionTests(unittest.TestCase):
+    PAGE = "\n".join((
+        "# Package", "", "Intro.", "",
+        "## Types", "",
+        "### Options { .tf-symbol }", "",
+        '```go linenums="0"', "type Options struct {", "```", "",
+        "Options configure it.", "",
+        "#### Scope", "",
+        "A heading of its own documentation.", "",
+        "#### New() { .tf-member }", "",
+        '```go linenums="0"', "func New() *Options", "```", "",
+        "## Functions", "",
+        "### MAX\\_SIZE { .tf-symbol }", "",
+        "No signature first.", "",
+    ))
+    EXAMPLES = {
+        "New()": [
+            {"title": "Example", "lang": "go", "code": "options := New()"},
+            {"title": "Output", "lang": "text", "code": "ok", "plain": True},
+        ],
+        "MAX_SIZE": [{"title": "Example", "lang": "go", "code": "fmt.Println(MAX_SIZE)"}],
+    }
+
+    def test_each_symbol_is_a_section_of_its_code_and_what_it_says(self):
+        page = GENERATOR.sectioned(self.PAGE, self.EXAMPLES)
+        self.assertIn("\n".join((
+            '<div class="tf-ref" markdown>', "",
+            "### Options { .tf-symbol }", "",
+            '<div class="tf-ref__code" markdown>', "",
+            '```go linenums="0"', "type Options struct {", "```", "",
+            "</div>", "",
+            '<div class="tf-ref__docs" markdown>', "",
+            "Options configure it.", "",
+            "#### Scope", "",
+            "A heading of its own documentation.", "",
+            "</div>", "",
+            "</div>",
+        )), page)
+        # A member's examples follow its signature: code numbered, output not.
+        self.assertIn("\n".join((
+            '```go linenums="0"', "func New() *Options", "```", "",
+            '```go title="Example"', "options := New()", "```", "",
+            '```text title="Output" linenums="0"', "ok", "```",
+        )), page)
+        # A heading of a level above ends the section; one with no signature keeps its text.
+        self.assertIn("</div>\n\n## Functions", page)
+        self.assertIn('```go title="Example"\nfmt.Println(MAX_SIZE)\n```\n\n</div>\n\n<div class="tf-ref__docs" markdown>\n\nNo signature first.', page)
+        self.assertEqual(page.count('<div class="tf-ref" markdown>'), 3)
+
+    def test_an_example_for_a_symbol_the_page_does_not_have_is_refused(self):
+        with self.assertRaises(RuntimeError) as refused:
+            GENERATOR.sectioned(self.PAGE, {"Lost()": self.EXAMPLES["New()"]})
+        self.assertIn("Lost()", str(refused.exception))
+        with self.assertRaises(RuntimeError):
+            GENERATOR.with_examples({"python-api.md": self.PAGE}, {"gone.md": {}})
+        with self.assertRaises(RuntimeError):
+            GENERATOR.example_panels([{"title": "Example", "lang": "go", "code": "x", "extra": 1}])
+
+    def test_the_examples_shipped_are_each_a_symbols_of_a_page(self):
+        examples = GENERATOR.json.loads(GENERATOR.EXAMPLES.read_text())
+        self.assertEqual(sorted(examples), ["cli.md", "go/tlsforge.md", "node-api.md", "python-api.md"])
+        for page, symbols in examples.items():
+            for symbol, panels in symbols.items():
+                GENERATOR.example_panels(panels)
+                self.assertTrue(panels and panels[0]["title"] == "Example", (page, symbol))
+
+
 if __name__ == "__main__":
     unittest.main()

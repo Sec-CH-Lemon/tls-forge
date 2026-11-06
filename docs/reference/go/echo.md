@@ -14,35 +14,79 @@ Running locally also removes the third-party dependency that makes this kind of 
 
 ## Types
 
+<div class="tf-ref" markdown>
+
 ### Option { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Option func(*options)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Option configures a Server.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### WithAddr() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func WithAddr(addr string) Option
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 WithAddr sets the listen address. The default binds an ephemeral port on loopback, which is what makes it safe to run several at once — in tests, for instance: at 127.0.0.1 and at \[::1\] on that port, both of which localhost names (listenLoopback).
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### WithHost() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func WithHost(host string) Option
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 WithHost sets the hostname used in URL and in the certificate. "localhost" rather than an IP keeps the browser's SNI populated, which JA4 records as `d` instead of `i`.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### WithManual() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func WithManual(enabled bool) Option
 ```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 WithManual serves a browser a person opens the page in, rather than one launched with its certificate check turned off: Firefox, Safari, a phone's.
 
@@ -50,11 +94,23 @@ Such a browser has to be talked into this run's certificate first, and the visit
 
 It is measured over HTTP/2 alone: a browser nobody launched cannot be sent to the HTTP/1.1 listener without the trip showing in what it sends.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### WithSessionTickets() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func WithSessionTickets(enabled bool) Option
 ```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 WithSessionTickets re-enables TLS session resumption, which is off by default.
 
@@ -62,7 +118,15 @@ Off by default because resumption changes the fingerprint being measured: a resu
 
 Turn it on to study resumption itself.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Server { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Server struct {
@@ -70,29 +134,69 @@ type Server struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Server is the listener. The zero value is not usable; call Start.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Start() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func Start(opts ...Option) (*Server, error)
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Start binds the listener and begins accepting. The caller must Close it.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Server.Addr() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Server) Addr() string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Addr is the address actually bound, with the resolved port.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Server.Await() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Server) Await(ctx context.Context) (*Session, error)
 ```
+
+</div>
+
+<div class="tf-ref__docs" markdown>
 
 Await blocks until a browser has completed a capture: it navigated to the capture page, and the page reported back what JavaScript can see.
 
@@ -100,55 +204,135 @@ The session returned is the one that carried the DOCUMENT NAVIGATION, which is n
 
 Measured, before this was separated out: the capture came back with `content-length, sec-ch-ua-platform, user-agent, content-type, origin…` — the header order of an XHR — presented as the browser's navigation fingerprint. It is wrong in a way that looks entirely plausible, which is why the navigation is tracked explicitly rather than inferred from whichever connection spoke last.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Server.CaptureURL() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Server) CaptureURL() string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 CaptureURL is the protocol-restricted endpoint the capture page navigates through after the main listener has recorded HTTP/2.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Server.Certificate() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Server) Certificate() []byte
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Certificate exposes the generated certificate so a client can pin it instead of disabling verification wholesale.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Server.Close() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Server) Close() error
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Close stops accepting, ends open connections and waits for their handlers.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Server.Panics() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Server) Panics() []string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Panics is a diagnostic: what has been recovered from connection handlers, the latest of them, which should be nothing. A handler that panics costs its connection and not the process, and is kept here rather than swallowed, so that a program or a test running the server can ask afterwards whether one did. Each call hands back a copy.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Server.Sessions() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Server) Sessions() []*Session
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Sessions returns the latest connections observed, 128 of them, oldest first: a server left running keeps what is recent, not everything.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Server.URL() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Server) URL() string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 URL is the base URL clients should use.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 ### Session { .tf-symbol }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 type Session struct {
@@ -156,28 +340,72 @@ type Session struct {
 }
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Session is everything one connection revealed about its client.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Session.Capture() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Session) Capture(source string) *capture.Capture
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Capture renders the session in the exchange format.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Session.Navigator() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Session) Navigator() *capture.Navigator
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Navigator reports the JavaScript-side data, if the capture page delivered it.
 
+</div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
 #### Session.Remote() { .tf-member }
+
+<div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Session) Remote() string
 ```
 
+</div>
+
+<div class="tf-ref__docs" markdown>
+
 Remote is the client's address, which is the only way to tell two otherwise identical local sessions apart.
+
+</div>
+
+</div>
