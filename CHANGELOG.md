@@ -20,6 +20,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix a fresh answer coded with deflate never kept by the cache over HTTP/2.
+  zlib's decoder stops at its checksum, before the stream's end, so the body
+  was never read to its end and the cache never saw it whole. What a body
+  has past its coding's end is now read and passed over, as Chromium's
+  `GzipSourceStream` does.
+
 - Fix an answer the cache would keep, left unread at a Critical-CH restart,
   drained as no body of the transport's: its HTTP/2 stream stayed in the
   priority lists, and its request's end cut the drain over HTTP/1.1, closing

@@ -320,6 +320,12 @@ func readBody(res *fhttp.Response, method string, limit int64, policies ...behav
 	case err != nil:
 		return nil, "", decodingError(codings, err)
 	}
+	// What the body has past its coding's end, where a decoder stops before
+	// the transport's body does (zlib's deflate at its checksum), is read and
+	// passed over, as Chromium's GzipSourceStream reads the bytes after the
+	// stream: the body ends, so the cache keeps it and its connection goes on.
+	// No more than the limit of it, and what it says is not the answer's.
+	_, _ = io.CopyN(io.Discard, body, limit)
 	return read, strings.Join(codings, ", "), nil
 }
 
