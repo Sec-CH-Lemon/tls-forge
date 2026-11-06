@@ -20,6 +20,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix the noise of the network client hints (`rtt`, `downlink`) of an IPv6
+  address drawn from it without its brackets: Chrome draws it from the host
+  as GURL says it, `[::1]`, and the hints of such an address now are those.
+
 - Fix a `Host` a request without a browser context was given reaching only
   HTTP/1.1: over HTTP/2 and HTTP/3 the request still said the URL's host as
   its `:authority`. It now says the given one there too, for its URL's

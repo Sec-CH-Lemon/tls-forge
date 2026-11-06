@@ -85,13 +85,24 @@ func (c *Client) prepareNetworkFrom(input *NetworkContext, load func(networkqual
 func (c *Client) networkHintValues(host string) Header {
 	values := Header(c.profile.ClientHints).Clone()
 	if c.network != nil {
-		hints := c.network.state.Hints(host)
+		hints := c.network.state.Hints(gurlHost(host))
 		for _, name := range []string{"rtt", "downlink", "ect"} {
 			values.Set(name, hints[name])
 		}
 	}
 	return values
 }
+
+// gurlHost is host as Chromium's GURL::GetHost says it, which its client
+// hints' noise is drawn from (content/browser/client_hints, 156): an IPv6
+// address in its brackets.
+func gurlHost(host string) string {
+	if strings.Contains(host, ":") {
+		return "[" + host + "]"
+	}
+	return host
+}
+
 func (n *networkObserver) publicHost(host string) bool {
 	host = strings.ToLower(strings.TrimSuffix(host, "."))
 	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
