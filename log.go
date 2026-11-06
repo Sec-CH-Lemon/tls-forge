@@ -311,11 +311,11 @@ func (r *requestLog) redirect(hop, status int, location string, header map[strin
 }
 
 // stopped is a redirect that is not followed, the chain being as long as a
-// request lets one be.
-func (r *requestLog) stopped(hop, status int, location string) {
+// request lets one be: limit is how many redirects it follows.
+func (r *requestLog) stopped(hop, status int, location string, limit int) {
 	took := r.step("redirect")
 	r.log.Warn("redirect not followed", "hop", hop, "status", status, "location", redact.URL(location),
-		"limit", maxRedirects, "took", took)
+		"limit", limit, "took", took)
 }
 
 // preflight is the answer to a CORS preflight: allowed, or why not.

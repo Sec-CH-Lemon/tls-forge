@@ -185,8 +185,8 @@ func TestTraceDoesNotReportARedirectThatWasRefused(t *testing.T) {
 	// Twenty requests were made, so nineteen redirects were followed. The
 	// twentieth was the one the chain stopped at, and is not reported as one
 	// that was taken.
-	if len(seen.redirects) != maxRedirects-1 {
-		t.Errorf("redirects reported = %d, want %d", len(seen.redirects), maxRedirects-1)
+	if want := legacyPolicy().Int("http.redirects_navigation"); len(seen.redirects) != want {
+		t.Errorf("redirects reported = %d, want %d", len(seen.redirects), want)
 	}
 }
 

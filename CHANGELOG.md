@@ -20,6 +20,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix the log's `redirect not followed` saying a `limit` of 20 for every
+  request: a navigation, a form and a request without a browser context
+  follow 19 redirects, `fetch()` and an XHR 20, and the record now says the
+  limit of the request it stopped.
+
 - Security: keep a URL's password out of the log where a header field quotes
   it. A redirect's `Location` (and `Referer`, `Content-Location`, `:path`) had
   its query masked but its `user:password@` written as it came, in the

@@ -973,13 +973,15 @@ func followRedirect(req *fhttp.Request, via []*fhttp.Request) error {
 		return err
 	}
 	ch.redirects++
+	// The redirects a request follows: Fetch/XHR's, or the navigation and
+	// form loader's, which stops one request earlier, as each was measured.
 	limit := ch.client.behavior().Int("http.redirects_navigation")
 	if ch.browser != nil && (ch.browser.kind == KindFetch || ch.browser.kind == KindXHR) {
 		limit = ch.client.behavior().Int("http.redirects_fetch")
 	}
 	if ch.redirects > limit {
 		if r != nil {
-			r.stopped(ch.redirects, req.Response.StatusCode, shownURL(req).String())
+			r.stopped(ch.redirects, req.Response.StatusCode, shownURL(req).String(), limit)
 		}
 		return fmt.Errorf("the %s redirect was not followed", ordinal(limit+1))
 	}

@@ -23,11 +23,6 @@ import (
 // unasked; and for a request in a browser context, every hop worked out again
 // from what the hops before it say.
 
-// maxRedirects is Fetch/XHR's number of followed redirects,excluding the
-// initial request. Chromium navigation/form loader stops one request earlier.
-// Preserve both separately measured boundaries rather than generalize one.
-var maxRedirects = legacyPolicy().Int("http.redirects_fetch")
-
 // chain is what a request carries from hop to hop of its redirects, kept in
 // its context for followRedirect.
 type chain struct {
