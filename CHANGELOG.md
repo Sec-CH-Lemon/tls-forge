@@ -375,6 +375,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   kept the tabs above it. On phones, long names in table cards wrap instead
   of being cut at the card's edge, and short inline code such as
   `--request-kind` no longer breaks after a hyphen.
+- Fix the documentation's section navigation. The current page's name, set
+  in bold, wrapped onto a second line where the regular weight fit (the
+  sidebar entry "Profiles and compatibility" grew from one line to two when
+  opened). Sidebar entries now span the column, lined up with the header
+  panel, and a highlighted entry no longer touches the next one. A section
+  title has one size and place in every section: where it links to the
+  section's overview it was larger, set further in, and pushed the entries
+  19px down. The section tabs sit on the page background under the header
+  panel instead of on a second, square-cornered bar.
 
 ## [1.0.0] - Unreleased
 

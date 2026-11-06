@@ -258,14 +258,16 @@ body .md-search-result__article p {
   }
 }
 
-/* Top-level sections stay in one centered row. Home is the brand link. */
+/* Top-level sections stay in one centered row under the header panel, on the
+   page's own background: a second slab under the rounded panel looked stuck
+   on. Home is the brand link. */
 .md-tabs {
   height: 2.75rem;
   max-width: var(--tf-shell-width);
   margin: 0 auto;
   border-bottom: 1px solid var(--tf-line);
   color: var(--tf-muted);
-  background: var(--tf-header);
+  background: transparent;
 }
 .md-tabs[hidden] { display: none; }
 .md-tabs > .md-grid { max-width: var(--tf-shell-width); margin: 0 auto; padding: 0 1rem; }
@@ -543,7 +545,28 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
     border-right: 0;
     background: transparent;
   }
-  .md-sidebar--primary .md-sidebar__scrollwrap { padding-top: 2.25rem; }
+  /* The section lines up with the header panel: highlights from its edge, text
+     under its logo. That room keeps a bold current page on one line, and a
+     small gap keeps a highlight from touching the next. */
+  .md-sidebar--primary .md-sidebar__scrollwrap { padding: 2.25rem 0 2.5rem; }
+  [dir] .md-sidebar--primary .md-nav--primary > .md-nav__list { padding-left: 0; }
+  [dir] .md-sidebar--primary .md-nav--primary .md-nav__item > .md-nav__link { margin-right: 0; padding-right: 1rem; padding-left: 1rem; }
+  .md-sidebar--primary .md-nav--primary .md-nav .md-nav__item + .md-nav__item { margin-top: .125rem; }
+  /* A section title is a heading, not an entry: no highlight. Where the
+     section has an index page the title is a link inside a container; the link
+     takes the title's own size and place, so the title and the first entry
+     stand where they stand in every section, and the open overview shows by
+     its color. */
+  [dir] .md-sidebar--primary .md-nav__item--section > .md-nav__link { background: transparent; }
+  [dir] .md-sidebar--primary .md-nav__item--section > .md-nav__container > a.md-nav__link {
+    padding: 0;
+    color: inherit;
+    background: transparent;
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  [dir] .md-sidebar--primary .md-nav__item--section > .md-nav__container > a.md-nav__link:hover,
+  [dir] .md-sidebar--primary .md-nav__item--section > .md-nav__container > a.md-nav__link--active { color: var(--tf-accent); }
   .md-content { grid-column: 2; width: 100%; min-width: 0; max-width: none; margin: 0; }
   .md-content__inner.md-typeset { width: 100%; max-width: none; margin: 0 !important; padding: 2.25rem 0 5rem; }
   .md-sidebar--primary .md-nav--primary > .md-nav__title { display: none; }
@@ -647,7 +670,7 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
     display: flex;
     min-height: 2.75rem;
     align-items: center;
-    margin: .08rem 0;
+    margin: .125rem 0;
     padding: 0 .7rem;
     border: 0;
     border-radius: .5rem;
@@ -717,7 +740,7 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
     display: flex;
     min-height: 2.75rem;
     align-items: center;
-    margin: .08rem 0;
+    margin: .125rem 0;
     padding: 0 .7rem;
     border: 0;
     border-radius: .5rem;
