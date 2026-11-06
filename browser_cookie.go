@@ -35,6 +35,12 @@ func (j *keptJar) RawSetCookieHeaders(u *url.URL, h fhttp.Header) bool {
 		// The placeholder pair always parses, so the field is one cookie.
 		c := (&fhttp.Response{Header: fhttp.Header{"Set-Cookie": []string{"netfp=placeholder;" + attrs}}}).Cookies()[0]
 		c.Name, c.Value, c.Raw = name, value, line
+		// Its Expires as Chrome reads it, whose words go in any order and
+		// whose year may have two digits ("Thu, 01-Jan-70 00:00:01 GMT"),
+		// where Go's reads two layouts alone.
+		if raw, ok := cookieExpires(attrs); ok {
+			c.Expires, _ = cookieExpiry(raw)
+		}
 		c.Quoted = false
 		cookies = append(cookies, c)
 	}

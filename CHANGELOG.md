@@ -20,6 +20,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix a cookie's `Expires` read by Go's two layouts alone: a cookie deleted
+  with `Expires=Thu, 01-Jan-70 00:00:01 GMT`, as many servers write it, lived
+  on as a session's. A Chrome profile's jar now reads it as Chromium's
+  `ParseCookieExpirationTime` does: its words in any order, a two-digit year
+  1970 to 2069.
+
 - Fix the cache answering a request with `If-Match` or `If-Unmodified-Since`
   itself, from what it kept, where its server would have said 412. Such a
   request now goes to the origin and its answer is not kept, as Chromium's
