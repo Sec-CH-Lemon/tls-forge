@@ -38,6 +38,10 @@ type layouts struct {
 	// connection's ALPS asks for client hints the request does not carry
 	// (chain.alpsBlock): nil for none, and nil when it is nil.
 	asked func() fhttp.Header
+	// authority, when it is not empty, is the Host a request was given for
+	// its URL's origin: Request.Host, which HTTP/2 and HTTP/3 write as
+	// :authority, as the HTTP/1.1 block has it as Host.
+	authority string
 }
 
 type layoutsKey struct{}
@@ -310,6 +314,9 @@ func withAuthorization(block fhttp.Header, value string, policies ...behavior.Po
 // where it asks for one (asked).
 func (l *layouts) wear(req *fhttp.Request) *fhttp.Request {
 	req.Header = cloneHeaderLayout(l.http2)
+	if l.authority != "" {
+		req.Host = l.authority
+	}
 	withheld := l.withheld
 	if withheld != nil && trustworthy(originOf(req.URL)) {
 		withheld = nil

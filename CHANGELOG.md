@@ -20,6 +20,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   remembers the URL first asked for, through reloads of reloads; a reload back
   at that origin carries them again.
 
+- Fix a `Host` a request without a browser context was given reaching only
+  HTTP/1.1: over HTTP/2 and HTTP/3 the request still said the URL's host as
+  its `:authority`. It now says the given one there too, for its URL's
+  origin; the connection and its TLS name are the URL's, as before.
+
 - Fix a Referer a request was given going whole to the other origin a
   redirect led to. Chrome works it out again for each hop, as for a page's
   referrer: on a hop to another origin it says its origin alone (measured on

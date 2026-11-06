@@ -210,27 +210,31 @@ func TestARequestWithoutAContextToAnUntrustworthyURLKeepsWhatItWasGiven(t *testi
 
 func TestARequestWithoutAContextIsGivenTheHostItNames(t *testing.T) {
 	// A Host it was given names the origin its first request, and those to the
-	// same origin, go to; the last of several.
-	server := newRecorder(t, "h1", func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/r":
-			http.Redirect(w, r, "/landed", http.StatusFound)
-		case "/landed":
-			http.Redirect(w, r, "https://api.example.com/elsewhere", http.StatusFound)
+	// same origin, go to; the last of several. Over HTTP/1.1 as its Host, over
+	// HTTP/2 as its :authority; the name the connection is made to and asks
+	// for in TLS is the URL's.
+	for _, proto := range []string{"h1", "h2"} {
+		server := newRecorder(t, proto, func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/r":
+				http.Redirect(w, r, "/landed", http.StatusFound)
+			case "/landed":
+				http.Redirect(w, r, "https://api.example.com/elsewhere", http.StatusFound)
+			}
+		})
+		client := contextClient(t, server)
+		if _, err := client.Do(&Request{URL: "https://www.example.com/r", Header: NewHeader("host", "first.example",
+			"Host", "chosen.example")}); err != nil {
+			t.Fatalf("%s: Do: %v", proto, err)
 		}
-	})
-	client := contextClient(t, server)
-	if _, err := client.Do(&Request{URL: "https://www.example.com/r", Header: NewHeader("host", "first.example",
-		"Host", "chosen.example")}); err != nil {
-		t.Fatalf("Do: %v", err)
-	}
-	var hosts []string
-	for _, k := range server.requests() {
-		host, _ := k.header("host")
-		hosts = append(hosts, host)
-	}
-	if want := []string{"chosen.example", "chosen.example", "api.example.com"}; !slices.Equal(hosts, want) {
-		t.Errorf("hosts %v, want %v", hosts, want)
+		var hosts []string
+		for _, k := range server.requests() {
+			host, _ := k.header(map[string]string{"h1": "host", "h2": ":authority"}[proto])
+			hosts = append(hosts, host)
+		}
+		if want := []string{"chosen.example", "chosen.example", "api.example.com"}; !slices.Equal(hosts, want) {
+			t.Errorf("%s: hosts %v, want %v", proto, hosts, want)
+		}
 	}
 }
 

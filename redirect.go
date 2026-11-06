@@ -671,8 +671,11 @@ func (ch *chain) dress(req *fhttp.Request, h hop) {
 // block with the client hints its connection's ALPS asks for (alpsBlock).
 func (ch *chain) layoutsOf(h hop, host string) *layouts {
 	r, c := ch.browser, ch.client
-	host = r.hostOf(h, host)
-	l := c.browserLayouts(r.header(h, c.headers), h.script, r.spelt(h), r.wireOrder(h), host)
+	given := r.hostOf(h, host)
+	l := c.browserLayouts(r.header(h, c.headers), h.script, r.spelt(h), r.wireOrder(h), given)
+	if given != host {
+		l.authority, host = given, given
+	}
 	if !r.scripted() && !r.sent {
 		l.asked = func() fhttp.Header { return ch.alpsBlock(h, host) }
 	}
