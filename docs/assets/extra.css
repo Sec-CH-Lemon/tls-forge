@@ -21,7 +21,7 @@
   --tf-6: 4.5rem;
   --tf-8: 6rem;
   --tf-10: 7.5rem;
-  --tf-shell-width: 90rem;
+  --tf-shell-width: 108rem;
   --tf-rail-width: 15rem;
   --tf-map-width: 15rem;
   --tf-reading-width: 54rem;
@@ -513,8 +513,11 @@ body[dir] .md-nav .md-nav__icon::after { width: var(--tf-2); height: var(--tf-2)
 .md-typeset .highlighttable .linenos pre { color: var(--tf-code-muted); font-size: .8125rem; line-height: var(--tf-2); }
 .md-typeset .highlighttable .linenos a { color: var(--tf-code-muted); text-decoration: none; }
 /* A block with no title keeps its copy button over the code, centered on the
-   first line: its lines stop short of it. */
-.md-typeset .highlight > pre > code { padding-right: var(--tf-5); }
+   first line, in a strip of its own: the code scrolls left of it, never
+   under it, however long a line runs. (Padding on the code itself only
+   lengthened what scrolls: a long line still ran under the button.) */
+.md-typeset pre:has(> .md-code__nav) { padding-right: var(--tf-5); }
+.md-typeset pre:has(> .md-code__nav) > code { padding-right: var(--tf-2); }
 .md-typeset .md-code__nav { top: .375rem; right: var(--tf-1); gap: 0; padding: 0; border-radius: var(--tf-1); background: var(--tf-code-head); }
 .md-typeset .md-code__button { display: grid; width: var(--tf-3); height: var(--tf-3); place-items: center; border-radius: var(--tf-1); color: var(--tf-code-muted); }
 .md-typeset .md-code__button::after { width: var(--tf-2); height: var(--tf-2); margin: 0; }
@@ -571,10 +574,12 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
 .md-typeset .tabbed-block > :last-child { margin-bottom: 0; }
 
 /* Generated reference, one symbol at a time as Stripe's reads. A section
-   (.tf-ref) has its name, its code (the signature and its examples) and what
-   it says (its documentation and parameters). In one column the code comes
-   first; from 1440px they stand side by side, and the code stays in view
-   while its section scrolls. A symbol's section opens with a divider. */
+   (.tf-ref) has its text (.tf-ref__text: its name, then what it says, its
+   documentation and parameters) and its code (the signature and its
+   examples). In one column the text gives way, so the code comes right under
+   the name; from 1440px text and code stand side by side, and the shorter
+   stays in view while the longer scrolls past. A symbol's section opens with
+   a divider. */
 .md-typeset .tf-symbol,
 .md-typeset .tf-member {
   margin: 0 0 var(--tf-1);
@@ -594,9 +599,10 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
   grid-template-areas: "head" "code" "docs";
   margin: var(--tf-3) 0 0;
 }
-.md-typeset .tf-ref:has(> .tf-symbol) { margin-top: var(--tf-4); padding-top: var(--tf-4); box-shadow: inset 0 1px 0 var(--tf-line); }
-.md-typeset h2 + .tf-ref:has(> .tf-symbol) { margin-top: var(--tf-2); padding-top: 0; box-shadow: none; }
-.md-typeset .tf-ref > :is(h2, h3, h4, h5, h6) { grid-area: head; }
+.md-typeset .tf-ref:has(> .tf-ref__text > .tf-symbol) { margin-top: var(--tf-4); padding-top: var(--tf-4); box-shadow: inset 0 1px 0 var(--tf-line); }
+.md-typeset h2 + .tf-ref:has(> .tf-ref__text > .tf-symbol) { margin-top: var(--tf-2); padding-top: 0; box-shadow: none; }
+.md-typeset .tf-ref__text { display: contents; }
+.md-typeset .tf-ref__text > :is(h2, h3, h4, h5, h6) { grid-area: head; }
 .md-typeset .tf-ref__code { grid-area: code; min-width: 0; }
 .md-typeset .tf-ref__code > .highlight { margin: 0 0 var(--tf-1); }
 .md-typeset .tf-ref__code > .highlight:last-child { margin-bottom: 0; }
@@ -773,27 +779,29 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
 .tf-api-panel > code { display: block; padding: var(--tf-1); border-radius: var(--tf-1); color: var(--tf-text); background: var(--tf-code); font-size: .8125rem; line-height: var(--tf-2); }
 .tf-api-panel p { margin: var(--tf-1) 0 0; font-size: .875rem; }
 
-/* Reference pages: the shell grows to 1728px, the page's map narrows to 216px,
-   and each section stands in two columns, the code a fifth wider than what it
-   says, kept in view under the header while its section scrolls. */
+/* Reference pages: the reading column takes the shell's whole middle, and
+   each section stands in two columns, the code a fifth wider than the text. Whichever is the shorter (code-actions.js says which) stays in view
+   a step under the header while the other scrolls past. */
 @media screen and (min-width: 90em) {
-  html:has(.tf-ref) { --tf-shell-width: 108rem; --tf-reading-width: 1fr; --tf-map-width: 13.5rem; }
+  html:has(.tf-ref) { --tf-reading-width: none; }
   .md-typeset .tf-ref {
     grid-template-columns: minmax(0, 4fr) minmax(0, 5fr);
-    grid-template-rows: auto 1fr;
-    grid-template-areas: "head code" "docs code";
+    grid-template-areas: "text code";
     column-gap: var(--tf-2);
   }
+  .md-typeset .tf-ref__text { display: block; grid-area: text; min-width: 0; align-self: start; }
   .md-typeset .tf-ref__docs { margin-top: 0; }
   .md-typeset .tf-ref__code { position: sticky; top: calc(var(--tf-10) + var(--tf-2)); align-self: start; }
-  /* Where the text runs past the code (code-actions.js says so), code taller
-     than the window scrolls in its column, a step clear of the window's
-     bottom, so none of it stays out of sight while it sticks. */
+  /* The text runs past the code: code taller than the window scrolls in its
+     column, a step clear of the window's bottom, so none of it stays out of
+     sight while it sticks. */
   .md-typeset .tf-ref--sticks > .tf-ref__code {
     max-height: round(down, calc(100vh - var(--tf-10) - var(--tf-4)), var(--tf-1));
     overflow-y: auto;
     scrollbar-width: thin;
   }
+  /* The code runs past the text, which fits in the window: the text stays. */
+  .md-typeset .tf-ref--text-sticks > .tf-ref__text { position: sticky; top: calc(var(--tf-10) + var(--tf-2)); }
 }
 
 @media screen and (max-width: 50em) {
@@ -805,12 +813,15 @@ body .md-typeset .tabbed-labels::before { background: var(--tf-accent) !importan
   .md-main__inner.md-grid {
     display: grid;
     width: min(calc(100% - var(--tf-4)), var(--tf-shell-width));
-    grid-template-columns: var(--tf-rail-width) minmax(0, var(--tf-reading-width)) var(--tf-map-width);
+    grid-template-columns: var(--tf-rail-width) minmax(0, 1fr) var(--tf-map-width);
     column-gap: var(--tf-column-gap);
-    justify-content: center;
     align-items: start;
     margin: 0 auto;
   }
+  /* One shell on every page (owner, 2026-11-07): the menu and the map keep
+     their places from page to page, and a page's text, no wider than a line
+     reads well, stands in the middle between them. */
+  html:not(.tf-home) .md-main__inner > .md-content { width: 100%; max-width: var(--tf-reading-width); justify-self: center; }
   .md-sidebar--primary {
     grid-column: 1;
     width: 100%;

@@ -251,16 +251,23 @@ class SectionTests(unittest.TestCase):
         page = GENERATOR.sectioned(self.PAGE, self.EXAMPLES)
         self.assertIn("\n".join((
             '<div class="tf-ref" markdown>', "",
+            '<div class="tf-ref__text" markdown>', "",
             "### Options { .tf-symbol }", "",
-            '<div class="tf-ref__code" markdown>', "",
-            '```go linenums="0"', "type Options struct {", "```", "",
-            "</div>", "",
             '<div class="tf-ref__docs" markdown>', "",
             "Options configure it.", "",
             "#### Scope", "",
             "A heading of its own documentation.", "",
             "</div>", "",
+            "</div>", "",
+            '<div class="tf-ref__code" markdown>', "",
+            '```go linenums="0"', "type Options struct {", "```", "",
+            "</div>", "",
             "</div>",
+        )), page)
+        # A symbol with neither a signature nor an example is its text alone.
+        self.assertIn("\n".join((
+            '<div class="tf-ref__text" markdown>', "",
+            "### MAX\\_SIZE { .tf-symbol }", "",
         )), page)
         # A member's examples follow its signature: code numbered, output not.
         self.assertIn("\n".join((
@@ -270,7 +277,8 @@ class SectionTests(unittest.TestCase):
         )), page)
         # A heading of a level above ends the section; one with no signature keeps its text.
         self.assertIn("</div>\n\n## Functions", page)
-        self.assertIn('```go title="Example"\nfmt.Println(MAX_SIZE)\n```\n\n</div>\n\n<div class="tf-ref__docs" markdown>\n\nNo signature first.', page)
+        self.assertIn('<div class="tf-ref__docs" markdown>\n\nNo signature first.\n\n</div>\n\n</div>\n\n'
+                      '<div class="tf-ref__code" markdown>\n\n```go title="Example"\nfmt.Println(MAX_SIZE)\n```\n\n</div>', page)
         self.assertEqual(page.count('<div class="tf-ref" markdown>'), 3)
 
     def test_an_example_for_a_symbol_the_page_does_not_have_is_refused(self):

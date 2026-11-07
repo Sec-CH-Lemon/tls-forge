@@ -28,7 +28,17 @@ This is a network-layer tool. It models selected browser request behaviour; it d
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### ModeHeadless, ModeWindow, ModeManual { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+How a browser was run, for Measurement.Mode.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -42,25 +52,13 @@ const (
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-How a browser was run, for Measurement.Mode.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### DefaultMaxResponseBody { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-const DefaultMaxResponseBody int64 = 64 << 20
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -70,17 +68,21 @@ DefaultMaxResponseBody bounds the decompressed body retained in memory.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### DefaultProfile { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-const DefaultProfile = "chrome"
+const DefaultMaxResponseBody int64 = 64 << 20
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### DefaultProfile { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -90,17 +92,21 @@ DefaultProfile is used when no profile is named. It is a Chrome measured from a 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### LevelTrace { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-const LevelTrace = slog.Level(-8)
+const DefaultProfile = "chrome"
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### LevelTrace { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -110,17 +116,21 @@ LevelTrace is the most a client says, below slog.LevelDebug: the ClientHello eve
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### Timeout { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-const Timeout = 30 * time.Second
+const LevelTrace = slog.Level(-8)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### Timeout { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -130,19 +140,23 @@ Timeout is the default request deadline.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+const Timeout = 30 * time.Second
+```
+
+</div>
+
+</div>
+
 ## Variables
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### ErrCORS { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-var ErrCORS = errors.New("CORS")
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -152,17 +166,21 @@ ErrCORS is what an error wraps when CORS stopped a request in a browser context:
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### ErrMixedContent { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-var ErrMixedContent = errors.New("mixed content")
+var ErrCORS = errors.New("CORS")
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### ErrMixedContent { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -172,17 +190,21 @@ ErrMixedContent is what an error wraps when a page over https would make a reque
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### ErrNeedsContext { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-var ErrNeedsContext = errors.New("needs a browser context")
+var ErrMixedContent = errors.New("mixed content")
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### ErrNeedsContext { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -192,17 +214,21 @@ ErrNeedsContext is a request without a browser context that a navigation typed i
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### ErrResponseTooLarge { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-var ErrResponseTooLarge = errors.New("tlsforge: response body exceeds the configured limit")
+var ErrNeedsContext = errors.New("needs a browser context")
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### ErrResponseTooLarge { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -212,19 +238,23 @@ ErrResponseTooLarge reports that a decompressed response exceeded its configured
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+var ErrResponseTooLarge = errors.New("tlsforge: response body exceeds the configured limit")
+```
+
+</div>
+
+</div>
+
 ## Functions
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### CanonicalURL() { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func CanonicalURL(raw string) (string, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -234,17 +264,21 @@ CanonicalURL is raw as tls-forge sends a request for it, as Chrome does: the htt
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### EngineMajor() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func EngineMajor() int
+func CanonicalURL(raw string) (string, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### EngineMajor() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -254,17 +288,21 @@ EngineMajor is the exact profile compatibility major.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### MeasureBrowser() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func MeasureBrowser(ctx context.Context, opts MeasureOptions) (*capture.Capture, error)
+func EngineMajor() int
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### MeasureBrowser() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -276,17 +314,21 @@ The window that opens shows the result and can be closed; the browser runs with 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### MeasureBrowserAt() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func MeasureBrowserAt(ctx context.Context, server *echo.Server, opts MeasureOptions) (*capture.Capture, error)
+func MeasureBrowser(ctx context.Context, opts MeasureOptions) (*capture.Capture, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### MeasureBrowserAt() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -296,17 +338,21 @@ MeasureBrowserAt measures a browser against a server the caller already has, whi
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### MeasureSelf() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func MeasureSelf(ctx context.Context, opts ...Option) (*capture.Capture, error)
+func MeasureBrowserAt(ctx context.Context, server *echo.Server, opts MeasureOptions) (*capture.Capture, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### MeasureSelf() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -316,17 +362,21 @@ MeasureSelf returns what THIS library sends, measured the same way.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### MeasureSelfAt() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func MeasureSelfAt(ctx context.Context, server *echo.Server, opts ...Option) (*capture.Capture, error)
+func MeasureSelf(ctx context.Context, opts ...Option) (*capture.Capture, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### MeasureSelfAt() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -336,17 +386,21 @@ MeasureSelfAt measures this library against a server the caller already has.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### MeasureVisitorAt() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func MeasureVisitorAt(ctx context.Context, server *echo.Server) (*capture.Capture, error)
+func MeasureSelfAt(ctx context.Context, server *echo.Server, opts ...Option) (*capture.Capture, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### MeasureVisitorAt() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -356,17 +410,21 @@ MeasureVisitorAt waits for a browser a person opens a server's page in, and retu
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### OwnPage() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func OwnPage(rawURL string) (string, error)
+func MeasureVisitorAt(ctx context.Context, server *echo.Server) (*capture.Capture, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### OwnPage() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -376,9 +434,29 @@ OwnPage is the page a request to rawURL is sent from when no other is named: the
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func OwnPage(rawURL string) (string, error)
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Version() { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Version is the actual compiled engine version.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -396,19 +474,25 @@ fmt.Println(tlsforge.Version(), tlsforge.EngineMajor())
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Version is the actual compiled engine version.
-
-</div>
-
 </div>
 
 ## Types
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### BrowserContext { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+BrowserContext says what in a browser a request stands for: what sends it, from which page, under which policy. A request in one goes out as Chrome sends that request: the headers of its kind in Chrome's order and with Chrome's values, Sec-Fetch-\* for where it goes, Origin and Referer as the page would give them, and only the cookies such a request carries.
+
+A Request without one goes out as it always has: as a navigation typed into the address bar, with the profile's headers, and whatever the caller adds. What a context cannot be sent as yet is refused before anything is sent.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -455,29 +539,13 @@ type BrowserContext struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-BrowserContext says what in a browser a request stands for: what sends it, from which page, under which policy. A request in one goes out as Chrome sends that request: the headers of its kind in Chrome's order and with Chrome's values, Sec-Fetch-\* for where it goes, Origin and Referer as the page would give them, and only the cookies such a request carries.
-
-A Request without one goes out as it always has: as a navigation typed into the address bar, with the profile's headers, and whatever the caller adds. What a context cannot be sent as yet is refused before anything is sent.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Client { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-type Client struct {
-	// Has unexported fields.
-}
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -491,9 +559,31 @@ A Client is safe for concurrent use.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+type Client struct {
+	// Has unexported fields.
+}
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### New() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+New builds a client. Without options it uses the default profile.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -521,25 +611,13 @@ fmt.Println(response.Status, response.URL)
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-New builds a client. Without options it uses the default profile.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Client.AllCookies() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (c *Client) AllCookies() []Cookie
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -551,17 +629,21 @@ A cookie set through another client that shares the jar, given with WithCookieJa
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Client.Close() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (c *Client) Close() error
+func (c *Client) AllCookies() []Cookie
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Client.Close() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -571,17 +653,21 @@ Close releases the client's connections, those it reads an answer it went on fro
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Client.CloseIdleConnections() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (c *Client) CloseIdleConnections()
+func (c *Client) Close() error
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Client.CloseIdleConnections() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -591,17 +677,21 @@ CloseIdleConnections closes the connections the client holds open between reques
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Client.Cookies() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (c *Client) Cookies(rawURL string) ([]Cookie, error)
+func (c *Client) CloseIdleConnections()
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Client.Cookies() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -611,17 +701,21 @@ Cookies returns the jar's cookies for a URL. It is CookiesFor by its older name.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Client.CookiesFor() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (c *Client) CookiesFor(rawURL string) ([]Cookie, error)
+func (c *Client) Cookies(rawURL string) ([]Cookie, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Client.CookiesFor() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -631,9 +725,31 @@ CookiesFor returns what the jar would send to a URL, each cookie with its scope,
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (c *Client) CookiesFor(rawURL string) ([]Cookie, error)
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Client.Do() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+Do performs a request.
+
+An error says nothing of the password of the client's proxy, nor of any other URL it quotes, since it is printed by whoever gets it; what it wraps is underneath, for errors.Is and errors.As.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -664,27 +780,13 @@ fmt.Println(response.Status, response.Method)
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Do performs a request.
-
-An error says nothing of the password of the client's proxy, nor of any other URL it quotes, since it is printed by whoever gets it; what it wraps is underneath, for errors.Is and errors.As.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Client.Fresh() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (c *Client) Fresh() (*Client, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -694,9 +796,29 @@ Fresh constructs an independent client with the same explicit inputs. Received c
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (c *Client) Fresh() (*Client, error)
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Client.Get() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+Get fetches a URL with the profile's headers.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -720,25 +842,13 @@ fmt.Println(response.Header["content-type"])
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Get fetches a URL with the profile's headers.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Client.Headers() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (c *Client) Headers() Header
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -748,9 +858,29 @@ Headers returns the default headers, in order.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (c *Client) Headers() Header
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Client.Profile() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+Profile returns the profile this client wears.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -768,25 +898,13 @@ chrome_156_macos
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Profile returns the profile this client wears.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Client.Validate() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (c *Client) Validate(req *Request) error
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -796,9 +914,29 @@ Validate reports why a request could not be sent as it is, without sending it: n
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (c *Client) Validate(req *Request) error
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Comparison { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Comparison is the result of measuring both sides.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -819,25 +957,13 @@ type Comparison struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Comparison is the result of measuring both sides.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Compare() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func Compare(browserCapture, clientCapture *capture.Capture) (*Comparison, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -847,17 +973,21 @@ Compare diffs two measurements that were taken earlier, which is how a capture s
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### CompareToBrowser() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func CompareToBrowser(ctx context.Context, measure MeasureOptions, opts ...Option) (*Comparison, error)
+func Compare(browserCapture, clientCapture *capture.Capture) (*Comparison, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### CompareToBrowser() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -869,17 +999,21 @@ This is the function behind `tls-forge compare`, and the answer to "is the imper
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### CompareVisitorAt() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func CompareVisitorAt(ctx context.Context, server *echo.Server, opts ...Option) (*Comparison, error)
+func CompareToBrowser(ctx context.Context, measure MeasureOptions, opts ...Option) (*Comparison, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### CompareVisitorAt() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -889,17 +1023,21 @@ CompareVisitorAt measures a visiting browser and this library on one server and 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Comparison.OK() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (c *Comparison) OK() bool
+func CompareVisitorAt(ctx context.Context, server *echo.Server, opts ...Option) (*Comparison, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Comparison.OK() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -909,9 +1047,23 @@ OK reports a client that matches the browser on every field compared, with nothi
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (c *Comparison) OK() bool
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Comparison.String() { .tf-member }
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -925,7 +1077,17 @@ func (c *Comparison) String() string
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### ConnInfo { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+ConnInfo is the connection a request went out on.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -960,17 +1122,23 @@ type ConnInfo struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-ConnInfo is the connection a request went out on.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Cookie { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Cookie is one cookie, as a jar holds it and as a session is written down.
+
+Domain, Secure and HttpOnly matter for a session warmed elsewhere: a cookie the server set for a parent domain has to go back to the whole of it, and one marked Secure has to keep saying so. An empty Domain means the host being asked, which is what a cookie given as a bare name and value means.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -998,27 +1166,13 @@ type Cookie struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Cookie is one cookie, as a jar holds it and as a session is written down.
-
-Domain, Secure and HttpOnly matter for a session warmed elsewhere: a cookie the server set for a parent domain has to go back to the whole of it, and one marked Secure has to keep saying so. An empty Domain means the host being asked, which is what a cookie given as a bare name and value means.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Header { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-type Header []profile.Field
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -1030,17 +1184,21 @@ A list rather than a map because header order is fingerprinted. Go's net/http.He
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### NewHeader() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func NewHeader(pairs ...string) Header
+type Header []profile.Field
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### NewHeader() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1050,17 +1208,21 @@ NewHeader builds a header from alternating name/value pairs. An odd number of ar
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Header.Add() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (h *Header) Add(name, value string)
+func NewHeader(pairs ...string) Header
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Header.Add() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1070,17 +1232,21 @@ Add appends another value for a header. Unlike Set it deliberately keeps an exis
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Header.Clone() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (h Header) Clone() Header
+func (h *Header) Add(name, value string)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Header.Clone() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1090,17 +1256,21 @@ Clone returns an independent copy.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Header.Del() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (h *Header) Del(name string)
+func (h Header) Clone() Header
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Header.Del() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1110,17 +1280,21 @@ Del removes a header.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Header.Get() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (h Header) Get(name string) string
+func (h *Header) Del(name string)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Header.Get() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1130,17 +1304,21 @@ Get returns the first value for a name, matched case-insensitively.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Header.Has() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (h Header) Has(name string) bool
+func (h Header) Get(name string) string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Header.Has() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1150,17 +1328,21 @@ Has reports whether a name is present, including with an empty value.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Header.Merge() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (h Header) Merge(overrides Header) Header
+func (h Header) Has(name string) bool
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Header.Merge() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1172,17 +1354,21 @@ This is how a per-request header meets a browser profile: a caller setting `refe
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Header.Names() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (h Header) Names() []string
+func (h Header) Merge(overrides Header) Header
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Header.Names() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1192,17 +1378,21 @@ Names lists the header names in order.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Header.Set() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (h *Header) Set(name, value string)
+func (h Header) Names() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Header.Set() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1214,17 +1404,21 @@ Keeping the position is the point. A Set that deleted and re-appended would move
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Header.Values() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (h Header) Values(name string) []string
+func (h *Header) Set(name, value string)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Header.Values() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1234,9 +1428,29 @@ Values returns every value for a name, in wire order.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (h Header) Values(name string) []string
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### MeasureOptions { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+MeasureOptions controls a browser measurement.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1275,17 +1489,21 @@ type MeasureOptions struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-MeasureOptions controls a browser measurement.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Measurement { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Measurement is what a comparison was made of: the browser, as it says it is, how it was run, and which of its requests were compared. The captures beside it hold what was sent, as it went.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1306,25 +1524,13 @@ type Measurement struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Measurement is what a comparison was made of: the browser, as it says it is, how it was run, and which of its requests were compared. The captures beside it hold what was sent, as it went.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### NetworkContext { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-type NetworkContext = networkquality.Context
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -1334,17 +1540,21 @@ NetworkContext describes actual metadata, separately from browser persona or est
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### Option { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-type Option func(*config)
+type NetworkContext = networkquality.Context
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### Option { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1354,17 +1564,21 @@ Option configures a Client.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithCookieJar() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithCookieJar(jar fhttp.CookieJar) Option
+type Option func(*config)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithCookieJar() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1374,17 +1588,21 @@ WithCookieJar supplies a jar, which is how a session is shared between clients o
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithCookies() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithCookies(cookies []Cookie) Option
+func WithCookieJar(jar fhttp.CookieJar) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithCookies() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1396,17 +1614,21 @@ On the client rather than on a request, because a jar is an identity: two warmed
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithDNSServer() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithDNSServer(address string) Option
+func WithCookies(cookies []Cookie) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithDNSServer() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1416,17 +1638,21 @@ WithDNSServer has the client ask the DNS server at address (host:port, or a host
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithFixedExtensionOrder() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithFixedExtensionOrder() Option
+func WithDNSServer(address string) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithFixedExtensionOrder() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1438,17 +1664,21 @@ Shuffling is on by default because Chrome shuffles. Turn it off to impersonate a
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithHeaders() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithHeaders(h Header) Option
+func WithFixedExtensionOrder() Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithHeaders() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1458,17 +1688,21 @@ WithHeaders layers default headers over the profile's, for every request.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithInsecureSkipVerify() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithInsecureSkipVerify() Option
+func WithHeaders(h Header) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithInsecureSkipVerify() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1480,17 +1714,21 @@ This exists for one honest use: talking to the local echo server, whose certific
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithKeyLogWriter() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithKeyLogWriter(w io.Writer) Option
+func WithInsecureSkipVerify() Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithKeyLogWriter() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1502,17 +1740,21 @@ Each line goes to w in a write of its own, never two at once, of this client or 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithLogger() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithLogger(log *slog.Logger) Option
+func WithKeyLogWriter(w io.Writer) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithLogger() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1524,17 +1766,21 @@ A request's own Logger, when it has one, is written to instead, so that what the
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithMaxResponseBody() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithMaxResponseBody(bytes int64) Option
+func WithLogger(log *slog.Logger) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithMaxResponseBody() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1544,17 +1790,21 @@ WithMaxResponseBody limits the decompressed response retained in memory. The cli
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithNetworkContext() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithNetworkContext(network NetworkContext) Option
+func WithMaxResponseBody(bytes int64) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithNetworkContext() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1564,17 +1814,21 @@ WithNetworkContext supplies actual network metadata to an estimated profile. It 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithProfile() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithProfile(name string) Option
+func WithNetworkContext(network NetworkContext) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithProfile() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1584,17 +1838,21 @@ WithProfile selects a profile by name — a measured one such as "chrome", or an
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithProfileValue() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithProfileValue(p *profile.Profile) Option
+func WithProfile(name string) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithProfileValue() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1604,17 +1862,21 @@ WithProfileValue uses a profile directly, which is how a freshly captured one is
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithProxy() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithProxy(proxyURL string) Option
+func WithProfileValue(p *profile.Profile) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithProxy() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1624,17 +1886,21 @@ WithProxy routes requests through a proxy: http://, https://, socks5:// or socks
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithProxyHeader() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithProxyHeader(header Header) Option
+func WithProxy(proxyURL string) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithProxyHeader() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1644,17 +1910,21 @@ WithProxyHeader adds header fields to the CONNECT that opens every tunnel throug
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithRandomExtensionOrder() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithRandomExtensionOrder() Option
+func WithProxyHeader(header Header) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithRandomExtensionOrder() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1664,17 +1934,21 @@ WithRandomExtensionOrder explicitly enables per-connection extension shuffling. 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithTimeout() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithTimeout(d time.Duration) Option
+func WithRandomExtensionOrder() Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithTimeout() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1684,17 +1958,21 @@ WithTimeout sets the per-request deadline.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithTransportOption() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithTransportOption(opts ...tls_client.HttpClientOption) Option
+func WithTimeout(d time.Duration) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithTransportOption() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1708,17 +1986,21 @@ The options are given after tls-forge's own, so one that sets what tls-forge set
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithoutCookieJar() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithoutCookieJar() Option
+func WithTransportOption(opts ...tls_client.HttpClientOption) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithoutCookieJar() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1730,17 +2012,21 @@ One case needs this and it is not an optimisation. A proxy forwards whatever Coo
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithoutRedirects() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithoutRedirects() Option
+func WithoutCookieJar() Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithoutRedirects() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1750,17 +2036,21 @@ WithoutRedirects returns the 3xx instead of following it.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithoutSessionResumption() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithoutSessionResumption() Option
+func WithoutRedirects() Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithoutSessionResumption() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1770,9 +2060,29 @@ WithoutSessionResumption keeps no TLS session to resume, so that every connectio
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func WithoutSessionResumption() Option
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Request { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Request is one HTTP request.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1837,25 +2147,13 @@ type Request struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Request is one HTTP request.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Request.FromItsOwnPage() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (req Request) FromItsOwnPage() Request
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -1865,17 +2163,21 @@ FromItsOwnPage is req sent as the script of a page of its URL's own origin, the 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Request.Reloaded() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (req Request) Reloaded(res *Response) Request
+func (req Request) FromItsOwnPage() Request
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Request.Reloaded() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1885,9 +2187,29 @@ Reloaded is the request Chrome sends when the page req opened, res its answer, i
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (req Request) Reloaded(res *Response) Request
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### RequestError { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+RequestError retains an isolated browser's cookie snapshot after a failed request. It preserves the original error through Unwrap. The snapshot is available only to explicit callers and never seeds another browser.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1899,25 +2221,13 @@ type RequestError struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-RequestError retains an isolated browser's cookie snapshot after a failed request. It preserves the original error through Unwrap. The snapshot is available only to explicit callers and never seeds another browser.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### RequestError.AllCookies() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (e *RequestError) AllCookies() []Cookie
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -1927,9 +2237,23 @@ AllCookies returns an independent snapshot of the failed browser's jar.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (e *RequestError) AllCookies() []Cookie
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### RequestError.Error() { .tf-member }
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1943,7 +2267,11 @@ func (e *RequestError) Error() string
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### RequestError.Unwrap() { .tf-member }
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1957,15 +2285,9 @@ func (e *RequestError) Unwrap() error
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### RequestKind { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-type RequestKind string
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -1975,9 +2297,29 @@ RequestKind is what in a browser sends a request.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+type RequestKind string
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### KindNavigation, KindForm, KindFetch, … { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+The kinds of request a browser context can say a request is.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1998,17 +2340,21 @@ const (
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-The kinds of request a browser context can say a request is.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Response { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Response is one HTTP response, with the body already read and decoded.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -2046,25 +2392,13 @@ true 577
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Response is one HTTP response, with the body already read and decoded.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Response.AllCookies() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (r *Response) AllCookies() []Cookie
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -2074,17 +2408,21 @@ AllCookies returns this response's browser-instance cookie snapshot. Reading it 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Response.OK() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (r *Response) OK() bool
+func (r *Response) AllCookies() []Cookie
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Response.OK() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -2094,17 +2432,21 @@ OK reports a 2xx status.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Response.Text() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (r *Response) Text() string
+func (r *Response) OK() bool
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Response.Text() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -2114,9 +2456,33 @@ Text returns the body as a string.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (r *Response) Text() string
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Trace { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Trace is told what a request does on the wire, while it does it.
+
+A response says how a request ended. It does not say whether a name was looked up or a connection was already open, which address answered, what the handshake settled on, or in what order the headers actually left, and those are the questions a request that went wrong raises. One that failed has no response to ask at all.
+
+Every hook is optional. They are called from whichever goroutine is doing the work, so two can run at once, and one can still be called after Do has returned: a dial that lost a race reports in when it gets round to it. A redirected request calls them again for every hop.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -2152,16 +2518,6 @@ type Trace struct {
 	Redirect func(status int, location string)
 }
 ```
-
-</div>
-
-<div class="tf-ref__docs" markdown>
-
-Trace is told what a request does on the wire, while it does it.
-
-A response says how a request ended. It does not say whether a name was looked up or a connection was already open, which address answered, what the handshake settled on, or in what order the headers actually left, and those are the questions a request that went wrong raises. One that failed has no response to ask at all.
-
-Every hook is optional. They are called from whichever goroutine is doing the work, so two can run at once, and one can still be called after Do has returned: a dial that lost a race reports in when it gets round to it. A redirected request calls them again for every hop.
 
 </div>
 

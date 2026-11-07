@@ -4,15 +4,9 @@ Generated from the package's public TypeScript declarations. See the [Node.js in
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ## ENGINE\_MAJOR { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```typescript linenums="0"
-const ENGINE_MAJOR: number
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -22,17 +16,21 @@ The engine major this package belongs to. A transport whose hello says another, 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-## MAX\_REQUEST\_BYTES { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```typescript linenums="0"
-const MAX_REQUEST_BYTES: number
+const ENGINE_MAJOR: number
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+## MAX\_REQUEST\_BYTES { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -42,17 +40,21 @@ The most a request can be, in bytes, as the transport reads it: one line of JSON
 
 </div>
 
-<div class="tf-ref" markdown>
-
-## ClientOptions { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```typescript linenums="0"
-interface ClientOptions
+const MAX_REQUEST_BYTES: number
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+## ClientOptions { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -74,23 +76,21 @@ How a client is made. Each option is passed to `tls-forge daemon`.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-## NetworkContext { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```typescript linenums="0"
-interface NetworkContext
-```
-
-```js title="Example"
-const response = await client.get("https://example.com/", {
-  networkContext: { type: "wifi", id: "office", generation: 1, signal: 4 },
-});
+interface ClientOptions
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+## NetworkContext { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -108,9 +108,44 @@ Actual network metadata; signal null means unavailable, zero is known. generatio
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```typescript linenums="0"
+interface NetworkContext
+```
+
+```js title="Example"
+const response = await client.get("https://example.com/", {
+  networkContext: { type: "wifi", id: "office", generation: 1, signal: 4 },
+});
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ## BrowserContext { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+What in a browser a request stands for: it goes out as Chrome sends that kind, CORS and all. See GO.md, «Browser contexts».
+
+<div class="tf-params">
+<p class="tf-params__title">Properties</p>
+<div class="tf-param" id="browsercontext-kind"><div class="tf-param__head"><code class="tf-param__name">kind</code><span class="tf-param__type">&#x27;navigation&#x27; | &#x27;form&#x27; | &#x27;fetch&#x27; | &#x27;xhr&#x27;</span></div><div class="tf-param__text">What sends the request.</div></div>
+<div class="tf-param" id="browsercontext-initiator"><div class="tf-param__head"><code class="tf-param__name">initiator</code><span class="tf-param__type">string</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">The URL of the page that sends it. A form, fetch() and an XHR need one; a navigation without one is typed into the address bar.</div></div>
+<div class="tf-param" id="browsercontext-referrerpolicy"><div class="tf-param__head"><code class="tf-param__name">referrerPolicy</code><span class="tf-param__type">&#x27;no-referrer&#x27; | &#x27;no-referrer-when-downgrade&#x27; | &#x27;origin&#x27; | &#x27;origin-when-cross-origin&#x27; | &#x27;same-origin&#x27; | &#x27;strict-origin&#x27; | &#x27;strict-origin-when-cross-origin&#x27; | &#x27;unsafe-url&#x27;</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">That page&#x27;s referrer policy; strict-origin-when-cross-origin when omitted.</div></div>
+<div class="tf-param" id="browsercontext-mode"><div class="tf-param__head"><code class="tf-param__name">mode</code><span class="tf-param__type">&#x27;cors&#x27; | &#x27;no-cors&#x27; | &#x27;same-origin&#x27;</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">fetch()&#x27;s request mode; cors when omitted. Only for fetch().</div></div>
+<div class="tf-param" id="browsercontext-credentials"><div class="tf-param__head"><code class="tf-param__name">credentials</code><span class="tf-param__type">&#x27;same-origin&#x27; | &#x27;include&#x27; | &#x27;omit&#x27;</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">fetch()&#x27;s credentials mode; same-origin when omitted. An XHR takes same-origin or include, which is withCredentials.</div></div>
+</div>
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -131,34 +166,13 @@ const response = await client.get("https://example.com/", {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-What in a browser a request stands for: it goes out as Chrome sends that kind, CORS and all. See GO.md, «Browser contexts».
-
-<div class="tf-params">
-<p class="tf-params__title">Properties</p>
-<div class="tf-param" id="browsercontext-kind"><div class="tf-param__head"><code class="tf-param__name">kind</code><span class="tf-param__type">&#x27;navigation&#x27; | &#x27;form&#x27; | &#x27;fetch&#x27; | &#x27;xhr&#x27;</span></div><div class="tf-param__text">What sends the request.</div></div>
-<div class="tf-param" id="browsercontext-initiator"><div class="tf-param__head"><code class="tf-param__name">initiator</code><span class="tf-param__type">string</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">The URL of the page that sends it. A form, fetch() and an XHR need one; a navigation without one is typed into the address bar.</div></div>
-<div class="tf-param" id="browsercontext-referrerpolicy"><div class="tf-param__head"><code class="tf-param__name">referrerPolicy</code><span class="tf-param__type">&#x27;no-referrer&#x27; | &#x27;no-referrer-when-downgrade&#x27; | &#x27;origin&#x27; | &#x27;origin-when-cross-origin&#x27; | &#x27;same-origin&#x27; | &#x27;strict-origin&#x27; | &#x27;strict-origin-when-cross-origin&#x27; | &#x27;unsafe-url&#x27;</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">That page&#x27;s referrer policy; strict-origin-when-cross-origin when omitted.</div></div>
-<div class="tf-param" id="browsercontext-mode"><div class="tf-param__head"><code class="tf-param__name">mode</code><span class="tf-param__type">&#x27;cors&#x27; | &#x27;no-cors&#x27; | &#x27;same-origin&#x27;</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">fetch()&#x27;s request mode; cors when omitted. Only for fetch().</div></div>
-<div class="tf-param" id="browsercontext-credentials"><div class="tf-param__head"><code class="tf-param__name">credentials</code><span class="tf-param__type">&#x27;same-origin&#x27; | &#x27;include&#x27; | &#x27;omit&#x27;</span><span class="tf-param__label">optional</span></div><div class="tf-param__text">fetch()&#x27;s credentials mode; same-origin when omitted. An XHR takes same-origin or include, which is withCredentials.</div></div>
-</div>
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ## RequestOptions { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```typescript linenums="0"
-interface RequestOptions
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -177,17 +191,21 @@ What `get` and `post` take besides the URL and the body.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-## Request { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```typescript linenums="0"
-interface Request extends RequestOptions
+interface RequestOptions
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+## Request { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -204,26 +222,21 @@ A request, as `request` takes it.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-## Response { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```typescript linenums="0"
-interface Response
-```
-
-```js title="Example"
-const response = await client.get("https://example.com/");
-console.log(response.status, response.content.length, response.cookies);
-```
-
-```text title="Response" linenums="0"
-200 577 []
+interface Request extends RequestOptions
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+## Response { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -243,17 +256,30 @@ What came back: exactly these fields, in this order.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-## Hello { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```typescript linenums="0"
-interface Hello
+interface Response
+```
+
+```js title="Example"
+const response = await client.get("https://example.com/");
+console.log(response.status, response.content.length, response.cookies);
+```
+
+```text title="Response" linenums="0"
+200 577 []
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+## Hello { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -271,9 +297,29 @@ What a transport is, as it answers `hello`.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```typescript linenums="0"
+interface Hello
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ## Client { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+One browser identity: one transport process, one fingerprint, one cookie jar, one request at a time.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -296,25 +342,13 @@ client.close();
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-One browser identity: one transport process, one fingerprint, one cookie jar, one request at a time.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### new Client() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```typescript linenums="0"
-new Client(options?: ClientOptions)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -331,9 +365,29 @@ A client, and no transport yet: the first request starts one.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```typescript linenums="0"
+new Client(options?: ClientOptions)
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Client.get() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+GET a URL.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -354,17 +408,21 @@ console.log(response.headers["content-type"]);
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-GET a URL.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Client.post() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+POST a body, in the browserContext of the form or script that posts it: a request without one is a navigation typed into the address bar, which posts nothing, and is refused. A Buffer or Uint8Array is sent as base64, so a body that is not text arrives intact.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -390,16 +448,15 @@ console.log(response.body);
 
 ```json title="Response" linenums="0"
 {
+  "args": {},
   "headers": {
-    "Accept": "*/*",
-    "Content-Type": "application/json",
-    "Origin": "https://httpbin.org",
+    …
+    "Sec-Fetch-Dest": "empty",
     "Sec-Fetch-Mode": "cors",
     "Sec-Fetch-Site": "same-origin",
     …
   },
   "method": "POST",
-  "url": "https://httpbin.org/post",
   …
   "json": {
     "hello": "world"
@@ -409,17 +466,21 @@ console.log(response.body);
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-POST a body, in the browserContext of the form or script that posts it: a request without one is a navigation typed into the address bar, which posts nothing, and is refused. A Buffer or Uint8Array is sent as base64, so a body that is not text arrives intact.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Client.request() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+Make a request. One with a browserContext or a networkContext is sent only to a transport that says, when asked with hello(), that it applies one, and to no other: it is refused with Unsupported rather than sent as though it had none. The first such request waits for that answer, and a request made after it may go first.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -445,17 +506,21 @@ console.log(response.status, data.method, data.json);
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Make a request. One with a browserContext or a networkContext is sent only to a transport that says, when asked with hello(), that it applies one, and to no other: it is refused with Unsupported rather than sent as though it had none. The first such request waits for that answer, and a request made after it may go first.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Client.hello() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+What the transport is: the protocol it speaks and what it can do, asked without a connection and once. One older than the question speaks protocol 1, and can do nothing a client has to ask about.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -476,17 +541,21 @@ true
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-What the transport is: the protocol it speaks and what it can do, asked without a connection and once. One older than the question speaks protocol 1, and can do nothing a client has to ask about.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Client.close() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+Stop the transport, and reject what waits. Final.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -505,35 +574,13 @@ try {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Stop the transport, and reject what waits. Final.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ## resolveBinary() { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```typescript linenums="0"
-resolveBinary(explicit?: string): string
-```
-
-```js title="Example"
-import { resolveBinary } from "tls-forge";
-
-console.log(resolveBinary());
-```
-
-```text title="Response" linenums="0"
-/usr/local/bin/tls-forge
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -548,17 +595,31 @@ The transport binary: the one given, TLSFORGE\_BIN, the platform package, a loca
 
 </div>
 
-<div class="tf-ref" markdown>
-
-## TLSForgeError { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```typescript linenums="0"
-class TLSForgeError extends Error
+resolveBinary(explicit?: string): string
+```
+
+```js title="Example"
+import { resolveBinary } from "tls-forge";
+
+console.log(resolveBinary());
+```
+
+```text title="Response" linenums="0"
+…/node_modules/tls-forge-darwin-arm64/bin/tls-forge
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+## TLSForgeError { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -568,9 +629,23 @@ The base of every error this package throws or rejects with.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```typescript linenums="0"
+class TLSForgeError extends Error
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### new TLSForgeError() { .tf-member }
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -584,15 +659,9 @@ new TLSForgeError(message?: string, options?: { cause?: unknown })
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ## BinaryNotFound { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```typescript linenums="0"
-class BinaryNotFound extends TLSForgeError
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -602,17 +671,21 @@ No transport binary was found, or the one named is not there: an install problem
 
 </div>
 
-<div class="tf-ref" markdown>
-
-## TransportError { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```typescript linenums="0"
-class TransportError extends TLSForgeError
+class BinaryNotFound extends TLSForgeError
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+## TransportError { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -622,17 +695,21 @@ The transport failed: it would not start, would not take its arguments or its pr
 
 </div>
 
-<div class="tf-ref" markdown>
-
-## SessionReset { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```typescript linenums="0"
-class SessionReset extends TransportError
+class TransportError extends TLSForgeError
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+## SessionReset { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -642,9 +719,29 @@ A request that was not sent because the transport the client's session was in ha
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```typescript linenums="0"
+class SessionReset extends TransportError
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ## RequestFailed { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+The transport made the request, and the request failed: a refused connection, a DNS failure, a TLS error, a proxy that would not tunnel, or a request the transport would not make as it was asked. Nothing is wrong locally, and trying again can make sense.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -668,25 +765,13 @@ tlsforge: DELETE https://example.com/ needs a browser context: without one it go
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-The transport made the request, and the request failed: a refused connection, a DNS failure, a TLS error, a proxy that would not tunnel, or a request the transport would not make as it was asked. Nothing is wrong locally, and trying again can make sense.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ## Unsupported { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```typescript linenums="0"
-class Unsupported extends TLSForgeError
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -696,23 +781,37 @@ A request this client's transport cannot make as asked: it does not do what the 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-## Timeout { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```typescript linenums="0"
-class Timeout extends TLSForgeError
+class Unsupported extends TLSForgeError
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+## Timeout { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
 The deadline passed with no answer.
 
 The package's default export is `Client`.
+
+</div>
+
+</div>
+
+<div class="tf-ref__code" markdown>
+
+```typescript linenums="0"
+class Timeout extends TLSForgeError
+```
 
 </div>
 

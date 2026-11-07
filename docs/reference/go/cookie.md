@@ -16,7 +16,19 @@ A file holds SETS rather than cookies, because a session is the unit that was wa
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Cookie { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Cookie is one cookie as a browser holds it.
+
+More than a name and a value, because a warmed session is not portable without the rest: the domain decides what it is sent to, and whether to its subdomains as well, Secure, HttpOnly and SameSite are part of what the server set, and an expiry that has passed is a cookie that will be ignored, while no expiry at all is a session cookie.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -40,27 +52,13 @@ type Cookie struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Cookie is one cookie as a browser holds it.
-
-More than a name and a value, because a warmed session is not portable without the rest: the domain decides what it is sent to, and whether to its subdomains as well, Secure, HttpOnly and SameSite are part of what the server set, and an expiry that has passed is a cookie that will be ignored, while no expiry at all is a session cookie.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Parse() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func Parse(pair string) (Cookie, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -72,17 +70,21 @@ Only the two halves, because that is all a command line can carry without becomi
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Cookie.Expired() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (c Cookie) Expired(at time.Time) bool
+func Parse(pair string) (Cookie, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Cookie.Expired() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -92,17 +94,21 @@ Expired reports whether this cookie is past its date. A cookie with no date is a
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Cookie.MarshalJSON() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (c Cookie) MarshalJSON() ([]byte, error)
+func (c Cookie) Expired(at time.Time) bool
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Cookie.MarshalJSON() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -114,9 +120,29 @@ encoding/json's omitempty has no opinion about a struct, so a session cookie wou
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (c Cookie) MarshalJSON() ([]byte, error)
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### File { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+File is what a cookies.json holds.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -135,25 +161,13 @@ type File struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-File is what a cookies.json holds.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Load() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func Load(data []byte) (*File, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -165,17 +179,21 @@ Three shapes are accepted, because a warmed session arrives from wherever it was
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### File.Add() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (f *File) Add(set Set)
+func Load(data []byte) (*File, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### File.Add() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -187,17 +205,21 @@ Unique because --cookie-set takes one: two sets answering to the same name make 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### File.Encode() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (f *File) Encode() ([]byte, error)
+func (f *File) Add(set Set)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### File.Encode() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -209,17 +231,21 @@ It fails rather than write less than it was given. A date this format cannot hol
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### File.IDs() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (f *File) IDs() []string
+func (f *File) Encode() ([]byte, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### File.IDs() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -229,17 +255,21 @@ IDs are the sets in the file, in order.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### File.Pick() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (f *File) Pick(id string, pick *rand.Rand) (Set, error)
+func (f *File) IDs() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### File.Pick() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -251,17 +281,21 @@ Random rather than the first, because a file of warmed sessions exists to be spr
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### File.Unscoped() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (f *File) Unscoped() bool
+func (f *File) Pick(id string, pick *rand.Rand) (Set, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### File.Unscoped() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -271,9 +305,29 @@ Unscoped says the file was written before a cookie's scope was kept, so that a c
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (f *File) Unscoped() bool
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Set { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Set is one warmed session.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -290,25 +344,13 @@ type Set struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Set is one warmed session.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Set.EncodeNetscape() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (s Set) EncodeNetscape() []byte
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -320,17 +362,21 @@ One set, because the format cannot hold two: it is a jar, and a jar is one ident
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Set.Live() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (s Set) Live(at time.Time) Set
+func (s Set) EncodeNetscape() []byte
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Set.Live() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -340,21 +386,35 @@ Live is the set with its expired cookies left out.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (s Set) Live(at time.Time) Set
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Set.MarshalJSON() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+MarshalJSON leaves out a warming date that was never set, for the reason Cookie.MarshalJSON does.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s Set) MarshalJSON() ([]byte, error)
 ```
-
-</div>
-
-<div class="tf-ref__docs" markdown>
-
-MarshalJSON leaves out a warming date that was never set, for the reason Cookie.MarshalJSON does.
 
 </div>
 

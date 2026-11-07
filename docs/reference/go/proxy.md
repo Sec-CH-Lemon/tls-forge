@@ -16,15 +16,9 @@ That is the cost, and it is not hidden: `tls-forge proxy` writes its authority t
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### DefaultMaxRequestBody { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-const DefaultMaxRequestBody int64 = 16 << 20
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -34,11 +28,31 @@ DefaultMaxRequestBody is large enough for ordinary browser traffic while prevent
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+const DefaultMaxRequestBody int64 = 16 << 20
+```
+
+</div>
+
+</div>
+
 ## Types
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### CA { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+CA is a certificate authority and the leaf certificates it has minted.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -50,25 +64,13 @@ type CA struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-CA is a certificate authority and the leaf certificates it has minted.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### LoadOrCreateCA() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func LoadOrCreateCA(certFile, keyFile string) (*CA, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -78,17 +80,21 @@ LoadOrCreateCA reads the authority from certFile and keyFile, generating a new o
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### CA.CertPEM() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (c *CA) CertPEM() []byte
+func LoadOrCreateCA(certFile, keyFile string) (*CA, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### CA.CertPEM() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -98,9 +104,29 @@ CertPEM is the authority certificate, which is what a client has to trust.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (c *CA) CertPEM() []byte
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Client { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Client is the part of \*tlsforge.Client the proxy needs, named so tests can answer without opening a socket.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -113,17 +139,21 @@ type Client interface {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Client is the part of \*tlsforge.Client the proxy needs, named so tests can answer without opening a socket.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Options { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Options configure a Server.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -153,17 +183,21 @@ type Options struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Options configure a Server.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Server { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Server is a running proxy.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -175,25 +209,13 @@ type Server struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Server is a running proxy.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Start() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func Start(opts Options) (*Server, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -203,17 +225,21 @@ Start binds the listener and begins accepting. The caller must Close it.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Server.Addr() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (s *Server) Addr() string
+func Start(opts Options) (*Server, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Server.Addr() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -223,21 +249,35 @@ Addr is the address actually bound.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (s *Server) Addr() string
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Server.Close() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+Close stops accepting, ends open connections and waits for their handlers.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Server) Close() error
 ```
-
-</div>
-
-<div class="tf-ref__docs" markdown>
-
-Close stops accepting, ends open connections and waits for their handlers.
 
 </div>
 

@@ -16,15 +16,9 @@ Captured ClientHello bytes are one input to a live handshake. The engine regener
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Schema { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-const Schema = 4
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -38,19 +32,23 @@ Schema 2 added client\_hints. A profile of schema 1 is read as strictly, and has
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+const Schema = 4
+```
+
+</div>
+
+</div>
+
 ## Variables
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### ClientHintOrder { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-var ClientHintOrder = behavior.Legacy().Strings("headers.client_hint_order")
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -60,17 +58,21 @@ ClientHintOrder is every client hint Chrome 155 sends when a server asks for it 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### Default { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-var Default = NewRegistry()
+var ClientHintOrder = behavior.Legacy().Strings("headers.client_hint_order")
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### Default { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -80,17 +82,21 @@ Default is the registry the package-level functions use.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### ErrNoHandshake { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-var ErrNoHandshake = fmt.Errorf("profile: neither client_hello, tls_spec nor base is set")
+var Default = NewRegistry()
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### ErrNoHandshake { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -100,19 +106,23 @@ ErrNoHandshake reports a profile that names neither a captured ClientHello nor a
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+var ErrNoHandshake = fmt.Errorf("profile: neither client_hello, tls_spec nor base is set")
+```
+
+</div>
+
+</div>
+
 ## Functions
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### AskedClientHints() { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func AskedClientHints() []string
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -122,17 +132,21 @@ AskedClientHints are the client hints Chrome sends only to a server that asks fo
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### DefaultDir() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func DefaultDir() string
+func AskedClientHints() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### DefaultDir() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -146,17 +160,21 @@ TLSFORGE\_PROFILES moves it, which is how a run in a container or a test says wh
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### DefaultHintOrder() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func DefaultHintOrder() []string
+func DefaultDir() string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### DefaultHintOrder() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -166,17 +184,21 @@ DefaultHintOrder is the process-default capture helper's data snapshot. Active c
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### DefaultUnaskedHints() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func DefaultUnaskedHints() []string
+func DefaultHintOrder() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### DefaultUnaskedHints() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -186,17 +208,21 @@ DefaultUnaskedHints are the hints of DefaultHintOrder that go to every server un
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### FilePath() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func FilePath(name, platform string) (string, error)
+func DefaultUnaskedHints() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### FilePath() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -206,17 +232,21 @@ FilePath is the directory layout shared by capture and registry lookup. Both com
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### HostPlatform() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func HostPlatform() string
+func FilePath(name, platform string) (string, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### HostPlatform() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -226,17 +256,21 @@ HostPlatform is this machine, spelled the way a profile file is named.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### LegacyBehavior() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func LegacyBehavior() behavior.Policy
+func HostPlatform() string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### LegacyBehavior() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -246,17 +280,21 @@ LegacyBehavior is for migration and standalone compatibility helpers only.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### Major() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func Major(n int) *int
+func LegacyBehavior() behavior.Policy
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### Major() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -266,17 +304,21 @@ Major declares compatibility explicitly when constructing a profile in Go.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### Names() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func Names() []string
+func Major(n int) *int
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### Names() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -286,17 +328,21 @@ Names lists the default registry's profiles.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### Register() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func Register(p *Profile) error
+func Names() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### Register() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -306,17 +352,21 @@ Register adds a profile to the default registry.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### Ships() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func Ships(name string) bool
+func Register(p *Profile) error
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### Ships() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -326,17 +376,21 @@ Ships reports a profile tls-forge ships by the name it is filed under, chrome\_1
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### Split() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func Split(name string) (version, platform string)
+func Ships(name string) bool
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### Split() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -346,17 +400,21 @@ Split separates a name into the version and the platform it names, if it names o
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### ValidName() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func ValidName(name string) bool
+func Split(name string) (version, platform string)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### ValidName() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -366,11 +424,31 @@ ValidName reports an identifier safe for a profile file, never a path.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func ValidName(name string) bool
+```
+
+</div>
+
+</div>
+
 ## Types
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### CaptureProvenance { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+CaptureProvenance is separate from the runnable browser profile. Its hashes bind the final profile, the full policy basis and the original capture. Capturing a field does not establish its invariance or browser acceptance.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -391,25 +469,13 @@ type CaptureProvenance struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-CaptureProvenance is separate from the runnable browser profile. Its hashes bind the final profile, the full policy basis and the original capture. Capturing a field does not establish its invariance or browser acceptance.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### ProvenanceForCapture() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func ProvenanceForCapture(candidate, basis *Profile, c *capture.Capture, mode string) (*CaptureProvenance, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -419,9 +485,29 @@ ProvenanceForCapture binds a completed candidate after any explicit caller edits
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func ProvenanceForCapture(candidate, basis *Profile, c *capture.Capture, mode string) (*CaptureProvenance, error)
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Drawn { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Drawn is what a browser drew anew for each connection, measured from the hellos of a capture: the measured one and those of the other connections its page opened (echo.WithManual).
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -443,25 +529,13 @@ type Drawn struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Drawn is what a browser drew anew for each connection, measured from the hellos of a capture: the measured one and those of the other connections its page opened (echo.WithManual).
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### DrawnOf() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func DrawnOf(c *capture.Capture) (*Drawn, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -471,9 +545,29 @@ DrawnOf measures what the browser of a capture drew for each connection, or nil 
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func DrawnOf(c *capture.Capture) (*Drawn, error)
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Field { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Field is one header. A slice of these rather than a map, because order is fingerprinted and a map has none.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -486,17 +580,21 @@ type Field struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Field is one header. A slice of these rather than a map, because order is fingerprinted and a map has none.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### FieldOrigin { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+FieldOrigin describes provenance, not executable policy or a browser verdict.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -509,17 +607,23 @@ type FieldOrigin struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-FieldOrigin describes provenance, not executable policy or a browser verdict.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Group { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Group is one measured profile and the platforms it was measured on.
+
+A version measured on three platforms is one profile with three spellings rather than three profiles: the handshake is the same on all of them, and only the user-agent and the platform hint differ.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -536,19 +640,21 @@ type Group struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Group is one measured profile and the platforms it was measured on.
-
-A version measured on three platforms is one profile with three spellings rather than three profiles: the handshake is the same on all of them, and only the user-agent and the platform hint differ.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### HTTP1 { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+HTTP1 is the part of a request fingerprint HTTP/2 cannot describe. HeaderOrder preserves wire spelling as well as order. Headers contains protocol-only values, or values that differ from the shared Headers block.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -561,17 +667,21 @@ type HTTP1 struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-HTTP1 is the part of a request fingerprint HTTP/2 cannot describe. HeaderOrder preserves wire spelling as well as order. Headers contains protocol-only values, or values that differ from the shared Headers block.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### HTTP2 { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+HTTP2 is the connection preamble a client sends before its first request.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -588,17 +698,21 @@ type HTTP2 struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-HTTP2 is the connection preamble a client sends before its first request.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### NetworkHintsPolicy { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+NetworkHintsPolicy makes literal network persona data distinct from an actual estimator. Estimated mode has no captured production hint values; its policy describes selection, measurement, generation and lifecycle mechanisms.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -611,25 +725,13 @@ type NetworkHintsPolicy struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-NetworkHintsPolicy makes literal network persona data distinct from an actual estimator. Estimated mode has no captured production hint values; its policy describes selection, measurement, generation and lifecycle mechanisms.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### NetworkHintsPolicy.UnmarshalJSON() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (p *NetworkHintsPolicy) UnmarshalJSON(raw []byte) error
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -639,9 +741,29 @@ UnmarshalJSON rejects missing, duplicate, unknown, case-folded or null choices.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (p *NetworkHintsPolicy) UnmarshalJSON(raw []byte) error
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### PerConnection { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+PerConnection is what a browser's TLS stack draws afresh for every connection, said outright: FromCapture says it of the browser it captures, and a profile written by hand can say it of the browser it describes.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -659,17 +781,23 @@ type PerConnection struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-PerConnection is what a browser's TLS stack draws afresh for every connection, said outright: FromCapture says it of the browser it captures, and a profile written by hand can say it of the browser it describes.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Priority { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Priority is an HTTP/2 priority, either standalone or carried on HEADERS.
+
+Weight is the value as it appears ON THE WIRE, which is one less than the weight people quote: Chrome's "weight 256" is a 255 here. Storing the wire value keeps the round-trip through a capture exact.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -684,19 +812,21 @@ type Priority struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Priority is an HTTP/2 priority, either standalone or carried on HEADERS.
-
-Weight is the value as it appears ON THE WIRE, which is one less than the weight people quote: Chrome's "weight 256" is a 255 here. Storing the wire value keeps the round-trip through a capture exact.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Profile { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Profile is a complete browser identity.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -757,25 +887,13 @@ type Profile struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Profile is a complete browser identity.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### CaptureBasis() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func CaptureBasis(family, platform string) (*Profile, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -785,17 +903,21 @@ CaptureBasis returns the newest shipped full profile for a measured family and p
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### FromCapture() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func FromCapture(name string, c *capture.Capture, basis ...*Profile) (*Profile, error)
+func CaptureBasis(family, platform string) (*Profile, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### FromCapture() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -807,17 +929,21 @@ Exactly one explicit, executable policy basis is required. Only observed fields 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Get() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func Get(name string) (*Profile, error)
+func FromCapture(name string, c *capture.Capture, basis ...*Profile) (*Profile, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Get() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -827,17 +953,21 @@ Get resolves a name against the default registry.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Inspect() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func Inspect(data []byte) (*Profile, error)
+func Get(name string) (*Profile, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Inspect() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -847,17 +977,21 @@ Inspect decodes an archived profile for offline inspection. It does not grant pe
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Load() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func Load(data []byte) (*Profile, error)
+func Inspect(data []byte) (*Profile, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Load() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -867,17 +1001,21 @@ Load reads a profile from JSON, as its schema says: see Schema.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.AskedHints() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) AskedHints() []string
+func Load(data []byte) (*Profile, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.AskedHints() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -887,17 +1025,21 @@ AskedHints are the hints of HintOrder that go only to a server that asks for the
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.BareBase() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) BareBase() bool
+func (p *Profile) AskedHints() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.BareBase() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -907,17 +1049,21 @@ BareBase reports a profile that only names a base of the transport's catalogue, 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.Catalogue() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) Catalogue() bool
+func (p *Profile) BareBase() bool
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.Catalogue() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -927,17 +1073,21 @@ Catalogue reports that this object was read from the embedded export/import cata
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.Chromium() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) Chromium() bool
+func (p *Profile) Catalogue() bool
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.Chromium() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -947,17 +1097,21 @@ Chromium reports a profile of a Chromium browser: Chrome, Chromium, Edge, Brave,
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.ClientProfile() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) ClientProfile() (profiles.ClientProfile, error)
+func (p *Profile) Chromium() bool
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.ClientProfile() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -967,17 +1121,21 @@ ClientProfile converts to the form the transport consumes, the order of the TLS 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.ClientProfileShuffled() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, error)
+func (p *Profile) ClientProfile() (profiles.ClientProfile, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.ClientProfileShuffled() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -987,17 +1145,21 @@ ClientProfileShuffled is ClientProfile with the order of the extensions of every
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.Clone() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) Clone() *Profile
+func (p *Profile) ClientProfileShuffled(shuffle bool) (profiles.ClientProfile, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.Clone() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1007,17 +1169,21 @@ Clone returns an independent copy of the profile.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.Header() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) Header(name string) (string, bool)
+func (p *Profile) Clone() *Profile
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.Header() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1027,17 +1193,21 @@ Header returns a default header's value.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.HeaderOrder() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) HeaderOrder() []string
+func (p *Profile) Header(name string) (string, bool)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.HeaderOrder() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1047,17 +1217,21 @@ HeaderOrder is the header names in profile order, which is what the transport ne
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.HintOrder() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) HintOrder() []string
+func (p *Profile) HeaderOrder() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.HintOrder() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1067,17 +1241,21 @@ HintOrder is the order the profile sends its client hints in, as its behavior's 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.Migrate() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) Migrate(name string) (*Profile, error)
+func (p *Profile) HintOrder() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.Migrate() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1087,17 +1265,21 @@ Migrate explicitly creates a separately identified current-engine candidate. It 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.RuntimeBehavior() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) RuntimeBehavior() behavior.Policy
+func (p *Profile) Migrate(name string) (*Profile, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.RuntimeBehavior() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1107,17 +1289,21 @@ RuntimeBehavior is the explicit data consumed by all network layers. Schema 0-2 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.Save() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) Save() ([]byte, error)
+func (p *Profile) RuntimeBehavior() behavior.Policy
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.Save() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1127,17 +1313,21 @@ Save writes a profile as indented JSON, the form meant to be committed and revie
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.ShufflesExtensions() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) ShufflesExtensions() bool
+func (p *Profile) Save() ([]byte, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.ShufflesExtensions() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1149,17 +1339,21 @@ Nothing on an iPhone or an iPad does, whatever it is called: every browser there
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.Source() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) Source() string
+func (p *Profile) ShufflesExtensions() bool
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.Source() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1169,17 +1363,21 @@ Source is the file this profile was read from, or empty for one that ships insid
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.Spec() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) Spec() (tls.ClientHelloSpec, error)
+func (p *Profile) Source() string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.Spec() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1191,17 +1389,21 @@ Fresh on every call, deliberately. utls extensions are pointers with mutable sta
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.Validate() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) Validate() error
+func (p *Profile) Spec() (tls.ClientHelloSpec, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.Validate() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1211,17 +1413,21 @@ Validate accepts an executable identity before any request-related I/O. Inspect 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Profile.ValidateEngine() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (p *Profile) ValidateEngine() error
+func (p *Profile) Validate() error
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Profile.ValidateEngine() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1231,9 +1437,29 @@ ValidateEngine checks the actual compiled execution contract, not Schema or Name
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (p *Profile) ValidateEngine() error
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### QUICTLSSpec { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+QUICTLSSpec independently describes QUIC TLS. CipherSuites in Hello is the fixed vector or the hardware-AES branch; neither branch is a browser constant.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1247,25 +1473,13 @@ type QUICTLSSpec struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-QUICTLSSpec independently describes QUIC TLS. CipherSuites in Hello is the fixed vector or the hardware-AES branch; neither branch is a browser constant.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### QUICTLSSpec.UnmarshalJSON() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (q *QUICTLSSpec) UnmarshalJSON(data []byte) error
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -1275,19 +1489,21 @@ UnmarshalJSON requires an exact, complete declarative QUIC TLS descriptor.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### Registry { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-type Registry struct {
-	// Has unexported fields.
-}
+func (q *QUICTLSSpec) UnmarshalJSON(data []byte) error
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### Registry { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1299,17 +1515,23 @@ Four sources, in order: profiles registered at runtime, profiles kept in this ma
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### NewRegistry() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func NewRegistry() *Registry
+type Registry struct {
+	// Has unexported fields.
+}
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### NewRegistry() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1319,17 +1541,21 @@ NewRegistry returns a registry over the built-in sources and this machine's own 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Registry.Dir() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (r *Registry) Dir() string
+func NewRegistry() *Registry
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Registry.Dir() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1339,17 +1565,21 @@ Dir is where this registry looks for profiles kept on this machine.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Registry.Get() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (r *Registry) Get(name string) (*Profile, error)
+func (r *Registry) Dir() string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Registry.Get() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1359,17 +1589,21 @@ Get resolves a name to a profile.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Registry.HasHandshake() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (r *Registry) HasHandshake(name string) bool
+func (r *Registry) Get(name string) (*Profile, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Registry.HasHandshake() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1379,17 +1613,21 @@ HasHandshake reports whether a name resolves to a profile built from a real capt
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Registry.KeptHere() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (r *Registry) KeptHere() []string
+func (r *Registry) HasHandshake(name string) bool
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Registry.KeptHere() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1399,17 +1637,21 @@ KeptHere lists the profiles in this machine's own directory, which are the ones 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Registry.Measured() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (r *Registry) Measured() []Group
+func (r *Registry) KeptHere() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Registry.Measured() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1421,17 +1663,21 @@ Both sources at once, not one instead of the other: a machine that has measured 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Registry.Names() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (r *Registry) Names() []string
+func (r *Registry) Measured() []Group
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Registry.Names() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1441,17 +1687,21 @@ Names lists every profile that can be resolved, measured ones first.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Registry.Register() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (r *Registry) Register(p *Profile) error
+func (r *Registry) Names() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Registry.Register() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1461,17 +1711,21 @@ Register adds or replaces a profile.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Registry.SetDir() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (r *Registry) SetDir(dir string)
+func (r *Registry) Register(p *Profile) error
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Registry.SetDir() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1481,9 +1735,29 @@ SetDir points the registry at another directory.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (r *Registry) SetDir(dir string)
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Resumption { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Resumption is how the browser of a capture resumed a session, against the hello it sent cold: tls-forge resumes as Chrome does, with the cold hello and pre\_shared\_key last, one ticket offered (withResumption).
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1503,25 +1777,13 @@ type Resumption struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Resumption is how the browser of a capture resumed a session, against the hello it sent cold: tls-forge resumes as Chrome does, with the cold hello and pre\_shared\_key last, one ticket offered (withResumption).
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### ResumptionOf() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func ResumptionOf(c *capture.Capture) (Resumption, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -1531,17 +1793,21 @@ ResumptionOf is how the browser of a capture resumed a session, against its cold
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Resumption.AsTLSForge() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (r Resumption) AsTLSForge() bool
+func ResumptionOf(c *capture.Capture) (Resumption, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Resumption.AsTLSForge() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -1551,9 +1817,29 @@ AsTLSForge says the browser resumed as tls-forge resumes.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (r Resumption) AsTLSForge() bool
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Setting { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Setting is one HTTP/2 setting. Order matters, so this is a list.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1566,17 +1852,21 @@ type Setting struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Setting is one HTTP/2 setting. Order matters, so this is a list.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### TLSExtension { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+TLSExtension selects a supported protocol primitive and its data. Parameters are strictly typed by that primitive, including for programmatic profiles.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1589,17 +1879,21 @@ type TLSExtension struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-TLSExtension selects a supported protocol primitive and its data. Parameters are strictly typed by that primitive, including for programmatic profiles.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### TLSSpec { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+TLSSpec is declarative input, not a recorded handshake. Generated and session values have named sources; a profile cannot supply keys, randoms or binders.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1618,25 +1912,13 @@ type TLSSpec struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-TLSSpec is declarative input, not a recorded handshake. Generated and session values have named sources; a profile cannot supply keys, randoms or binders.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### TLSSpec.UnmarshalJSON() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (s *TLSSpec) UnmarshalJSON(data []byte) error
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -1646,9 +1928,29 @@ UnmarshalJSON requires the complete, unambiguous declarative representation.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (s *TLSSpec) UnmarshalJSON(data []byte) error
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Variant { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Variant is one platform a version was measured on.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -1660,12 +1962,6 @@ type Variant struct {
 	Local bool
 }
 ```
-
-</div>
-
-<div class="tf-ref__docs" markdown>
-
-Variant is one platform a version was measured on.
 
 </div>
 

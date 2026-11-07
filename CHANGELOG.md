@@ -421,16 +421,24 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   take no room. Hovering anything moves nothing.
 - Lay the reference out as Stripe's is, and give every page a map. From
   1440px wide, a section's code stands to the right of its text: the
-  signature, an example and, where the call answers, the response it got,
-  shortened with an ellipsis. While the text scrolls, the code stays in view
-  under the header; code taller than the window then scrolls in its column.
-  On the right, a map of the page marks the section being read and jumps to
-  any other. The examples are real runs of the CLI and the Go, Node.js and
-  Python packages, kept in `scripts/reference-examples.json`. A link to a
-  section put its heading 93px further down than the step under the header:
-  Material's scroll margin on headings came on top of the page's own.
-  `make docs-check` reads a heading's attribute list as MkDocs does: since
-  the reference's headings carried one, the link to `cli.md#proxy` failed it.
+  signature, an example and, where the example prints something, what it
+  printed, a mark of "…" for each run of lines left out. Whichever of the
+  two is shorter stays in view under the header while the other scrolls
+  past: the code beside a long text, scrolling in its column when it is
+  taller than the window, and the name and text beside long code. On the
+  right, a map of the page marks the section being read and jumps to any
+  other. Every page has the same frame, up to 1728px: the header, menu and
+  map stand in one place from page to page, and a guide's text keeps its
+  864px column, in the middle between them. The examples are real runs of
+  the CLI and the Go, Node.js and Python packages, kept in
+  `scripts/reference-examples.json`. A link to a section put its heading
+  93px further down than the step under the header: Material's scroll
+  margin on headings came on top of the page's own. `make docs-check`
+  reads a heading's attribute list as MkDocs does: since the reference's
+  headings carried one, the link to `cli.md#proxy` failed it. In a code
+  panel without a title, the copy button covered a line too long for the
+  panel, at every width (813 places over the 46 pages at eight widths): the
+  code now scrolls left of the button, never under it.
 
 ## [1.0.0] - Unreleased
 

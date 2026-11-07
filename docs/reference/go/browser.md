@@ -16,7 +16,17 @@ Nothing here touches the user's real browser profile. Every launch gets a fresh 
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Browser { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Browser is a launchable browser found on this machine.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -31,25 +41,13 @@ type Browser struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Browser is a launchable browser found on this machine.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Find() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func Find(name string) (*Browser, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -59,17 +57,21 @@ Find locates a browser. An empty name searches; a name containing a path separat
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Browser.Open() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (b *Browser) Open(ctx context.Context, url string, opts Options) (close func(), err error)
+func Find(name string) (*Browser, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Browser.Open() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -81,9 +83,29 @@ The temporary profile directory is removed by the returned function. The context
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (b *Browser) Open(ctx context.Context, url string, opts Options) (close func(), err error)
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Options { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Options controls a launch.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -100,12 +122,6 @@ type Options struct {
 	Args []string
 }
 ```
-
-</div>
-
-<div class="tf-ref__docs" markdown>
-
-Options controls a launch.
 
 </div>
 

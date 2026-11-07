@@ -11,9 +11,9 @@ type and description. A construct the parsers below do not know is an error,
 not something left out.
 
 Each symbol is then a section of two columns, as Stripe's reference reads: its
-documentation on the left, and on the right its signature with the examples
-scripts/reference-examples.json gives it, a request and what came back. An
-example for a symbol a page does not have is an error too.
+heading and documentation on the left, and on the right its signature with the
+examples scripts/reference-examples.json gives it, what a reader runs and what
+it printed. An example for a symbol a page does not have is an error too.
 """
 
 from __future__ import annotations
@@ -884,9 +884,10 @@ def example_panels(examples: list[dict[str, typing.Any]]) -> list[str]:
 
 
 def sectioned(page: str, examples: dict[str, list[dict[str, typing.Any]]]) -> str:
-    """A page whose every symbol is a section: its heading, then its code (the
-    signature right under the heading, and its examples), then the rest of what
-    it says. A section ends at a heading of its level or above, or another
+    """A page whose every symbol is a section: its text (its heading and what it
+    says) and its code (the signature found right under the heading, and its
+    examples), apart, so that the shorter of the two can stay in view beside
+    the other. A section ends at a heading of its level or above, or another
     symbol's; a heading of its own documentation stays in it."""
     lines = page.split("\n")
     out: list[str] = []
@@ -921,11 +922,12 @@ def sectioned(page: str, examples: dict[str, list[dict[str, typing.Any]]]) -> st
             body.pop(0)
         while body and not body[-1].strip():
             body.pop()
-        out += ['<div class="tf-ref" markdown>', "", lines[i], ""]
-        if code:
-            out += ['<div class="tf-ref__code" markdown>', "", *code, "</div>", ""]
+        out += ['<div class="tf-ref" markdown>', "", '<div class="tf-ref__text" markdown>', "", lines[i], ""]
         if body:
             out += ['<div class="tf-ref__docs" markdown>', "", *body, "", "</div>", ""]
+        out += ["</div>", ""]
+        if code:
+            out += ['<div class="tf-ref__code" markdown>', "", *code, "</div>", ""]
         out += ["</div>", ""]
         i = j
     unused = sorted(set(examples) - used)

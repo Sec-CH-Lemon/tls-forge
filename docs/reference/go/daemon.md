@@ -29,7 +29,17 @@ So the id is echoed on EVERY response, including every error path, and a caller 
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### BodyUTF8, BodyBase64 { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+How a body is spelled on the wire.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -42,25 +52,13 @@ const (
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-How a body is spelled on the wire.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Protocol { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-const Protocol = 3
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -70,19 +68,23 @@ Protocol is the version of the protocol this daemon speaks: 3 requires an exact 
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+const Protocol = 3
+```
+
+</div>
+
+</div>
+
 ## Functions
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### AnswerInit() { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func AnswerInit(out io.Writer, id uint64, err error) error
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -92,17 +94,21 @@ AnswerInit writes the answer to the init line to out: none of an error, the daem
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### Serve() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func Serve(in io.Reader, out io.Writer, client Client) error
+func AnswerInit(out io.Writer, id uint64, err error) error
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### Serve() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -114,17 +120,21 @@ It returns an error only for a broken pipe. Everything a request can do wrong co
 
 </div>
 
-<div class="tf-ref" markdown>
-
-### ServeContext() { .tf-symbol }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func ServeContext(ctx context.Context, in io.Reader, out io.Writer, client Client) error
+func Serve(in io.Reader, out io.Writer, client Client) error
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+### ServeContext() { .tf-symbol }
 
 <div class="tf-ref__docs" markdown>
 
@@ -136,11 +146,31 @@ Once it is, no more requests are taken, the request in flight is cancelled and a
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func ServeContext(ctx context.Context, in io.Reader, out io.Writer, client Client) error
+```
+
+</div>
+
+</div>
+
 ## Types
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### BrowserContext { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+BrowserContext is a request's browser context as a line carries it: the library's tlsforge.BrowserContext, field for field.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -156,17 +186,21 @@ type BrowserContext struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-BrowserContext is a request's browser context as a line carries it: the library's tlsforge.BrowserContext, field for field.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Client { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Client is the part of \*tlsforge.Client the daemon needs, named so tests can substitute one without opening a socket.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -179,17 +213,21 @@ type Client interface {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Client is the part of \*tlsforge.Client the daemon needs, named so tests can substitute one without opening a socket.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Init { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Init is what the init line says: the first line of a daemon that takes its proxy on its input, read before the client that goes through it is made, as {"id":1,"control":"init","proxy":"http://user:pass@host:port"}. A command line is what ps shows every user of the machine, and the environment is what the process's owner can read while it runs; the input is read once, and gone.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -202,25 +240,13 @@ type Init struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Init is what the init line says: the first line of a daemon that takes its proxy on its input, read before the client that goes through it is made, as {"id":1,"control":"init","proxy":"http://user:pass@host:port"}. A command line is what ps shows every user of the machine, and the environment is what the process's owner can read while it runs; the input is read once, and gone.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### ReadInit() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func ReadInit(in io.Reader) (Init, io.Reader, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -230,9 +256,29 @@ ReadInit reads the init line from in, and is the input after it, where the reque
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func ReadInit(in io.Reader) (Init, io.Reader, error)
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Request { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Request is one line of input.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -283,17 +329,21 @@ type Request struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Request is one line of input.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Response { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Response is one line of output.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -325,12 +375,6 @@ type Response struct {
 	Capabilities []string `json:"capabilities,omitempty"`
 }
 ```
-
-</div>
-
-<div class="tf-ref__docs" markdown>
-
-Response is one line of output.
 
 </div>
 

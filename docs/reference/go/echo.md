@@ -16,15 +16,9 @@ Running locally also removes the third-party dependency that makes this kind of 
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Option { .tf-symbol }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-type Option func(*options)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -34,17 +28,21 @@ Option configures a Server.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithAddr() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithAddr(addr string) Option
+type Option func(*options)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithAddr() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -54,17 +52,21 @@ WithAddr sets the listen address. The default binds an ephemeral port on loopbac
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithHost() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithHost(host string) Option
+func WithAddr(addr string) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithHost() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -74,17 +76,21 @@ WithHost sets the hostname used in URL and in the certificate. "localhost" rathe
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithManual() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithManual(enabled bool) Option
+func WithHost(host string) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithManual() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -98,17 +104,21 @@ It is measured over HTTP/2 alone: a browser nobody launched cannot be sent to th
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### WithSessionTickets() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func WithSessionTickets(enabled bool) Option
+func WithManual(enabled bool) Option
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### WithSessionTickets() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -122,9 +132,29 @@ Turn it on to study resumption itself.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func WithSessionTickets(enabled bool) Option
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Server { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Server is the listener. The zero value is not usable; call Start.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -136,25 +166,13 @@ type Server struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Server is the listener. The zero value is not usable; call Start.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Start() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func Start(opts ...Option) (*Server, error)
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -164,17 +182,21 @@ Start binds the listener and begins accepting. The caller must Close it.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Server.Addr() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (s *Server) Addr() string
+func Start(opts ...Option) (*Server, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Server.Addr() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -184,17 +206,21 @@ Addr is the address actually bound, with the resolved port.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Server.Await() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (s *Server) Await(ctx context.Context) (*Session, error)
+func (s *Server) Addr() string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Server.Await() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -208,17 +234,21 @@ Measured, before this was separated out: the capture came back with `content-len
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Server.CaptureURL() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (s *Server) CaptureURL() string
+func (s *Server) Await(ctx context.Context) (*Session, error)
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Server.CaptureURL() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -228,17 +258,21 @@ CaptureURL is the protocol-restricted endpoint the capture page navigates throug
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Server.Certificate() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (s *Server) Certificate() []byte
+func (s *Server) CaptureURL() string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Server.Certificate() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -248,17 +282,21 @@ Certificate exposes the generated certificate so a client can pin it instead of 
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Server.Close() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (s *Server) Close() error
+func (s *Server) Certificate() []byte
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Server.Close() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -268,17 +306,21 @@ Close stops accepting, ends open connections and waits for their handlers.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Server.Panics() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (s *Server) Panics() []string
+func (s *Server) Close() error
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Server.Panics() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -288,17 +330,21 @@ Panics is a diagnostic: what has been recovered from connection handlers, the la
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Server.Sessions() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (s *Server) Sessions() []*Session
+func (s *Server) Panics() []string
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Server.Sessions() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -308,17 +354,21 @@ Sessions returns the latest connections observed, 128 of them, oldest first: a s
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Server.URL() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (s *Server) URL() string
+func (s *Server) Sessions() []*Session
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Server.URL() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -328,9 +378,29 @@ URL is the base URL clients should use.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (s *Server) URL() string
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 ### Session { .tf-symbol }
+
+<div class="tf-ref__docs" markdown>
+
+Session is everything one connection revealed about its client.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
@@ -342,25 +412,13 @@ type Session struct {
 
 </div>
 
-<div class="tf-ref__docs" markdown>
-
-Session is everything one connection revealed about its client.
-
-</div>
-
 </div>
 
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Session.Capture() { .tf-member }
-
-<div class="tf-ref__code" markdown>
-
-```go linenums="0"
-func (s *Session) Capture(source string) *capture.Capture
-```
-
-</div>
 
 <div class="tf-ref__docs" markdown>
 
@@ -370,17 +428,21 @@ Capture renders the session in the exchange format.
 
 </div>
 
-<div class="tf-ref" markdown>
-
-#### Session.Navigator() { .tf-member }
-
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
-func (s *Session) Navigator() *capture.Navigator
+func (s *Session) Capture(source string) *capture.Capture
 ```
 
 </div>
+
+</div>
+
+<div class="tf-ref" markdown>
+
+<div class="tf-ref__text" markdown>
+
+#### Session.Navigator() { .tf-member }
 
 <div class="tf-ref__docs" markdown>
 
@@ -390,21 +452,35 @@ Navigator reports the JavaScript-side data, if the capture page delivered it.
 
 </div>
 
+<div class="tf-ref__code" markdown>
+
+```go linenums="0"
+func (s *Session) Navigator() *capture.Navigator
+```
+
+</div>
+
+</div>
+
 <div class="tf-ref" markdown>
 
+<div class="tf-ref__text" markdown>
+
 #### Session.Remote() { .tf-member }
+
+<div class="tf-ref__docs" markdown>
+
+Remote is the client's address, which is the only way to tell two otherwise identical local sessions apart.
+
+</div>
+
+</div>
 
 <div class="tf-ref__code" markdown>
 
 ```go linenums="0"
 func (s *Session) Remote() string
 ```
-
-</div>
-
-<div class="tf-ref__docs" markdown>
-
-Remote is the client's address, which is the only way to tell two otherwise identical local sessions apart.
 
 </div>
 

@@ -35,7 +35,7 @@
    {
     "title": "Response",
     "lang": "json",
-    "code": "{\n  \"headers\": {\n    \"Accept\": \"*/*\",\n    \"Content-Type\": \"application/json\",\n    \"Origin\": \"https://httpbin.org\",\n    \"Sec-Fetch-Mode\": \"cors\",\n    \"Sec-Fetch-Site\": \"same-origin\",\n    …\n  },\n  \"method\": \"POST\",\n  \"url\": \"https://httpbin.org/post\",\n  …\n  \"json\": {\n    \"hello\": \"world\"\n  }\n}",
+    "code": "{\n  \"args\": {},\n  \"headers\": {\n    …\n    \"Sec-Fetch-Dest\": \"empty\",\n    \"Sec-Fetch-Mode\": \"cors\",\n    \"Sec-Fetch-Site\": \"same-origin\",\n    …\n  },\n  \"method\": \"POST\",\n  …\n  \"json\": {\n    \"hello\": \"world\"\n  }\n}",
     "plain": true
    }
   ],
@@ -147,7 +147,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "/usr/local/bin/tls-forge",
+    "code": "…/lib/python3.11/site-packages/tlsforge/bin/tls-forge",
     "plain": true
    }
   ]
@@ -188,7 +188,7 @@
    {
     "title": "Response",
     "lang": "json",
-    "code": "{\n  \"headers\": {\n    \"Accept\": \"*/*\",\n    \"Content-Type\": \"application/json\",\n    \"Origin\": \"https://httpbin.org\",\n    \"Sec-Fetch-Mode\": \"cors\",\n    \"Sec-Fetch-Site\": \"same-origin\",\n    …\n  },\n  \"method\": \"POST\",\n  \"url\": \"https://httpbin.org/post\",\n  …\n  \"json\": {\n    \"hello\": \"world\"\n  }\n}",
+    "code": "{\n  \"args\": {},\n  \"headers\": {\n    …\n    \"Sec-Fetch-Dest\": \"empty\",\n    \"Sec-Fetch-Mode\": \"cors\",\n    \"Sec-Fetch-Site\": \"same-origin\",\n    …\n  },\n  \"method\": \"POST\",\n  …\n  \"json\": {\n    \"hello\": \"world\"\n  }\n}",
     "plain": true
    }
   ],
@@ -274,7 +274,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "/usr/local/bin/tls-forge",
+    "code": "…/node_modules/tls-forge-darwin-arm64/bin/tls-forge",
     "plain": true
    }
   ]
@@ -289,7 +289,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "200 https://example.com/\ncontent-type: text/html; charset=utf-8\nserver: cloudflare\n…\n\n<!doctype html><html lang=en><head><meta charset=utf-8>…",
+    "code": "200 https://example.com/\n…\ncontent-type: text/html; charset=utf-8\n…\n\n<!doctype html><html lang=en><head><meta charset=utf-8>…",
     "plain": true
    }
   ],
@@ -302,7 +302,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "────────────────────────────────────────────────────────────────────────\n  user-agent       Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36\n  JA4              t13d1517h2_8daaf6152771_cb7bf5808d99\n  ALPN             h2, http/1.1\n  HTTP/2           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p\n  …\n  client hints     21 of the 21 a server asks for, sent when asked\n────────────────────────────────────────────────────────────────────────\n\nRe-run with --install to keep this profile, or --save <path> to write it out.",
+    "code": "────────────────────────────────────────────────────────────────────────\n  user-agent       Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36\n  JA4              t13d1517h2_8daaf6152771_cb7bf5808d99\n  JA3 hash         eb4fe705d35abcbe8736018a3d3bfae8\n  ALPN             h2, http/1.1\n  HTTP/2           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p\n  …\n  client hints     21 of the 21 a server asks for, sent when asked\n────────────────────────────────────────────────────────────────────────\n\nRe-run with --install to keep this profile, or --save <path> to write it out.",
     "plain": true
    }
   ],
@@ -315,7 +315,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "--- browser  Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36\n             Google Chrome 156.0.8078.80, macOS 27.0.1, arm 64, headless\n+++ client   profile chrome_156_macos\n\nTLS\n  ja4                    t13d1517h2_8daaf6152771_cb7bf5808d99\n  …\n\nHTTP/2\n  http2_akamai           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p\n- header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36, …\n+ header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … Chrome/156.0.0.0 Safari/537.36, …\n  …\n\n2 field(s) differ. Fix by measuring this browser and using the profile\nit produces:\n  tls-forge capture --save my-browser.json",
+    "code": "--- browser  Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36\n             Google Chrome 156.0.8078.80, macOS 27.0.1, arm 64, headless\n+++ client   profile chrome_156_macos\n…\nTLS\n  ja4                    t13d1517h2_8daaf6152771_cb7bf5808d99\n  …\nHTTP/2\n  http2_akamai           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p\n  …\n- header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36, …\n+ header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … Chrome/156.0.0.0 Safari/537.36, …\n…\n2 field(s) differ. Fix by measuring this browser and using the profile\nit produces:\n  tls-forge capture --save my-browser.json",
     "plain": true
    }
   ],
@@ -328,7 +328,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "Measured from a real browser.\n  * kept on this machine, and used ahead of anything shipped\n  < what you get when no profile is named\n\n  chrome_151\n  …\n  chrome_156\n    chrome_156_linux\n    chrome_156_macos          <\n    chrome_156_windows\n\nFrom the tls-client catalogue, a handshake but no headers of its own:\n\n  …",
+    "code": "Measured from a real browser.\n  * kept on this machine, and used ahead of anything shipped\n  < what you get when no profile is named\n\n  chrome_151\n  …\n  chrome_156\n    chrome_156_linux\n    chrome_156_macos          <\n    chrome_156_windows\n\nFrom the tls-client catalogue, a handshake but no headers of its own:\n\n…\n\nMeasure your own with:  tls-forge capture --install\nKept on this machine in: …/Library/Application Support/tls-forge/profiles",
     "plain": true
    }
   ],
@@ -341,7 +341,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "────────────────────────────────────────────────────────────────────────\n  profile     chrome_156_macos · shipped with tls-forge\n  browser     Chrome 156 on macOS\n  …\n────────────────────────────────────────────────────────────────────────\nproxy listening on 127.0.0.1:8080\n\n  export HTTPS_PROXY=http://127.0.0.1:8080\n  curl --proxy http://127.0.0.1:8080 --cacert '/Users/you/Library/Application Support/tls-forge/ca.pem' https://tls.browserleaks.com/json\n\n…\nCtrl-C to stop.",
+    "code": "proxy listening on 127.0.0.1:8080\n\n  export HTTPS_PROXY=http://127.0.0.1:8080\n  curl --proxy http://127.0.0.1:8080 --cacert '…/Library/Application Support/tls-forge/ca.pem' https://tls.browserleaks.com/json\n\n…\n\nCtrl-C to stop.",
     "plain": true
    }
   ],
@@ -354,7 +354,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "https://localhost:62079\n  /          a page that measures the browser that opens it\n  /api/all   this connection's fingerprint, as JSON\n\nThe certificate is self-signed and generated for this run, so clients\nmust be told to accept it (curl -k, tlsforge --insecure).\nCtrl-C to stop.",
+    "code": "https://localhost:58155\n  /          a page that measures the browser that opens it\n  /api/all   this connection's fingerprint, as JSON\n\nThe certificate is self-signed and generated for this run, so clients\nmust be told to accept it (curl -k, tlsforge --insecure).\nCtrl-C to stop.",
     "plain": true
    }
   ],
@@ -367,7 +367,7 @@
    {
     "title": "Response",
     "lang": "json",
-    "code": "{\"id\":1,\"status\":200,\"url\":\"https://example.com/\",\"body\":\"<!doctype html><html lang=en>…\",\"headers\":{\"content-type\":[\"text/html; charset=utf-8\"],…},\"cookies\":[]}",
+    "code": "{\"id\":1,\"status\":200,\"url\":\"https://example.com/\",\"body\":\"\\u003c!doctype html\\u003e…\",\"headers\":{…,\"content-type\":[\"text/html; charset=utf-8\"],…},\"cookies\":[]}",
     "plain": true
    }
   ],
