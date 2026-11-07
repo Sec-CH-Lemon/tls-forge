@@ -1,6 +1,7 @@
 package tlsforge
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -59,6 +60,61 @@ func (h *bundleHeard) ackOf(pn qlog.PacketNumber) *qlog.AckFrame {
 	return nil
 }
 
+// alongside says why the client's first ACK of the lone packet pn tells
+// nothing of how long an ACK of a lone packet waits, or nothing: the ACK
+// acknowledges for the first time another ack-eliciting packet of the
+// server's, which was still waiting for its ACK when pn came (every second
+// such packet is acknowledged at once, and the first one's timer may be the
+// one that fired), or it went in a packet the client sent for something of
+// its own.
+func (h *bundleHeard) alongside(pn qlog.PacketNumber) string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	acked := map[qlog.PacketNumber]bool{}
+	for _, p := range h.got {
+		if p.Header.PacketType != qlog.PacketType1RTT {
+			continue
+		}
+		for _, f := range p.Frames {
+			a, ok := f.Frame.(*qlog.AckFrame)
+			if !ok {
+				continue
+			}
+			if !a.AcksPacket(pn) {
+				for _, s := range h.sent {
+					if s.Header.PacketType == qlog.PacketType1RTT && a.AcksPacket(s.Header.PacketNumber) {
+						acked[s.Header.PacketNumber] = true
+					}
+				}
+				continue
+			}
+			for _, s := range h.sent {
+				n := s.Header.PacketNumber
+				if s.Header.PacketType == qlog.PacketType1RTT && n != pn && !acked[n] && a.AcksPacket(n) && elicits(s.Frames) {
+					return fmt.Sprintf("its ACK acknowledged packet %d first too", n)
+				}
+			}
+			if elicits(p.Frames) {
+				return "its ACK went with frames of the client's own"
+			}
+			return ""
+		}
+	}
+	return ""
+}
+
+// elicits says whether a packet of these frames asks for an ACK.
+func elicits(frames []qlog.Frame) bool {
+	for _, f := range frames {
+		switch f.Frame.(type) {
+		case *qlog.AckFrame, *qlog.ConnectionCloseFrame:
+		default:
+			return true
+		}
+	}
+	return false
+}
+
 // probedLate is p saying its ACKs may wait 200 ms, its max_ack_delay, a
 // transport parameter alone. A server's probe timeout counts it: told 25 ms,
 // a server of quic-go's probes a packet before an ACK that waits longer, as
@@ -75,8 +131,10 @@ func probedLate(p *profile.Profile) *profile.Profile {
 // of a bundleSite's, an unknown frame on its control stream once the client
 // has nothing left to send. A server of quic-go's skips a packet number now
 // and then: one skipped right before the lone packet is a new gap, which the
-// client acknowledges at once. Such runs say nothing of how long an ACK
-// waits, and are run again.
+// client acknowledges at once. A packet of the server's still waiting for
+// its ACK when the lone one comes, on a runner under load, has the client
+// acknowledge both at once, or as the first one's timer says (alongside).
+// Such runs say nothing of how long an ACK waits, and are run again.
 func loneACK(t *testing.T, p *profile.Profile) *qlog.AckFrame {
 	t.Helper()
 	p = probedLate(p)
@@ -108,12 +166,60 @@ func loneACK(t *testing.T, p *profile.Profile) *qlog.AckFrame {
 		if ack == nil {
 			t.Fatal("the lone packet was never acknowledged")
 		}
-		if heard.sentNumber(lone-1) && ack.LargestAcked() == lone {
+		if heard.sentNumber(lone-1) && ack.LargestAcked() == lone && heard.alongside(lone) == "" {
 			return ack
 		}
 	}
-	t.Fatal("a packet number skipped before the lone packet, or a packet after it, in every run")
+	t.Fatal("a packet number skipped before the lone packet, a packet after it, or one acknowledged with it, in every run")
 	return nil
+}
+
+func TestAnACKThatWasNotForALonePacketAloneIsSaid(t *testing.T) {
+	sent := func(pn qlog.PacketNumber, frames ...any) qlog.PacketSent {
+		p := qlog.PacketSent{Header: qlog.PacketHeader{PacketType: qlog.PacketType1RTT, PacketNumber: pn}}
+		for _, f := range frames {
+			p.Frames = append(p.Frames, qlog.Frame{Frame: f})
+		}
+		return p
+	}
+	got := func(frames ...any) qlog.PacketReceived {
+		p := qlog.PacketReceived{Header: qlog.PacketHeader{PacketType: qlog.PacketType1RTT}}
+		for _, f := range frames {
+			p.Frames = append(p.Frames, qlog.Frame{Frame: f})
+		}
+		return p
+	}
+	acking := func(smallest, largest qlog.PacketNumber) *qlog.AckFrame {
+		return &qlog.AckFrame{AckRanges: []qlog.AckRange{{Smallest: smallest, Largest: largest}}}
+	}
+	stream := &qlog.StreamFrame{StreamID: 3}
+	for _, tc := range []struct {
+		name string
+		got  []qlog.PacketReceived
+		said string
+	}{
+		{"alone", []qlog.PacketReceived{got(acking(0, 5)), got(acking(0, 6))}, ""},
+		// packet 5 acknowledged in a packet the server did not take for an ACK
+		{"the one before only now", []qlog.PacketReceived{got(acking(0, 4)), got(acking(0, 6))}, "its ACK acknowledged packet 5 first too"},
+		{"with a frame of its own", []qlog.PacketReceived{got(acking(0, 5)), got(acking(0, 6), &qlog.PingFrame{})}, "its ACK went with frames of the client's own"},
+		{"never", []qlog.PacketReceived{got(acking(0, 5))}, ""},
+	} {
+		h := &bundleHeard{
+			sent: []qlog.PacketSent{sent(4, stream), sent(5, stream), sent(6, stream)},
+			got:  tc.got,
+		}
+		if said := h.alongside(6); said != tc.said {
+			t.Errorf("%s: said %q, want %q", tc.name, said, tc.said)
+		}
+	}
+	// a packet of ACKs alone the client need not acknowledge on its own
+	h := &bundleHeard{
+		sent: []qlog.PacketSent{sent(4, stream), sent(5, acking(0, 1)), sent(6, stream)},
+		got:  []qlog.PacketReceived{got(acking(0, 4)), got(acking(0, 6))},
+	}
+	if said := h.alongside(6); said != "" {
+		t.Errorf("an ACK-only packet before the lone one: said %q", said)
+	}
 }
 
 func TestALonePacketIsAcknowledgedAsLateAsChromes(t *testing.T) {
