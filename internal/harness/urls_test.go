@@ -41,6 +41,9 @@ type urlBrowser struct {
 	fail       bool
 	// h2only goes no further than a run page that came over HTTP/1.1.
 	h2only bool
+	// refuses connects for a URL typed and sends it nothing, as Chrome 157
+	// does when its https fails (HTTPS-First); silent does not even connect.
+	refuses, silent bool
 }
 
 func (b urlBrowser) defaultPorts(tls, plain int) Browser {
@@ -57,7 +60,16 @@ func (b urlBrowser) Open(_ context.Context, page, _ string) (func(), error) {
 		defer close(done)
 		c := b.client()
 		at := strings.Index(page, "/urlrun/")
-		if at < 0 {
+		switch {
+		case at < 0 && b.silent:
+			return
+		case at < 0 && b.refuses:
+			u, _ := url.Parse(page)
+			if conn, err := b.dial(context.Background(), "tcp", u.Host); err == nil {
+				_ = conn.Close()
+			}
+			return
+		case at < 0:
 			_, _ = readAll(c, page)
 			return
 		}
@@ -86,17 +98,21 @@ func (b urlBrowser) DumpDOM(context.Context, string) ([]byte, error) { return ni
 // ports portRules take on the bench's ports, once it was told them.
 func (b urlBrowser) client() *http.Client {
 	return &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			host, port, _ := net.SplitHostPort(addr)
-			if b.tls != 0 {
-				n, _ := strconv.Atoi(port)
-				port = strconv.Itoa(benchPort(host, n, b.tls, b.plain))
-			}
-			return (&net.Dialer{}).DialContext(ctx, network, "127.0.0.1:"+port)
-		},
+		DialContext:       b.dial,
 		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // the bench's own certificate
 		ForceAttemptHTTP2: true,
 	}}
+}
+
+// dial is where b connects for addr: the loopback address, on the bench's
+// port for it once b was told them.
+func (b urlBrowser) dial(ctx context.Context, network, addr string) (net.Conn, error) {
+	host, port, _ := net.SplitHostPort(addr)
+	if b.tls != 0 {
+		n, _ := strconv.Atoi(port)
+		port = strconv.Itoa(benchPort(host, n, b.tls, b.plain))
+	}
+	return (&net.Dialer{}).DialContext(ctx, network, "127.0.0.1:"+port)
 }
 
 // readAll is the body of the answer for page and the major version of the
@@ -178,6 +194,26 @@ func (n noPorts) DumpDOM(ctx context.Context, page string) ([]byte, error) {
 	return n.b.DumpDOM(ctx, page)
 }
 
+func TestAURLTypedThatTheBrowserSendsNothingToIsBlocked(t *testing.T) {
+	quickURLs(t)
+	// It connected, and sent nothing: what went out is nothing, over each
+	// protocol, and a case of a run page is measured as before.
+	got, err := measureURLs(context.Background(), urlBrowser{refuses: true}, testURLCases, []string{"typed", "plain"}, quick, nil)
+	if err != nil {
+		t.Fatalf("measureURLs: %v", err)
+	}
+	if blocked := (SentURL{Refused: refusedBlocked}); got["typed"].H2 != blocked || got["typed"].H1 != blocked ||
+		got["plain"].H2.Target != "/p/plain?q" {
+		t.Errorf("measured %+v", got)
+	}
+	// It did not even connect: it never began, which measures nothing, though
+	// the case before it connected.
+	if _, err := measureURLs(context.Background(), urlBrowser{silent: true}, testURLCases, []string{"plain", "typed"}, quick, nil); err == nil ||
+		!strings.Contains(err.Error(), "harness: typed over h2: /p/typed was not asked for within ") {
+		t.Errorf("a browser that never connected: %v", err)
+	}
+}
+
 func TestAURLMeasurementSaysWhyItIsNone(t *testing.T) {
 	quickURLs(t)
 	if _, err := MeasureURLs(context.Background(), urlBrowser{}, []string{"none"}, nil); err == nil ||
@@ -221,7 +257,7 @@ func TestARunPageGoesToItsURLOrToThe302ThatSaysIt(t *testing.T) {
 		t.Errorf("the scenario of a URL case is %+v", scenarios["plain"])
 	}
 	if scenarios["typed"] != (scenario{note: "a URL typed", start: "https://www.example.com:{P}/p/typed", wait: "/never",
-		settle: urlSettle}) {
+		settle: urlSettle, connects: true}) {
 		t.Errorf("the scenario of a URL typed is %+v", scenarios["typed"])
 	}
 }
@@ -291,32 +327,48 @@ func TestWhatURLCasesDifferInIsSaid(t *testing.T) {
 }
 
 func TestAFixtureOfURLsIsWrittenAsItIsKept(t *testing.T) {
-	// The committed fixture reads, and writes back byte for byte.
-	kept, err := os.ReadFile("../../testdata/chrome155-urls.json")
-	if err != nil {
-		t.Fatalf("ReadFile: %v", err)
+	fixtures := map[string]*URLsFixture{}
+	for _, name := range []string{"chrome155-urls.json", "chrome157-urls.json"} {
+		// Each committed fixture reads, and writes back byte for byte.
+		kept, err := os.ReadFile("../../testdata/" + name)
+		if err != nil {
+			t.Fatalf("ReadFile: %v", err)
+		}
+		fixture, err := LoadURLs("../../testdata/" + name)
+		if err != nil {
+			t.Fatalf("LoadURLs: %v", err)
+		}
+		path := filepath.Join(t.TempDir(), "urls.json")
+		if err := fixture.Write(path); err != nil {
+			t.Fatalf("Write: %v", err)
+		}
+		if wrote, _ := os.ReadFile(path); !bytes.Equal(wrote, kept) {
+			t.Errorf("%s: wrote it otherwise:\n%s", name, wrote)
+		}
+		// Every case of the catalogue is measured, and nothing else.
+		for id := range urlCatalogue {
+			if _, ok := fixture.Cases[id]; !ok {
+				t.Errorf("%s has no case %s", name, id)
+			}
+		}
+		for id, c := range fixture.Cases {
+			if want, ok := urlCatalogue[id]; !ok || c.Note != want.note || c.Input != want.input || c.Redirect != want.redirect ||
+				c.Typed != want.typed {
+				t.Errorf("%s's %s is %+v, the catalogue's %+v", name, id, c, want)
+			}
+		}
+		fixtures[name] = fixture
 	}
-	fixture, err := LoadURLs("../../testdata/chrome155-urls.json")
-	if err != nil {
-		t.Fatalf("LoadURLs: %v", err)
-	}
-	path := filepath.Join(t.TempDir(), "urls.json")
-	if err := fixture.Write(path); err != nil {
-		t.Fatalf("Write: %v", err)
-	}
-	if wrote, _ := os.ReadFile(path); !bytes.Equal(wrote, kept) {
-		t.Errorf("wrote it otherwise:\n%s", wrote)
-	}
-	// Every case of the catalogue is measured, and nothing else.
-	for id := range urlCatalogue {
-		if _, ok := fixture.Cases[id]; !ok {
-			t.Errorf("the fixture has no case %s", id)
+	// Chrome 157 sends nothing for a name whose https fails, typed or not,
+	// where 155 fell back to http (HTTPS-First), and every other case as 155.
+	for _, d := range CompareURLs(fixtures["chrome155-urls.json"].Cases, fixtures["chrome157-urls.json"].Cases) {
+		if !strings.HasPrefix(d, "url-upgrade-fallback over ") && !strings.HasPrefix(d, "url-upgrade-fallback-typed over ") {
+			t.Errorf("Chrome 157 differs: %s", d)
 		}
 	}
-	for id, c := range fixture.Cases {
-		if want, ok := urlCatalogue[id]; !ok || c.Note != want.note || c.Input != want.input || c.Redirect != want.redirect ||
-			c.Typed != want.typed {
-			t.Errorf("the fixture's %s is %+v, the catalogue's %+v", id, c, want)
+	for _, id := range []string{"url-upgrade-fallback", "url-upgrade-fallback-typed"} {
+		if c := fixtures["chrome157-urls.json"].Cases[id]; c.H2.Refused != refusedBlocked || c.H1.Refused != refusedBlocked {
+			t.Errorf("Chrome 157 sent %+v for %s", c, id)
 		}
 	}
 }

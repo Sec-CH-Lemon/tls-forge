@@ -134,7 +134,7 @@ func measure(ctx context.Context, b Browser, scenarios map[string]scenario, only
 		o := origins(port, s.Plain)
 		for _, id := range ids {
 			sc, browser := scenarios[id], b
-			if trusts, ok := b.(trusting); ok && sc.connections {
+			if trusts, ok := b.(trusting); ok && (sc.connections || sc.trusted) {
 				browser = trusts.trusting(s.spki)
 			}
 			entries, err := s.run(ctx, browser, id, sc, o, t, progress)
@@ -295,14 +295,16 @@ func (s *Server) runOnce(ctx context.Context, b Browser, p plan, t timing) ([]En
 }
 
 // opened waits for actual opening evidence, rather than process creation.
-// A malformed ALPS response can correctly produce no HTTP request at all.
+// A malformed ALPS response can correctly produce no HTTP request at all, and
+// a URL typed none either (connects): a handshake, or a connection, says the
+// browser began.
 func (s *Server) opened(ctx context.Context, p plan, t timing) bool {
-	if !p.alps {
+	if !p.alps && !p.connects {
 		t.after = 0
 		return s.until(ctx, pathOf(p.start), 1, 0, t)
 	}
 	for deadline := time.Now().Add(t.limit); time.Now().Before(deadline); {
-		if len(s.ALPSHandshakes()) > 0 {
+		if p.alps && len(s.ALPSHandshakes()) > 0 || p.connects && s.connected() {
 			return true
 		}
 		if !sleep(ctx, t.poll) {

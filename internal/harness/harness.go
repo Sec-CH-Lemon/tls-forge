@@ -7,7 +7,9 @@
 // how it decoded each page, testdata/chrome155-flow.json, the WINDOW_UPDATEs
 // it sent while it read an answer (flow.go), testdata/chrome155-urls.json,
 // the server name, authority and target it sent for each URL a page or a
-// Location gave it, or that it sent nothing (urls.go), and
+// Location gave it, or that it sent nothing (urls.go), and Chrome 157's,
+// testdata/chrome157-urls.json, where HTTPS-First sends nothing for the two
+// whose https fails, and
 // testdata/chrome155-hellos.json, the order of the extensions of the first
 // ClientHello it sent to each of many names (hellos.go).
 //

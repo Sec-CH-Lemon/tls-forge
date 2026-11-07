@@ -618,6 +618,7 @@ func TestAScenarioOfConnectionsIsMeasuredTakingTheServersKeyAsASites(t *testing.
 	scenarios := map[string]scenario{
 		"c": {note: "c", start: "{A}/p/lobby?next=/run/{ID}", connections: true},
 		"r": {note: "r", start: "{A}/p/r", wait: "/p/r"},
+		"t": {note: "t", start: "{A}/p/t", wait: "/p/t", trusted: true},
 	}
 	lobby := func(page string) []string {
 		if !strings.Contains(page, "/p/lobby") {
@@ -630,8 +631,9 @@ func TestAScenarioOfConnectionsIsMeasuredTakingTheServersKeyAsASites(t *testing.
 	if err != nil {
 		t.Fatalf("measure: %v", err)
 	}
-	// Over each protocol, the scenario of connections and no other.
-	if len(b.trusted) != 2 || b.trusted[0] != b.trusted[1] || len(b.trusted[0]) != 44 {
+	// Over each protocol, the scenario of connections and the one that asks
+	// to be trusted, and no other.
+	if len(b.trusted) != 4 || len(slices.Compact(slices.Clone(b.trusted))) != 1 || len(b.trusted[0]) != 44 {
 		t.Errorf("trusted %q", b.trusted)
 	}
 	for _, requests := range [][]Request{got["c"].H2, got["c"].H1} {
@@ -641,8 +643,11 @@ func TestAScenarioOfConnectionsIsMeasuredTakingTheServersKeyAsASites(t *testing.
 			t.Errorf("kept %+v", requests)
 		}
 	}
-	if r := got["r"].H2; len(r) != 1 || r[0].Conn != 0 {
-		t.Errorf("kept %+v", r)
+	// One trusted is kept as any other: no connections said.
+	for _, id := range []string{"r", "t"} {
+		if r := got[id].H2; len(r) != 1 || r[0].Conn != 0 {
+			t.Errorf("%s kept %+v", id, r)
+		}
 	}
 	// A browser that cannot be told to is measured as it is.
 	got, err = measure(context.Background(), untrusting{&fake{then: lobby}}, scenarios, []string{"c"}, quick, nil)
@@ -655,6 +660,17 @@ func TestAScenarioOfConnectionsIsMeasuredTakingTheServersKeyAsASites(t *testing.
 	if _, err := MeasureConnections(ctx, &fake{fail: "/"}, []string{"conn-fetch"}, nil); err == nil ||
 		!strings.Contains(err.Error(), "conn-fetch over h2: the fake would not open") {
 		t.Errorf("MeasureConnections: %v", err)
+	}
+}
+
+func TestTheCachedPreflightIsMeasuredTakingTheServersKeyAsASites(t *testing.T) {
+	// Chrome 157 keeps no preflight answered over a certificate it took with
+	// an error: the scenario that caches one asks to be trusted, and no
+	// other of the requests does.
+	for id, sc := range catalogue {
+		if sc.trusted != (id == "fetch-post-cross-site-json-cached") {
+			t.Errorf("%s trusted: %v", id, sc.trusted)
+		}
 	}
 }
 

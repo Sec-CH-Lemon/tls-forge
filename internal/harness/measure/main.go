@@ -18,9 +18,10 @@
 // testdata/chrome155-requests.json, testdata/chrome155-connections.json,
 // testdata/chrome155-decoding.json, testdata/chrome155-hpack.json,
 // testdata/chrome155-records.json, testdata/chrome155-alps.json,
-// testdata/chrome155-flow.json, testdata/chrome155-urls.json,
+// testdata/chrome155-flow.json, testdata/chrome157-urls.json,
 // testdata/chrome155-hellos.json and testdata/chrome155-falsestart.json unless
-// said; an empty one is not measured. The hellos are drawn afresh: --check
+// said; an empty one is not measured. The URLs are Chrome 157's: it sends
+// nothing where 155 fell back to http (HTTPS-First), and as 155 did elsewhere. The hellos are drawn afresh: --check
 // holds each launch to every order being as likely as any other. --only
 // measures those scenarios alone, of requests, of connections, of header
 // blocks, of records, of ALPS, of window updates and of False Start, and each
@@ -99,7 +100,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		"the fixture of TLS records over HTTP/1.1; empty, none")
 	alps := flags.String("alps", "testdata/chrome155-alps.json", "the fixture of ALPS; empty, none")
 	flow := flags.String("flow", "testdata/chrome155-flow.json", "the fixture of window updates; empty, none")
-	urls := flags.String("urls", "testdata/chrome155-urls.json", "the fixture of URLs; empty, none")
+	urls := flags.String("urls", "testdata/chrome157-urls.json", "the fixture of URLs; empty, none")
 	hellos := flags.String("hellos", "testdata/chrome155-hellos.json", "the fixture of ClientHello orders; empty, none")
 	falseStart := flags.String("false-start", "testdata/chrome155-falsestart.json",
 		"the fixture of False Start over TLS 1.2; empty, none")

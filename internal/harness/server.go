@@ -125,6 +125,10 @@ type Server struct {
 	conns         int
 	open          map[net.Conn]struct{}
 	closed        bool
+	// accepted counts the connections it took since it started or was
+	// reset: the evidence a browser opened what it was given, where it may
+	// send no request (connects).
+	accepted int
 }
 
 // The seams the tests reach through.
@@ -380,7 +384,15 @@ func (s *Server) track(conn net.Conn) bool {
 		return false
 	}
 	s.open[conn] = struct{}{}
+	s.accepted++
 	return true
+}
+
+// connected says whether it took a connection since it started or was reset.
+func (s *Server) connected() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.accepted > 0
 }
 
 func (s *Server) serveConn(raw net.Conn, protos []string, settled *settledServer) {
@@ -498,7 +510,7 @@ func (s *Server) Reset() {
 	s.misdirection.Forget()
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.entries, s.trouble, s.hellos, s.alpsSeen = nil, nil, nil, nil
+	s.entries, s.trouble, s.hellos, s.alpsSeen, s.accepted = nil, nil, nil, nil, 0
 }
 
 // Close stops the server and ends every connection it has.

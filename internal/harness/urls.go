@@ -15,7 +15,8 @@ import (
 	"time"
 )
 
-// URLsFixture is what testdata/chrome155-urls.json holds: what a browser sent
+// URLsFixture is what testdata/chrome155-urls.json and chrome157-urls.json
+// hold: what a browser sent
 // for each URL a page went to, or a redirect sent it to, over HTTP/2 and over
 // HTTP/1.1 alone, or that it sent nothing.
 type URLsFixture struct {
@@ -194,7 +195,9 @@ var urlCatalogue = map[string]urlCase{
 }
 
 // urlScenarios are the URL cases as scenarios: each its run page, or its URL
-// for one typed, the browser left to go where it goes.
+// for one typed, the browser left to go where it goes. A URL typed is opened
+// once the browser connected for it, as it may send nothing: what it sent is
+// then "blocked".
 func urlScenarios(cases map[string]urlCase) map[string]scenario {
 	out := map[string]scenario{}
 	for id, c := range cases {
@@ -202,7 +205,7 @@ func urlScenarios(cases map[string]urlCase) map[string]scenario {
 		if c.typed {
 			start = c.input
 		}
-		out[id] = scenario{note: c.note, start: start, wait: "/never", settle: urlSettle}
+		out[id] = scenario{note: c.note, start: start, wait: "/never", settle: urlSettle, connects: c.typed}
 	}
 	return out
 }

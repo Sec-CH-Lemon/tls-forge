@@ -29,6 +29,12 @@ type scenario struct {
 	// the bench's certificate as a site's, it keeps its run page and says
 	// which connection each request came on.
 	connections bool
+	// trusted runs the scenario in a browser that takes the bench's
+	// certificate as a site's, as a scenario of connections is, keeping its
+	// requests as any other's: Chrome 157 keeps a preflight's answer only
+	// when the certificate checked (PreflightController, cert_status), so
+	// that one taken with --ignore-certificate-errors alone is asked again.
+	trusted bool
 	// table is the size of the HPACK table the server's SETTINGS let the
 	// browser have, and frame the largest frame they let it send, for a
 	// scenario that asks for one; quiet gives the run page an icon of its
@@ -39,6 +45,10 @@ type scenario struct {
 	// alps names what the bench's ALPS server gives the browser for h2
 	// (alpsVariants), for a scenario of ALPS.
 	alps string
+	// connects is a scenario whose start the browser may send nothing to: a
+	// URL typed, which Chrome 157 tries over https and, that failing, shows
+	// a warning for (HTTPS-First). A connection to the bench says it opened.
+	connects bool
 }
 
 // settings are what the server of the scenario says in its SETTINGS where it
@@ -124,7 +134,7 @@ var catalogue = map[string]scenario{
 	"fetch-get-cross-site":                   {note: "fetch() of another site, CORS simple", script: "fetch('{X}/cors/fetch-get-cross-site').then(done);"},
 	"fetch-post-cross-site-json":             {note: "fetch() POST of JSON to another site: preflight allowed", script: "fetch('{X}/cors/fetch-post-cross-site-json?maxage=0',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(done);"},
 	"fetch-post-cross-site-json-denied":      {note: "the same, preflight refused", script: "fetch('{X}/cors/fetch-post-cross-site-json-denied?deny=1',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>0).then(done);"},
-	"fetch-post-cross-site-json-cached":      {note: "two such POSTs, the preflight cached for 600 s", script: "const o={method:'POST',headers:{'Content-Type':'application/json'},body:'{}'};fetch('{X}/cors/fetch-post-cross-site-json-cached?maxage=600',o).then(()=>fetch('{X}/cors/fetch-post-cross-site-json-cached?maxage=600',o)).then(done);"},
+	"fetch-post-cross-site-json-cached":      {note: "two such POSTs, the preflight cached for 600 s", trusted: true, script: "const o={method:'POST',headers:{'Content-Type':'application/json'},body:'{}'};fetch('{X}/cors/fetch-post-cross-site-json-cached?maxage=600',o).then(()=>fetch('{X}/cors/fetch-post-cross-site-json-cached?maxage=600',o)).then(done);"},
 	"fetch-get-cross-site-header":            {note: "fetch() of another site with X-Foo: preflight", script: "fetch('{X}/cors/fetch-get-cross-site-header?maxage=0',{headers:{'X-Foo':'bar'}}).then(done);"},
 	"fetch-get-cross-site-credentials":       {note: "fetch() of another site with credentials include, after one that set cookies", script: "fetch('{X}/cors/set?cookie=1',{credentials:'include'}).then(()=>fetch('{X}/cors/fetch-get-cross-site-credentials',{credentials:'include'})).then(done);"},
 	"fetch-get-cross-site-omit":              {note: "fetch() of another site with credentials omit, after one that set cookies", script: "fetch('{X}/cors/set?cookie=1',{credentials:'include'}).then(()=>fetch('{X}/cors/fetch-get-cross-site-omit',{credentials:'omit'})).then(done);"},
@@ -455,6 +465,9 @@ type plan struct {
 	// ALPS can be rejected before HTTP. Its opening evidence is a recorded
 	// handshake; ordinary request scenarios require the opening request.
 	alps bool
+	// connects takes a connection to the bench as opening evidence: its
+	// start is one the browser may send no request to.
+	connects bool
 }
 
 // planned is the scenario id, as run over o.
@@ -467,5 +480,5 @@ func (s scenario) planned(id string, o map[string]string) plan {
 		wait = "/done/{ID}"
 	}
 	return plan{start: fill(start, id, o), wait: fill(wait, id, o), pre: fill(s.pre, id, o), times: max(s.times, 1),
-		settle: s.settle, alps: s.alps != ""}
+		settle: s.settle, alps: s.alps != "", connects: s.connects}
 }

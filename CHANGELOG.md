@@ -11,6 +11,21 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Hold Chrome 157 to the bench as it behaves. The bench (`internal/harness`)
+  runs the scenario of a cached preflight with its certificate trusted:
+  Chrome 157 keeps no preflight answered over a certificate it took with an
+  error (`PreflightController`), which `--ignore-certificate-errors` alone
+  left it, and so asked a second OPTIONS within Max-Age where a site's
+  certificate gets none. A URL typed that the browser connects for and then
+  sends nothing to is `blocked`, where it stopped the measurement of URLs:
+  Chrome 157 shows a warning (HTTPS-First, on by default since 157) where 155
+  fell back to http once https failed. One it does not even connect for still
+  stops it. `testdata/chrome157-urls.json` is what Chrome 157 sends for each
+  URL case, and what `measure` holds a browser to unless told otherwise: the
+  two cases of a name whose https fails are `blocked`, the other 56 as Chrome
+  155's. tls-forge sends what it is asked, as before: it does not model
+  HTTPS-Upgrades.
+
 - Changed: without `--profile`, `fetch`, `proxy` and `daemon` wear `chrome`,
   the newest Chrome, shipped or kept on this machine under its version. A
   browser measured here with `capture --install` was worn whenever it was
