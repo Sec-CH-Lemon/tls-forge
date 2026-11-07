@@ -50,6 +50,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   holds the root's. In one run they had passed the 20 minutes every test
   binary keeps, beside every other package on one runner.
 
+- Run the checks on the oldest Python, 3.9, on Ubuntu 24.04 in CI and in the
+  release: `ubuntu-latest` is Ubuntu 26.04 now, for which no Python 3.9 is
+  built, and the package smoke test of the release stopped there.
+
 - Changed: without `--profile`, `fetch`, `proxy` and `daemon` wear `chrome`,
   the newest Chrome, shipped or kept on this machine under its version. A
   browser measured here with `capture --install` was worn whenever it was

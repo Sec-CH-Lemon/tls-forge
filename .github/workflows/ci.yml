@@ -310,7 +310,9 @@ jobs:
           # the newest also exercises process, pipe and path behaviour on every
           # supported OS. Python 3.9 is unavailable on current arm64 macOS
           # runners, so duplicating the full cartesian product would not work.
-          - os: ubuntu-latest
+          # Nor on Ubuntu 26.04, ubuntu-latest since 2026-10: 24.04 is the
+          # last image actions/python-versions builds it for.
+          - os: ubuntu-24.04
             python-version: '3.9'
           - os: ubuntu-latest
             python-version: '3.13'
@@ -483,7 +485,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, node: '20.12', python: '3.9' }
+          # Python 3.9 is built for Ubuntu 24.04 at the latest.
+          - { os: ubuntu-24.04, node: '20.12', python: '3.9' }
           - { os: ubuntu-latest, node: '24', python: '3.13' }
           - { os: ubuntu-24.04-arm, node: '24', python: '3.13' }
           - { os: macos-latest, node: '24', python: '3.13' }
