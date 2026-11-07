@@ -144,9 +144,9 @@ client = tlsforge.Client(
 
 `tlsforge.DEFAULT_TIMEOUT` contains the default Python-side timeout.
 
-`Client()` without `profile` uses the daemon's default profile: a locally
-installed `local` profile when available and otherwise the latest bundled
-`chrome` profile.
+`Client()` without `profile` uses the daemon's default profile, `chrome`: the
+newest Chrome, bundled or kept on this machine. A locally measured profile is
+used when it is named, as `profile="local"`.
 
 ## Request methods
 

@@ -279,9 +279,13 @@ func (l *traceLane) span(name, category string, from, to int64, about traceArgs)
 
 // wearing files which browser the run is being, which is the first thing to
 // rule out when a request is turned away: the profile the run resolved before
-// it started.
-func (l *traceLane) wearing(p *profile.Profile) {
+// it started, or the profiles it draws one from for each request.
+func (l *traceLane) wearing(p *profile.Profile, drawn []string) {
 	if l == nil {
+		return
+	}
+	if drawn != nil {
+		l.instant("profile", "run", traceArgs{"name": "random", "drawn_from": drawn})
 		return
 	}
 	l.instant("profile", "run", traceArgs{

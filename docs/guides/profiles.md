@@ -10,7 +10,17 @@ tls-forge fetch --profile chrome_156_macos https://example.com/
 tls-forge fetch --profile /absolute/path/custom.json https://example.com/
 ```
 
-`chrome` selects the newest bundled Chrome profile for this host platform. Pin an exact name or file for a reproducible selection. Go uses `WithProfile` or a validated `WithProfileValue`; Node.js and Python take a profile name or path in the `Client` constructor.
+`chrome` selects the newest Chrome profile for this host platform, shipped or kept on this machine under its version, and is what `fetch`, `proxy` and `daemon` wear when no profile is named. A browser measured here with `capture --install` is worn when it is named: `--profile local`. Pin an exact name or file for a reproducible selection. Go uses `WithProfile` or a validated `WithProfileValue`; Node.js and Python take a profile name or path in the `Client` constructor.
+
+## A profile for each request
+
+```bash title="Terminal"
+tls-forge fetch --random-profile --input urls.txt > results.jsonl
+```
+
+`fetch --random-profile` draws a profile for each request instead of one for the whole run: from every browser measured, shipped or kept on this machine, that this build can wear. A profile made for another engine major is left out, as are the handshakes of tls-client's catalogue, which carry no headers of a browser's own. A request keeps its profile for all of its tries; each repeat under `--repeat` draws its own. The run's header lists what it draws from, and each result line, the run log, a kept request and the report say which profile a request wore.
+
+Profiles that cannot send the run's requests as the newest Chrome sends them are left out of the draw: one that is not a Chromium profile under `--request-kind`, for instance. `--random-profile` cannot be combined with `--profile`, nor with `--reuse-connection`, which keeps one browser's connection for a URL's repeats. The shipped profiles are for macOS, Linux and Windows alike, so most of the draws are another platform's than this machine's, and a server that reads TCP/IP can tell those apart; the header says how many.
 
 ## Engine gate
 

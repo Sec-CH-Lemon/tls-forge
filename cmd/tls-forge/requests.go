@@ -16,6 +16,7 @@ import (
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/conntap"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // Making a list of requests: the record of each, the clients they go through,
@@ -29,8 +30,11 @@ type result struct {
 
 	// URL is the URL asked for without its password, which every output that
 	// says it says so; the request goes out with the job's own.
-	URL      string `json:"url"`
-	Proxy    string `json:"proxy,omitempty"`
+	URL   string `json:"url"`
+	Proxy string `json:"proxy,omitempty"`
+	// Profile is the profile the request wore, when the run drew one for each
+	// (--random-profile): a run that wears one says it once, in its header.
+	Profile  string `json:"profile,omitempty"`
 	Status   int    `json:"status,omitempty"`
 	FinalURL string `json:"final_url,omitempty"`
 	// Header is the response's header fields, written when they were asked for
@@ -238,6 +242,9 @@ func verboseLine(r result) string {
 	if r.Proxy != "" {
 		line += "  via " + redactProxy(r.Proxy)
 	}
+	if r.Profile != "" {
+		line += "  as " + r.Profile
+	}
 	if r.Error != "" {
 		line += "  " + redact.Printable(r.Error)
 	}
@@ -265,7 +272,8 @@ func (r *result) finish(started time.Time) {
 	r.Millis = r.Ended.Sub(started).Milliseconds()
 }
 
-// pool hands out one client per proxy.
+// pool hands out one client per proxy, and per profile when a run draws one
+// for each request (--random-profile): a client wears one profile.
 //
 // One per proxy rather than one per worker, because the proxy is the identity.
 // Two pages fetched through one exit IP sharing a cookie jar is what a browser
@@ -289,25 +297,29 @@ func (p *pool) resolveProxy(proxy string) string {
 	return proxy
 }
 
-// get returns the client for a proxy, building it on first use.
+// get returns the client for a proxy wearing a profile, building it on first
+// use, from the session warmup chose for the proxy.
 //
 // Built lazily so that a list naming twenty proxies of which the run only
 // reaches three opens three, and so that a proxy URL that will not parse fails
 // against the URL that asked for it rather than at start-up against nothing.
-func (p *pool) get(proxy string) (*tlsforge.Client, error) {
+func (p *pool) get(proxy string, worn *profile.Profile) (*tlsforge.Client, error) {
 	proxy = p.resolveProxy(proxy)
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if client, ok := p.clients[proxy]; ok {
+	if client, ok := p.clients[clientKey(proxy, worn)]; ok {
 		return client, nil
 	}
-	client, err := p.flags.clientVia(proxy)
+	client, err := p.flags.clientWearing(worn, proxy, p.flags.run.sessions[proxy].cookies)
 	if err != nil {
 		return nil, err
 	}
-	p.clients[proxy] = client
+	p.clients[clientKey(proxy, worn)] = client
 	return client, nil
 }
+
+// clientKey is what the pool files a client under: its proxy and its profile.
+func clientKey(proxy string, worn *profile.Profile) string { return proxy + "\x00" + worn.Name }
 
 // hold puts a client that is already made in the pool, under the proxy it was
 // made for.
@@ -316,10 +328,10 @@ func (p *pool) get(proxy string) (*tlsforge.Client, error) {
 // so that a proxy or a session that cannot be used is the command's failure
 // rather than every request's, and so that the session the run says it was
 // warmed from is the one its client was given.
-func (p *pool) hold(proxy string, client *tlsforge.Client) {
+func (p *pool) hold(proxy string, worn *profile.Profile, client *tlsforge.Client) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.clients[p.resolveProxy(proxy)] = client
+	p.clients[clientKey(p.resolveProxy(proxy), worn)] = client
 }
 
 // saveSessions exports each observed browser instance separately. A proxy
@@ -371,6 +383,10 @@ func (p *pool) close() {
 type runner struct {
 	clients *pool
 	workers int
+	// worn is the profile every request wears, unless draw draws one for each
+	// (--random-profile).
+	worn *profile.Profile
+	draw *profileDraw
 	// request is what each URL is asked for with: the method, the header fields
 	// and the body, which are the same for every one of them.
 	request tlsforge.Request
@@ -409,7 +425,7 @@ type runner struct {
 	noLookup bool
 	// ownConnections is a profile's http.instance_scope of request: each
 	// request goes out on connections of its own, which no probe after it can
-	// share, so none is asked.
+	// share, so none is asked. It is the request's profile's (fetchOne).
 	ownConnections bool
 	// check is what an answer has to have to be the page, when
 	// --wait-for-element or --wait-for names it; nil asks nothing of it.
@@ -550,8 +566,16 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 		// shape its line has always had.
 		r.Run = j.run
 	}
+	// The profile it wears, for all of its tries: drawn for it when the run
+	// draws one for each request, and then said wherever the request is.
+	worn := b.worn
+	if b.draw != nil {
+		worn = b.draw.next()
+		r.Profile, b.about.profile = worn.Name, worn.Name
+	}
+	b.ownConnections = worn.RuntimeBehavior().Text("http.instance_scope") == "request"
 
-	client, err := b.clients.get(proxy)
+	client, err := b.clients.get(proxy, worn)
 	if err != nil {
 		r.setError(err)
 		r.finish(started)
@@ -562,7 +586,7 @@ func (b runner) fetchOne(ctx context.Context, j job, lane *traceLane, own *worke
 	// Borrow the identity's client for the run's lifetime. Legacy modes own
 	// private clients and may release their connections after a try or row.
 	conns := &connections{session: client, shared: !b.fresh && b.held == nil,
-		own: own, proxy: proxy, held: b.held, entry: j.entry}
+		own: own, proxy: clientKey(proxy, worn), held: b.held, entry: j.entry}
 	defer conns.close()
 	if b.wire != nil {
 		// Every connection the request goes out on, its tries' and what its
@@ -626,7 +650,7 @@ func logResult(log *slog.Logger, r result) {
 	attrs := []any{"url", safeURL(r.URL), "outcome", outcome, "status", r.Status, "bytes", r.Bytes,
 		"attempts", r.Attempts, "took", r.Ended.Sub(r.Started)}
 	for _, said := range [][2]string{
-		{"final_url", safeURL(r.FinalURL)}, {"proxy", redactProxy(r.Proxy)}, {"error", r.Error},
+		{"final_url", safeURL(r.FinalURL)}, {"proxy", redactProxy(r.Proxy)}, {"profile", r.Profile}, {"error", r.Error},
 		{"page", r.said()}, {"exit", r.exitSaid()}, {"file", r.File},
 	} {
 		if said[1] != "" {

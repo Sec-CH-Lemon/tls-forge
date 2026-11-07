@@ -30,7 +30,7 @@ import (
 var fetchFlagGroups = []flagGroup{
 	{"what to fetch", []string{"input", "urls", "format"}},
 	{"the request", []string{"method", "header", "data", "request-kind", "initiator-url", "clicked", "form"}},
-	{"fingerprint and transport", []string{"profile", "timeout", "insecure", "dns-server"}},
+	{"fingerprint and transport", []string{"profile", "random-profile", "timeout", "insecure", "dns-server"}},
 	{"proxy", []string{"proxy", "proxy-env", "exit-headers", "exit-lookup", "no-exit-lookup"}},
 	{"session", []string{"cookie", "cookies", "cookie-set", "save-cookies"}},
 	{"running", []string{"concurrency", "retry", "retry-as-browser", "repeat", "reuse-connection", "fresh-connection", "wait-for",
@@ -112,6 +112,9 @@ type runContext struct {
 	// a proxy the list reached last, would otherwise wear whatever a capture
 	// installed meanwhile, while the run said it wore what it began with.
 	profile *profile.Profile
+	// draw is what --random-profile draws each request's profile from; nil
+	// when every request wears profile.
+	draw *profileDraw
 	// sessions are what the clients of each identity start with: one for each
 	// proxy the run goes through, or none, as the pool keys its clients.
 	sessions map[string]warmSession
@@ -148,12 +151,10 @@ func addScopedClientFlags(fs *pflag.FlagSet, cookieInput, cookieOutput bool) cli
 		flags.saveCookies = fs.String("save-cookies", "",
 			"write the session this run ends with here; .txt writes a cookies.txt")
 	}
-	// No default for pflag to print: it is the browser measured on this machine
-	// when there is one, which resolve finds, and a help that said chrome there
-	// would say what the run does not wear.
+	// No default for pflag to print: resolve fills in chrome, and the help says
+	// what that is, which the name alone does not.
 	flags.profile = fs.StringP("profile", "p", "",
-		"profile to impersonate; without one, the browser measured on this machine when there is one, else chrome, "+
-			"the newest Chrome shipped")
+		"profile to impersonate; without one, chrome: the newest Chrome, shipped or kept on this machine")
 	flags.proxy = fs.StringP("proxy", "x", "", "proxy URL, e.g. http://user:pass@host:port")
 	flags.proxyEnv = fs.String("proxy-env", "",
 		"name of an environment variable holding the proxy URL, such as `TLSFORGE_PROXY`, which keeps its password "+
@@ -230,8 +231,7 @@ func (f clientFlags) settle() (*profile.Profile, error) {
 }
 
 // resolve settles the profile the run wears, once, for everything that comes
-// after: the one named, else this machine's measured browser when there is
-// one, else the default that ships.
+// after: the one named, else chrome, the newest Chrome.
 func (f clientFlags) resolve() (*profile.Profile, error) {
 	if !f.chose("profile") {
 		*f.profile = defaultProfileName()
@@ -424,8 +424,16 @@ func (f clientFlags) clientVia(proxy string, extra ...tlsforge.Option) (*tlsforg
 func (f clientFlags) clientViaWarmed(proxy string, warmed []cookie.Cookie,
 	extra ...tlsforge.Option,
 ) (*tlsforge.Client, error) {
+	return f.clientWearing(f.run.profile, proxy, warmed, extra...)
+}
+
+// clientWearing is clientViaWarmed wearing a profile of its own, which a run
+// that draws one for each request (--random-profile) makes a client of.
+func (f clientFlags) clientWearing(worn *profile.Profile, proxy string, warmed []cookie.Cookie,
+	extra ...tlsforge.Option,
+) (*tlsforge.Client, error) {
 	opts := []tlsforge.Option{
-		tlsforge.WithProfileValue(f.run.profile),
+		tlsforge.WithProfileValue(worn),
 		tlsforge.WithTimeout(*f.timeout),
 	}
 	if len(warmed) > 0 {
@@ -549,6 +557,9 @@ type fetchPlan struct {
 func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetchPlan, error) {
 	fs := newFlagSet("fetch", out)
 	common := addClientFlags(fs)
+	randomProfile := fs.Bool("random-profile", false,
+		"wear, for each request, a profile drawn at random from every browser measured, shipped or kept on this "+
+			"machine, that this tls-forge can wear; a request keeps its profile for all of its tries")
 
 	// The request, which is the same for every URL it is made to.
 	method := fs.StringP("method", "X", "GET", "HTTP method")
@@ -621,9 +632,19 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	if *exitLookup && *noExitLookup {
 		return nil, fmt.Errorf("%w: --exit-lookup and --no-exit-lookup select different lookup policies", errUsage)
 	}
+	if *randomProfile && fs.Changed("profile") {
+		return nil, fmt.Errorf("%w: --profile and --random-profile both say what the requests wear: give one of them",
+			errUsage)
+	}
 	worn, err := common.settle()
 	if err != nil {
 		return nil, err
+	}
+	// What a run that draws a profile for each request draws from, each of
+	// which its requests are held to below as the one it wears is.
+	wears := []*profile.Profile{worn}
+	if *randomProfile {
+		wears = wearable()
 	}
 	if *workers < 1 {
 		return nil, fmt.Errorf("%w: --concurrency must be at least 1", errUsage)
@@ -657,8 +678,14 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 	if err := again.check(); err != nil {
 		return nil, err
 	}
-	if worn.RuntimeBehavior().Text("http.instance_scope") == "request" && (*again.reuse || *again.asBrowser) {
-		return nil, fmt.Errorf("%w: --reuse-connection and --retry-as-browser require an explicit profile with http.instance_scope=client; this profile isolates every request", errUsage)
+	if *randomProfile && *again.reuse {
+		return nil, fmt.Errorf("%w: --reuse-connection keeps a URL's connection for its repeats, which is one "+
+			"browser's, and --random-profile draws a profile for each of them", errUsage)
+	}
+	for _, p := range wears {
+		if p.RuntimeBehavior().Text("http.instance_scope") == "request" && (*again.reuse || *again.asBrowser) {
+			return nil, fmt.Errorf("%w: --reuse-connection and --retry-as-browser require an explicit profile with http.instance_scope=client; %s isolates every request", errUsage, p.Name)
+		}
 	}
 	// Checked before the list is read, so a misspelling costs a message rather
 	// than a run that turns out to have nowhere to report itself.
@@ -730,6 +757,19 @@ func planFetch(ctx context.Context, args []string, out, errOut *printer) (*fetch
 		browser, *form, *again.asBrowser)
 	if err != nil {
 		return nil, err
+	}
+	if *randomProfile {
+		// Drawn only from the profiles that send the list as the newest Chrome
+		// does: one that cannot send it, or would send it as another kind of
+		// request, is left out, and the header says of how many it draws.
+		var can []*profile.Profile
+		for _, p := range wears {
+			if theirs, err := checkBrowser(p, jobs, *method, headers, requestBody(*data, fs.Changed("data")),
+				browser, *form, *again.asBrowser); err == nil && theirs == own {
+				can = append(can, p)
+			}
+		}
+		common.run.draw = &profileDraw{from: can}
 	}
 	// Every pass over the list is counted before the first one is made, and a
 	// count that does not fit in an int is a mistake rather than a long run.
@@ -852,7 +892,8 @@ func (r *fetchRun) open(ctx context.Context) error {
 		return err
 	}
 	r.common.log = r.log.logger()
-	r.log.say(slog.LevelInfo, "run", runAttrs(r.about, "version", version, "profile", r.worn.Name,
+	r.log.say(slog.LevelInfo, "run", runAttrs(r.about, "version", version, "profile", r.wearing(),
+		"profiles", strings.Join(r.drawn(), ", "),
 		"output", r.output, "wait_for", r.waitFor, "wait_for_element", r.waitForElement, "html_decoding", r.htmlDecoding,
 		"request_kind", r.requestKind, "initiator_url", safeURL(r.initiatorURL),
 		"reuse_connection", *r.again.reuse, "fresh_connection", *r.again.fresh, "exit_lookup", !r.noExitLookup,
@@ -880,7 +921,11 @@ func (r *fetchRun) open(ctx context.Context) error {
 	// last line, and nobody is asked for it until the cookies and the proxy have
 	// made a client: a run that cannot be made has no address to report. Closed
 	// on every way out, so a run that stops before then still ends it.
-	r.identity = r.common.wearOpen(r.errOut)
+	if r.common.run.draw != nil {
+		r.identity = randomReport(r.errOut, r.common.run.draw, profile.HostPlatform())
+	} else {
+		r.identity = r.common.wearOpen(r.errOut)
+	}
 	r.identity.field("sent as", describeRequests(r.browser, r.own, r.method, r.headers,
 		requestBody(r.data, r.dataProvided), r.jobs))
 	r.identity.field("tried again", againAs(*r.again.asBrowser, kindOf(r.browser, r.own)))
@@ -889,7 +934,7 @@ func (r *fetchRun) open(ctx context.Context) error {
 		r.identity.field("dns", *r.common.dnsServer+" · names are looked up there: addresses, and the HTTPS records "+
 			"that give a connection its ECH")
 	}
-	r.lane.wearing(r.worn)
+	r.lane.wearing(r.worn, r.drawn())
 
 	r.clients = newPool(r.common, *r.common.proxy)
 
@@ -906,7 +951,7 @@ func (r *fetchRun) open(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		r.clients.hold(r.way, client)
+		r.clients.hold(r.way, r.worn, client)
 		from = r.common.run.sessions[r.way].from
 
 		// With the profile and through the proxy the requests are about to use,
@@ -954,6 +999,24 @@ func (r *fetchRun) open(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// wearing is the profile the run wears, by name, or "random" when it draws
+// one for each request (--random-profile).
+func (r *fetchRun) wearing() string {
+	if r.common.run.draw != nil {
+		return "random"
+	}
+	return r.worn.Name
+}
+
+// drawn are the profiles the run draws from, by name, or none when it wears
+// one.
+func (r *fetchRun) drawn() []string {
+	if r.common.run.draw == nil {
+		return nil
+	}
+	return r.common.run.draw.names()
 }
 
 // close ends what open opened, in the order a run ends: the clients, the line
@@ -1024,7 +1087,7 @@ func (r *fetchRun) execute(ctx context.Context) (records []result, failures int,
 	notes := &stderrLog{out: r.errOut, line: r.line, on: *r.watch.verbose}
 	with := runner{
 		check:   r.check,
-		clients: r.clients, workers: r.workers,
+		clients: r.clients, workers: r.workers, worn: r.worn, draw: r.common.run.draw,
 		request: tlsforge.Request{Method: r.method, Header: tlsforge.Header(r.headers), Body: requestBody(r.data, r.dataProvided),
 			Browser: r.browser},
 		retry: *r.again.retry, repeat: *r.again.repeat, asBrowser: *r.again.asBrowser, fresh: *r.again.fresh,
@@ -1035,8 +1098,6 @@ func (r *fetchRun) execute(ctx context.Context) (records []result, failures int,
 		},
 		exits: r.exits, names: &resolver{}, noLookup: r.noExitLookup,
 		counts: r.counts, trace: r.trace, log: r.log.logger(),
-		// A request of its own connections shares none with a probe after it.
-		ownConnections: r.worn.RuntimeBehavior().Text("http.instance_scope") == "request",
 		// Every try is written down for a report, and for the log and the trace
 		// each request is kept with.
 		detailed: len(r.formats) > 0 || r.output != "",
@@ -1102,7 +1163,7 @@ func (r *fetchRun) finish(records []result, failures int, failed error) error {
 		written, reportErr = writeReports(r.files.reports,
 			reportInput{command: "fetch", records: records, summary: totals, before: r.before, noExitLookup: r.noExitLookup,
 				method: r.method, trace: *r.again.trace,
-				run: r.common.run.id, started: r.started, profile: r.worn.Name})
+				run: r.common.run.id, started: r.started, profile: r.wearing()})
 		for _, file := range written {
 			r.log.say(slog.LevelInfo, "report", "file", file.path, "format", file.format)
 			name := file.path

@@ -30,17 +30,19 @@ func installed(t *testing.T) {
 	}
 }
 
-func TestARunPrefersTheBrowserMeasuredHere(t *testing.T) {
-	// The point of having measured it. A shipped profile is a recording of
-	// somebody else's browser on an earlier day; this one is the browser a
-	// server would compare against.
+func TestARunWithoutAProfileWearsTheNewestChromeThoughOneWasMeasuredHere(t *testing.T) {
+	// Owner, 2026-11-07: no --profile is the newest Chrome. The browser
+	// measured here is worn when it is named, and was worn whenever it was
+	// there, left on the Chrome of the day it was measured.
 	installed(t)
+	newest := resolved(t, "chrome").Name
 	_, _, stderr := exec(t, "fetch", "--timeout", "1s", "https://"+deadAddr(t)+"/")
-	if !strings.Contains(stderr, localName+"_"+profile.HostPlatform()) {
-		t.Errorf("did not wear the local profile:\n%s", stderr)
+	if !strings.Contains(stderr, "profile     "+newest+" ") || strings.Contains(stderr, localName+"_") {
+		t.Errorf("did not wear %s, the newest Chrome:\n%s", newest, stderr)
 	}
-	if !strings.Contains(stderr, "measured on this machine") {
-		t.Errorf("did not say where it came from:\n%s", stderr)
+	_, _, stderr = exec(t, "fetch", "--profile", localName, "--timeout", "1s", "https://"+deadAddr(t)+"/")
+	if !strings.Contains(stderr, localName+"_"+profile.HostPlatform()) || !strings.Contains(stderr, "measured on this machine") {
+		t.Errorf("--profile local did not wear the browser measured here:\n%s", stderr)
 	}
 }
 
@@ -83,8 +85,9 @@ func TestEveryCommandThatFetchesSaysWhatItIsWearing(t *testing.T) {
 }
 
 func TestTheListingAgreesWithWhatARunWears(t *testing.T) {
-	// A listing that marked a shipped profile while every run wore the local
-	// one would be worse than no listing.
+	// A listing that marked one profile while every run wore another would be
+	// worse than no listing. With a browser measured here too, which a run
+	// does not wear unless it is named.
 	installed(t)
 	_, stdout, _ := exec(t, "profiles")
 
@@ -97,7 +100,7 @@ func TestTheListingAgreesWithWhatARunWears(t *testing.T) {
 			marked = fields[len(fields)-2]
 		}
 	}
-	want := localName + "_" + profile.HostPlatform()
+	want := resolved(t, "chrome").Name
 	if marked != want {
 		t.Errorf("the listing marks %q as the default, want %q\n%s", marked, want, stdout)
 	}

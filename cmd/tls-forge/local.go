@@ -20,11 +20,6 @@ import (
 const localName = "local"
 
 // wear settles which profile the run will use and says so.
-//
-// Preferring a locally measured profile over a shipped one is the whole point
-// of having measured it: a shipped profile is a recording of somebody else's
-// browser on an earlier day, and the one on this machine is the browser a
-// server would compare against.
 func (f clientFlags) wear(errOut *printer) {
 	f.wearOpen(errOut).close()
 }
@@ -40,17 +35,16 @@ func (f clientFlags) wearOpen(errOut *printer) *identityReport {
 	return openReport(errOut, *f.profile, f.run.profile)
 }
 
-// defaultProfileName is what a run wears when nobody names a profile: the
-// browser measured on this machine if there is one, and a shipped profile
-// otherwise.
+// defaultProfileName is what a run wears when nobody names a profile: chrome,
+// the newest Chrome measured, shipped or kept on this machine under its
+// version (owner, 2026-11-07). The browser measured here as local is worn when
+// named: before, it was worn whenever it was there, which left a run on the
+// Chrome of the day it was measured after newer ones had shipped.
 //
 // One function rather than the rule written twice, because the other place it
-// is needed is the `profiles` listing, and a listing that pointed at a shipped
-// profile while every run wore the local one would be worse than no listing.
+// is needed is the `profiles` listing, and a listing that pointed at one
+// profile while every run wore another would be worse than no listing.
 func defaultProfileName() string {
-	if profile.Default.HasHandshake(localName) {
-		return localName
-	}
 	return tlsforge.DefaultProfile
 }
 

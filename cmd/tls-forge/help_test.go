@@ -81,9 +81,8 @@ func TestFetchHelpShowsEveryFlagUnderAGroup(t *testing.T) {
 }
 
 func TestTheProfileDefaultIsSaidAsItIs(t *testing.T) {
-	// The browser measured on this machine when there is one, which no fixed
-	// default would say: a help naming chrome there names what the run does
-	// not wear.
+	// chrome, said with what it is: the name alone does not say it is the
+	// newest Chrome, nor where that is found.
 	for _, command := range []string{"fetch", "proxy", "daemon"} {
 		_, stdout, _ := exec(t, command, "--help")
 		var line string
@@ -92,7 +91,7 @@ func TestTheProfileDefaultIsSaidAsItIs(t *testing.T) {
 				line = l
 			}
 		}
-		if !strings.Contains(line, "the browser measured on this machine when there is one, else chrome") ||
+		if !strings.Contains(line, "without one, chrome: the newest Chrome, shipped or kept on this machine") ||
 			strings.Contains(line, "(default") {
 			t.Errorf("%s --help says of --profile: %q", command, line)
 		}

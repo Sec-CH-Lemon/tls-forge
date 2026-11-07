@@ -58,7 +58,7 @@ func TestA6CLIAndPooledConstructorsRejectBeforeDial(t *testing.T) {
 	pool := newPool(flags, "")
 	defer pool.close()
 	for _, proxy := range []string{"", "http://" + listener.Addr().String(), "https://" + listener.Addr().String(), "socks5://" + listener.Addr().String()} {
-		if _, err = pool.get(proxy); err == nil || !strings.Contains(err.Error(), "http2.settings[0].value") {
+		if _, err = pool.get(proxy, p); err == nil || !strings.Contains(err.Error(), "http2.settings[0].value") {
 			t.Fatal(proxy, err)
 		}
 	}

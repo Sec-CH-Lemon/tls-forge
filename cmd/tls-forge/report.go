@@ -413,6 +413,10 @@ type fact struct {
 // Facts are what there is to say about a request beyond its row.
 func (r reportRow) Facts() []fact {
 	var facts []fact
+	// Which profile it wore, when the run drew one for each request.
+	if r.Profile != "" {
+		facts = append(facts, fact{Label: "Profile", Value: r.Profile, Code: true})
+	}
 	// Where it ended up, when that is somewhere other than where it was sent.
 	if r.redirected() {
 		facts = append(facts, fact{Label: "Final URL", Value: r.FinalURL, Code: true})

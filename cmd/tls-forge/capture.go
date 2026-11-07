@@ -541,8 +541,7 @@ func runProfiles(_ context.Context, args []string, out, _ *printer) error {
 	// What a run lands on when nobody names a profile. Resolved rather than
 	// printed as written, because "chrome" is two hops from a file and the
 	// useful thing to know is which file. The same rule the commands use, or
-	// the listing would point at a shipped profile while every run wore the
-	// locally measured one.
+	// the listing would point at one profile while every run wore another.
 	fallback := ""
 	if p, err := profile.Get(defaultProfileName()); err == nil {
 		fallback = p.Name

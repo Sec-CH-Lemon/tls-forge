@@ -11,6 +11,25 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Changed: without `--profile`, `fetch`, `proxy` and `daemon` wear `chrome`,
+  the newest Chrome, shipped or kept on this machine under its version. A
+  browser measured here with `capture --install` was worn whenever it was
+  there, which left a run on the Chrome of the day it was measured once newer
+  ones had shipped; it is worn now when it is named, `--profile local`. The
+  SDKs, which start the daemon without a profile unless one is given, change
+  with it, and the `profiles` listing marks the newest Chrome.
+
+- Add `fetch --random-profile`: each request wears a profile drawn for it from
+  every browser measured, shipped or kept on this machine, that this build can
+  wear (one made for another engine major is left out, as are the handshakes
+  of tls-client's catalogue). A request keeps its profile for all of its
+  tries; each repeat draws its own. The run's header lists what it draws
+  from, and how many are another platform's, whose TCP/IP a server can tell
+  from this machine's; each result line (`profile`), the run log, a kept
+  request and both reports say what each request wore. Profiles that cannot
+  send the run's requests as the newest Chrome sends them are left out of the
+  draw. It refuses `--profile` and `--reuse-connection` as usage errors.
+
 - Write the Node.js package in TypeScript. Its sources are `node/src/*.ts`,
   published compiled into `dist/` with the declarations the compiler writes
   from them, so `dist/index.d.ts` is what the code is rather than a copy kept

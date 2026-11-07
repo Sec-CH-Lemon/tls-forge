@@ -1173,7 +1173,7 @@ func TestTraceOffCostsNothing(t *testing.T) {
 	if lane != nil || trace.lane(2, "worker 1") != nil {
 		t.Error("a tracer that is off handed out a row")
 	}
-	lane.wearing(nil)
+	lane.wearing(nil, nil)
 	lane.instant("nothing", "run", nil)
 	lane.since(lane.mark(), "nothing", "run", nil)
 	try := lane.attempt("GET", "https://example.test/", 1, 1, "", nil)

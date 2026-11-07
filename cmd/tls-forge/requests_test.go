@@ -490,14 +490,15 @@ func TestPoolKeepsOneClientPerProxy(t *testing.T) {
 	// One per proxy, not one per worker: the proxy is the identity, and two
 	// pages through one exit IP should share a jar.
 	flags := startedFlags(t)
+	worn := flags.run.profile
 	p := newPool(flags, "")
 	defer p.close()
 
-	first, err := p.get("http://proxy-a.test:8080")
+	first, err := p.get("http://proxy-a.test:8080", worn)
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	again, err := p.get("http://proxy-a.test:8080")
+	again, err := p.get("http://proxy-a.test:8080", worn)
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -505,7 +506,7 @@ func TestPoolKeepsOneClientPerProxy(t *testing.T) {
 		t.Error("the same proxy produced two clients")
 	}
 
-	other, err := p.get("http://proxy-b.test:8080")
+	other, err := p.get("http://proxy-b.test:8080", worn)
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -517,16 +518,30 @@ func TestPoolKeepsOneClientPerProxy(t *testing.T) {
 	// third identity of its own.
 	fallback := newPool(flags, "http://proxy-a.test:8080")
 	defer fallback.close()
-	viaEmpty, err := fallback.get("")
+	viaEmpty, err := fallback.get("", worn)
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	viaNamed, err := fallback.get("http://proxy-a.test:8080")
+	viaNamed, err := fallback.get("http://proxy-a.test:8080", worn)
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
 	if viaEmpty != viaNamed {
 		t.Error("the fallback proxy produced a second client")
+	}
+
+	// A client wears one profile: a run that draws one for each request has
+	// a client for each it draws, through each proxy, and the same again.
+	other151, err := p.get("http://proxy-a.test:8080", resolved(t, "chrome_151_linux"))
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	again151, err := p.get("http://proxy-a.test:8080", resolved(t, "chrome_151_linux"))
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if other151 == first || other151 != again151 {
+		t.Error("a client was shared by two profiles, or a profile had two through one proxy")
 	}
 }
 
@@ -719,14 +734,15 @@ func TestListKeepsNoBodiesInMemory(t *testing.T) {
 	// what they need. Kept whole, 200 MB of pages measured 353 MB of resident
 	// memory against 117 MB once the bodies went.
 	server := pathServer(t)
-	clients := newPool(startedFlags(t), "")
+	flags := startedFlags(t)
+	clients := newPool(flags, "")
 	defer clients.close()
 
 	var sink strings.Builder
 	var records []result
 	jobs := []job{{URL: server.URL + "/one"}, {URL: server.URL + "/two"}}
 	failed, err := runJobs(context.Background(), jobs, runner{
-		clients: clients, workers: 2, retry: 1, repeat: 1,
+		clients: clients, workers: 2, retry: 1, repeat: 1, worn: flags.run.profile,
 		out:    &linesOutput{encoder: json.NewEncoder(&sink), say: (&stderrLog{}).say},
 		counts: newProgress(len(jobs)),
 	}, &records)
@@ -762,7 +778,8 @@ func TestRunJobsReportsAnOutputWriteFailure(t *testing.T) {
 		_, _ = w.Write([]byte("page"))
 	}))
 	t.Cleanup(server.Close)
-	clients := newPool(startedFlags(t), "")
+	flags := startedFlags(t)
+	clients := newPool(flags, "")
 	defer clients.close()
 
 	jobs := make([]job, 100)
@@ -771,7 +788,7 @@ func TestRunJobsReportsAnOutputWriteFailure(t *testing.T) {
 	}
 	var records []result
 	_, err := runJobs(context.Background(), jobs, runner{
-		clients: clients, workers: 1, repeat: 1,
+		clients: clients, workers: 1, repeat: 1, worn: flags.run.profile,
 		out:    &linesOutput{encoder: json.NewEncoder(failingWriter{}), say: (&stderrLog{}).say},
 		counts: newProgress(len(jobs)),
 	}, &records)

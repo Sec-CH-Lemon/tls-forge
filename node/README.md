@@ -146,9 +146,9 @@ const client = new Client({
 | `cookieSet` | `string`, random | Select a set in `cookieFile`; requires `cookieFile`. |
 | `onStderr` | `(line: string) => void`, no-op | Receive transport diagnostics. Exceptions thrown by the callback are ignored so diagnostics cannot crash request handling. |
 
-`new Client()` uses the daemon's default profile, which is a locally installed
-`local` profile when available and otherwise the latest bundled `chrome`
-profile.
+`new Client()` uses the daemon's default profile, `chrome`: the newest Chrome,
+bundled or kept on this machine. A locally measured profile is used when it is
+named, as `profile: "local"`.
 
 ## Request methods
 

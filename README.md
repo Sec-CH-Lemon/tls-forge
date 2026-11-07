@@ -207,8 +207,9 @@ tls-forge <command> [flags]
 Run `tls-forge <command> --help` for every flag of a command; the
 [CLI reference](docs/reference/cli.md) lists them all. Durations use Go syntax
 such as `500ms`, `30s` or `2m`. When no profile is selected, the network
-commands use a profile measured on this machine (`capture --install`), if there
-is one, and otherwise the newest shipped `chrome`.
+commands use `chrome`: the newest Chrome, shipped or kept on this machine. A
+browser measured here with `capture --install` is used when it is named, as
+`--profile local`.
 
 Every command ends with one of four codes:
 
@@ -236,6 +237,7 @@ tls-forge fetch -X POST -H "Content-Type: application/json" \
   -d '{"hello":"world"}' https://example.com/api
 tls-forge fetch --input urls.csv --concurrency 8 > results.jsonl
 tls-forge fetch --retry 2 --wait-for-element '#price' -o out/ --report https://example.com/
+tls-forge fetch --random-profile --input urls.txt > results.jsonl
 ```
 
 Usage: `tls-forge fetch [flags] [url...]`. The flags, by group:
@@ -244,7 +246,7 @@ Usage: `tls-forge fetch [flags] [url...]`. The flags, by group:
 |---|---|
 | What to fetch | URLs as arguments, `--input FILE`, `-u`/`--urls a,b,c`, `-F`/`--format auto\|lines\|json\|csv` |
 | The request | `-X`, `-H "Name: value"`, `-d`; `--request-kind navigation\|form\|fetch\|xhr` with `--initiator-url` and `--clicked`, or `--form`, to send a request as a page would |
-| Fingerprint and transport | `-p`/`--profile`, `-t`/`--timeout`, `-k`/`--insecure`, `--dns-server` |
+| Fingerprint and transport | `-p`/`--profile`, `--random-profile`, `-t`/`--timeout`, `-k`/`--insecure`, `--dns-server` |
 | Proxy | `-x`/`--proxy`, `--proxy-env NAME`, `--exit-lookup`, `--exit-headers FILE` |
 | Session | `-b name=value`, `--cookies FILE`, `--cookie-set`, `--save-cookies FILE` |
 | Running | `-c`/`--concurrency`, `--retry`, `--retry-as-browser`, `--repeat`, `--wait-for TEXT`, `--wait-for-element SELECTOR` |
@@ -252,7 +254,9 @@ Usage: `tls-forge fetch [flags] [url...]`. The flags, by group:
 | Report, trace and log | `-R`/`--report`, `--trace FILE`, `--log FILE`, `--log-level`, `--keylog FILE` |
 
 A list is one URL a line, a JSON array, or a CSV with `url` and `proxy`
-columns, each entry with its own proxy where it names one. `--pcap` and
+columns, each entry with its own proxy where it names one.
+`--random-profile` draws a profile for each request from every browser profile
+this build can wear, and each result line says which it wore. `--pcap` and
 `--keylog` keep the TLS secrets Wireshark opens a run with, so whoever has the
 file reads every connection. The guides cover each in full:
 [requests](docs/guides/requests.md),

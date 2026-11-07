@@ -223,9 +223,9 @@ type connections struct {
 	session *tlsforge.Client
 	// shared borrows the run's client. Only the run may close its pools.
 	shared bool
-	// own holds the worker's clients, one for each proxy, and proxy is this
-	// request's; held, under --reuse-connection, keeps each URL's, and entry is
-	// which URL this is.
+	// own holds the worker's clients, one for each proxy and profile, and proxy
+	// is this request's, its profile's name with it (clientKey); held, under
+	// --reuse-connection, keeps each URL's, and entry is which URL this is.
 	own   *workerClients
 	proxy string
 	held  *heldClients
