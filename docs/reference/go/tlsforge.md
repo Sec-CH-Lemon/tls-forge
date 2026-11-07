@@ -893,7 +893,7 @@ fmt.Println(client.Profile().Name)
 ```
 
 ```text title="Response" linenums="0"
-chrome_156_macos
+chrome_157_macos
 ```
 
 </div>

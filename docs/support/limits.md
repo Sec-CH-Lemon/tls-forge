@@ -12,7 +12,7 @@ TLS Forge models selected browser **network** behaviour. A profile can control T
 
 ## Read measurement claims narrowly
 
-The development candidate includes measured and tested work on TLS, HTTP/1.1, HTTP/2, HTTP/3, DNS, proxy and lifecycle behaviour. Individual receipts record browser build, platform, network path and sample count. Historical checks for Chrome 155/macOS do not freshly prove Chrome 156, Linux, Windows, resumed sessions, HTTP/3, or every request context. A passing unit test can establish an implementation property without establishing browser parity.
+The development candidate includes measured and tested work on TLS, HTTP/1.1, HTTP/2, HTTP/3, DNS, proxy and lifecycle behaviour. Individual receipts record browser build, platform, network path and sample count. Historical checks for Chrome 155/macOS do not freshly prove Chrome 156, Linux, Windows, resumed sessions, HTTP/3, or every request context. The Chrome 157 profiles are captures of Google Chrome Stable on each platform; what a capture does not measure is the Chrome 156 profile's, carried over unchanged, not measured again. A passing unit test can establish an implementation property without establishing browser parity.
 
 The maintained observation ledger is in the separate `net-fp-server` project. Historical reports and raw evidence moved out of this public documentation tree into the repository's `research/` archive; they retain their original scope. The [release status](release-status.md) distinguishes development work from published releases.
 

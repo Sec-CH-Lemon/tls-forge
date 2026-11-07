@@ -89,7 +89,7 @@ func TestEachRequestWearsAProfileDrawnForIt(t *testing.T) {
 	}
 	for _, want := range []string{"profile     random · each request wears one of " + fmt.Sprint(len(names)) + ", drawn for it",
 		"profiles    chrome_151_linux, chrome_151_macos,", fmt.Sprintf("from        %d shipped with tls-forge\n", len(names)),
-		"tcp/ip      this machine's, " + platformLabel(profile.HostPlatform()) + ": 12 of the 18 are another platform's"} {
+		"tcp/ip      this machine's, " + platformLabel(profile.HostPlatform()) + ": 14 of the 21 are another platform's"} {
 		if !strings.Contains(stderr, want) {
 			t.Errorf("the header does not say %q:\n%s", want, stderr)
 		}

@@ -11,6 +11,18 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Add Chrome 157: `chrome_157_macos`, `chrome_157_linux` and
+  `chrome_157_windows`, captured headed on Google Chrome Stable 157.0.8103.39
+  (macOS, Windows) and 157.0.8103.38 (Linux), with the Chrome 156 profile of
+  each platform as the policy basis. `chrome` is Chrome 157 now; pin
+  `chrome_156` to keep 156 (see the note above). What the capture measured is
+  its handshake, which offers the extensions 156's does, and its headers:
+  the brands `"Not-A.Brand";v="99"`, `"Google Chrome"` before `"Chromium"`,
+  and the build. Everything else, timers, limits, HTTP/3, the cache and the
+  rest of `behavior`, is 156's unchanged, as its provenance in
+  `profile/provenance/chrome_157/` says field by field: carried over, not
+  measured again.
+
 - Hold Chrome 157 to the bench as it behaves. The bench (`internal/harness`)
   runs the scenario of a cached preflight with its certificate trusted:
   Chrome 157 keeps no preflight answered over a certificate it took with an

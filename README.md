@@ -59,9 +59,9 @@ in WAF custom rules, Transform Rules and Workers; see Cloudflare's official
 [JA3/JA4 fingerprint documentation](https://developers.cloudflare.com/bots/additional-configurations/ja3-ja4-fingerprint/).
 
 The profiles in this project are measurements, not hand-written guesses: Chrome
-151 to 156 on macOS, Linux and Windows. The `chrome` alias selects the newest,
-Chrome 156, for the host platform; pin an exact name such as
-`chrome_156_macos` when the identity must stay fixed. `tls-forge compare`
+151 to 157 on macOS, Linux and Windows. The `chrome` alias selects the newest,
+Chrome 157, for the host platform; pin an exact name such as
+`chrome_157_macos` when the identity must stay fixed. `tls-forge compare`
 measures a real browser and this client against the same local echo server and
 reports every difference it finds.
 

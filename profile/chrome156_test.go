@@ -8,19 +8,19 @@ import (
 	"testing"
 )
 
-func TestChrome156DefaultsRetainNativeCaptureProvenance(t *testing.T) {
+func TestChrome156RetainsNativeCaptureProvenance(t *testing.T) {
 	previous := hostPlatform
 	t.Cleanup(func() { hostPlatform = previous })
 	registry := NewRegistry()
 	registry.SetDir(t.TempDir())
 	for _, platform := range []string{"macos", "linux", "windows"} {
 		hostPlatform = platform
-		got, err := registry.Get("chrome")
+		got, err := registry.Get("chrome_156")
 		if err != nil {
 			t.Fatal(err)
 		}
 		if got.Name != "chrome_156_"+platform {
-			t.Fatalf("default selected %s", got.Name)
+			t.Fatalf("chrome_156 selected %s", got.Name)
 		}
 		raw, err := os.ReadFile("data/chrome_156/" + platform + ".json")
 		if err != nil {
@@ -28,7 +28,7 @@ func TestChrome156DefaultsRetainNativeCaptureProvenance(t *testing.T) {
 		}
 		saved, err := got.Save()
 		if err != nil || !bytes.Equal(raw, saved) {
-			t.Fatal("default differs from current explicit candidate bytes", err)
+			t.Fatal("chrome_156 differs from current explicit candidate bytes", err)
 		}
 		metadata, err := os.ReadFile("provenance/chrome_156/" + platform + ".json")
 		if err != nil {

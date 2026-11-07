@@ -421,7 +421,7 @@ func TestUnreadAnswerPolicyIsTypedAndCoherent(t *testing.T) {
 // (HTTP/2) of what came read as come already.
 func TestEveryShippedChromeProfileLetsGoOfAnswersAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	want := map[string]string{
@@ -461,7 +461,7 @@ func TestEveryShippedChromeProfileLetsGoOfAnswersAsChrome(t *testing.T) {
 // to Chrome's Http2PriorityDependencies.
 func TestEveryShippedChromeProfileChainsItsStreamsAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	for _, name := range names {
@@ -485,7 +485,7 @@ func TestEveryShippedChromeProfileChainsItsStreamsAsChrome(t *testing.T) {
 // PROTOCOL_ERROR "Failed ping.".
 func TestEveryShippedChromeProfilePingsAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	want := map[string]string{
@@ -524,7 +524,7 @@ func TestEveryShippedChromeProfilePingsAsChrome(t *testing.T) {
 // HTTP/1.1 connection.
 func TestEveryShippedChromeProfileRetriesAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	want := map[string]string{
@@ -563,7 +563,7 @@ func TestEveryShippedChromeProfileRetriesAsChrome(t *testing.T) {
 // reaped when a socket is asked for; and no single idle timeout for both.
 func TestEveryShippedChromeProfileKeepsItsConnectionsAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	for _, name := range names {
@@ -682,7 +682,7 @@ func TestGivenFieldsPolicyIsTypedAndCoherent(t *testing.T) {
 // request the Priority of what it is for (testdata/chrome155-subresources.json).
 func TestEveryShippedChromeProfileGivesFieldsAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	want := map[string]string{
@@ -777,7 +777,7 @@ func TestReloadPolicyIsTypedAndCoherent(t *testing.T) {
 // Chrome 155.0.8059.85 sends them (testdata/chrome155-reload.json).
 func TestEveryShippedChromeProfileReloadsAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	want := map[string]string{
@@ -814,7 +814,7 @@ func TestEveryShippedChromeProfileReloadsAsChrome(t *testing.T) {
 // (testdata/chrome155-ech-dns.json).
 func TestEveryShippedChromeProfileOffersECHAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	want := map[string]string{
@@ -857,7 +857,7 @@ func TestEveryShippedChromeProfileOffersECHAsChrome(t *testing.T) {
 
 func TestEveryShippedChromeProfileGoesOverHTTP3AsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	// Chromium 155's DNS ALPN job and alternative job, measured on macOS
@@ -906,7 +906,7 @@ func TestEveryShippedChromeProfileGoesOverHTTP3AsChrome(t *testing.T) {
 
 func TestEveryShippedChromeProfileSendsAfterItsHandshakeAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	// Chrome 155's QUIC client after its handshake, measured on macOS
@@ -1062,7 +1062,7 @@ func TestAProfileWithoutAFieldThisEngineReadsIsRefused(t *testing.T) {
 
 func TestEveryShippedChromeProfileTimesItsQUICAlarmsAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	// How late Chrome 155's QUIC alarms fire, its probes, idle close and
@@ -1094,7 +1094,7 @@ func TestEveryShippedChromeProfileTimesItsQUICAlarmsAsChrome(t *testing.T) {
 
 func TestEveryShippedChromeProfileBundlesItsHTTP3WritesAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	// Chrome 155's HTTP/3 client, measured on macOS (bench/h3, bench/h3alps)
@@ -1146,7 +1146,7 @@ func TestQUICBundlingPolicyOfAProfileIsTyped(t *testing.T) {
 
 func TestEveryShippedChromeProfileAcknowledgesAsChrome(t *testing.T) {
 	names, err := filepath.Glob(filepath.Join("data", "chrome_15*", "*.json"))
-	if err != nil || len(names) != 18 {
+	if err != nil || len(names) != 21 {
 		t.Fatalf("%d shipped Chrome profiles: %v", len(names), err)
 	}
 	// Chrome 155's QUIC client, read in quiche at its DEPS revision

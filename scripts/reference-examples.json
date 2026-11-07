@@ -302,7 +302,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "────────────────────────────────────────────────────────────────────────\n  user-agent       Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36\n  JA4              t13d1517h2_8daaf6152771_cb7bf5808d99\n  JA3 hash         eb4fe705d35abcbe8736018a3d3bfae8\n  ALPN             h2, http/1.1\n  HTTP/2           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p\n  …\n  client hints     21 of the 21 a server asks for, sent when asked\n────────────────────────────────────────────────────────────────────────\n\nRe-run with --install to keep this profile, or --save <path> to write it out.",
+    "code": "────────────────────────────────────────────────────────────────────────\n  user-agent       Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/157.0.0.0 Safari/537.36\n  JA4              t13d1517h2_8daaf6152771_cb7bf5808d99\n  JA3 hash         27da79ce232c1b9b70150145293bcdd7\n  ALPN             h2, http/1.1\n  HTTP/2           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p\n  …\n  client hints     21 of the 21 a server asks for, sent when asked\n────────────────────────────────────────────────────────────────────────\n\nRe-run with --install to keep this profile, or --save <path> to write it out.",
     "plain": true
    }
   ],
@@ -315,7 +315,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "--- browser  Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36\n             Google Chrome 156.0.8078.80, macOS 27.0.1, arm 64, headless\n+++ client   profile chrome_156_macos\n…\nTLS\n  ja4                    t13d1517h2_8daaf6152771_cb7bf5808d99\n  …\nHTTP/2\n  http2_akamai           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p\n  …\n- header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36, …\n+ header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … Chrome/156.0.0.0 Safari/537.36, …\n…\n2 field(s) differ. Fix by measuring this browser and using the profile\nit produces:\n  tls-forge capture --save my-browser.json",
+    "code": "--- browser  Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/157.0.0.0 Safari/537.36\n             Google Chrome 157.0.8103.39, macOS 27.0.1, arm 64, headless\n+++ client   profile chrome_157_macos\n…\nTLS\n  ja4                    t13d1517h2_8daaf6152771_cb7bf5808d99\n  …\nHTTP/2\n  http2_akamai           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p\n  …\n- header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/157.0.0.0 Safari/537.36, …\n+ header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … Chrome/157.0.0.0 Safari/537.36, …\n…\n2 field(s) differ. Fix by measuring this browser and using the profile\nit produces:\n  tls-forge capture --save my-browser.json",
     "plain": true
    }
   ],
@@ -328,7 +328,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "Measured from a real browser.\n  * kept on this machine, and used ahead of anything shipped\n  < what you get when no profile is named\n\n  chrome_151\n  …\n  chrome_156\n    chrome_156_linux\n    chrome_156_macos          <\n    chrome_156_windows\n\nFrom the tls-client catalogue, a handshake but no headers of its own:\n\n…\n\nMeasure your own with:  tls-forge capture --install\nKept on this machine in: …/Library/Application Support/tls-forge/profiles",
+    "code": "Measured from a real browser.\n  * kept on this machine, and used ahead of anything shipped\n  < what you get when no profile is named\n\n  chrome_151\n  …\n  chrome_157\n    chrome_157_linux\n    chrome_157_macos          <\n    chrome_157_windows\n\nFrom the tls-client catalogue, a handshake but no headers of its own:\n\n…\n\nMeasure your own with:  tls-forge capture --install\nKept on this machine in: …/Library/Application Support/tls-forge/profiles",
     "plain": true
    }
   ],
@@ -447,7 +447,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "chrome_156_macos",
+    "code": "chrome_157_macos",
     "plain": true
    }
   ],

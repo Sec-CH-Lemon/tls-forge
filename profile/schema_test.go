@@ -51,7 +51,7 @@ func TestEveryShippedProfileSendsItsTrustAnchorsAsItsChromeDid(t *testing.T) {
 			if got, want := sortedTrustAnchors(t, sent), sortedTrustAnchors(t, captured); !slices.Equal(got, want) {
 				t.Errorf("%s sends other IDs: %v, captured %v", path, got, want)
 			}
-		case "chrome_154", "chrome_155", "chrome_156":
+		case "chrome_154", "chrome_155", "chrome_156", "chrome_157":
 			records, err := splitTrustAnchors(sent)
 			if err != nil || !inByteOrder(records) || !bytes.Equal(sent, captured) {
 				t.Errorf("%s: sent %x, captured %x, %v", path, sent, captured, err)

@@ -1,6 +1,6 @@
 # Shipped profile fields
 
-Generated from the 18 bundled JSON profile files. This is an inventory of fields **present in shipped profiles**, not a schema of every permitted extension or evidence of browser equivalence. `behavior["h2.retries"]` means the literal dotted key `h2.retries` inside the flat `behavior` object; other dotted addresses show nested objects. See [profile behavior](profile-behavior.md) for configuration groups and [profiles and compatibility](../guides/profiles.md) for execution rules.
+Generated from the 21 bundled JSON profile files. This is an inventory of fields **present in shipped profiles**, not a schema of every permitted extension or evidence of browser equivalence. `behavior["h2.retries"]` means the literal dotted key `h2.retries` inside the flat `behavior` object; other dotted addresses show nested objects. See [profile behavior](profile-behavior.md) for configuration groups and [profiles and compatibility](../guides/profiles.md) for execution rules.
 
 | Field address | Value kind |
 | --- | --- |

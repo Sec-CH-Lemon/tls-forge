@@ -181,9 +181,9 @@ tls-forge capture --headless
 
 ```text title="Response" linenums="0"
 ────────────────────────────────────────────────────────────────────────
-  user-agent       Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36
+  user-agent       Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/157.0.0.0 Safari/537.36
   JA4              t13d1517h2_8daaf6152771_cb7bf5808d99
-  JA3 hash         eb4fe705d35abcbe8736018a3d3bfae8
+  JA3 hash         27da79ce232c1b9b70150145293bcdd7
   ALPN             h2, http/1.1
   HTTP/2           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p
   …
@@ -235,9 +235,9 @@ tls-forge compare --headless
 ```
 
 ```text title="Response" linenums="0"
---- browser  Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36
-             Google Chrome 156.0.8078.80, macOS 27.0.1, arm 64, headless
-+++ client   profile chrome_156_macos
+--- browser  Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/157.0.0.0 Safari/537.36
+             Google Chrome 157.0.8103.39, macOS 27.0.1, arm 64, headless
++++ client   profile chrome_157_macos
 …
 TLS
   ja4                    t13d1517h2_8daaf6152771_cb7bf5808d99
@@ -245,8 +245,8 @@ TLS
 HTTP/2
   http2_akamai           1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p
   …
-- header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/156.0.0.0 Safari/537.36, …
-+ header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … Chrome/156.0.0.0 Safari/537.36, …
+- header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … HeadlessChrome/157.0.0.0 Safari/537.36, …
++ header_values          …, user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) … Chrome/157.0.0.0 Safari/537.36, …
 …
 2 field(s) differ. Fix by measuring this browser and using the profile
 it produces:
@@ -288,10 +288,10 @@ Measured from a real browser.
 
   chrome_151
   …
-  chrome_156
-    chrome_156_linux
-    chrome_156_macos          <
-    chrome_156_windows
+  chrome_157
+    chrome_157_linux
+    chrome_157_macos          <
+    chrome_157_windows
 
 From the tls-client catalogue, a handshake but no headers of its own:
 

@@ -6,7 +6,7 @@ A profile is JSON describing a selected browser build and its network behaviour.
 
 ```bash title="Terminal"
 tls-forge profiles
-tls-forge fetch --profile chrome_156_macos https://example.com/
+tls-forge fetch --profile chrome_157_macos https://example.com/
 tls-forge fetch --profile /absolute/path/custom.json https://example.com/
 ```
 

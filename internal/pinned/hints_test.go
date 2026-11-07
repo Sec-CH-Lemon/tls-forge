@@ -31,7 +31,8 @@ func networkScenario() map[string]harness.MeasuredScenario {
 }
 
 func TestDeclaredNetworkGeneratorSuppliesRealComparisonValues(t *testing.T) {
-	for _, name := range []string{"chrome_156_linux", "chrome_156_macos", "chrome_156_windows"} {
+	for _, name := range []string{"chrome_156_linux", "chrome_156_macos", "chrome_156_windows",
+		"chrome_157_linux", "chrome_157_macos", "chrome_157_windows"} {
 		p, err := profile.Get(name)
 		if err != nil {
 			t.Fatal(err)

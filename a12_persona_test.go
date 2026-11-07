@@ -138,7 +138,7 @@ func a12PersonaBody(t *testing.T, w io.Writer, header interface{ Get(string) str
 
 func TestA12EveryPersonaReachesH1H2H3AndOwnsEachRequest(t *testing.T) {
 	paths, err := filepath.Glob("profile/data/chrome_*/*.json")
-	if err != nil || len(paths) != 18 {
+	if err != nil || len(paths) != 21 {
 		t.Fatalf("profile inventory: %v, %v", paths, err)
 	}
 	for _, path := range paths {

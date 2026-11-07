@@ -1,0 +1,1658 @@
+{
+  "schema": 4,
+  "engine_major": 1,
+  "behavior": {
+    "cache.delta_seconds_limit": 4294967295,
+    "cache.duplicate_freshness_policy": "first",
+    "cache.entries": 256,
+    "cache.entry_bytes": 8388608,
+    "cache.freshness_quoted_values": false,
+    "cache.generated_header_order": [
+      "if-none-match",
+      "if-modified-since",
+      "range",
+      "if-range",
+      "priority"
+    ],
+    "cache.heuristic_percent": 10,
+    "cache.heuristic_statuses": [
+      200,
+      203,
+      206
+    ],
+    "cache.heuristic_with_must_revalidate": false,
+    "cache.implicit_fresh_statuses": [
+      300,
+      301,
+      308,
+      410
+    ],
+    "cache.invalid_freshness_policy": "ignore",
+    "cache.request_no_cache": "bypass",
+    "cache.response_pragma_no_cache": true,
+    "cache.store_any_status": true,
+    "cache.total_bytes": 67108864,
+    "cache.validated_statuses": [
+      200
+    ],
+    "cookie.identity": "name-domain-host-only-path",
+    "cookie.ip_domain_host_only": true,
+    "cookie.lax_unsafe_age_seconds": 120,
+    "cookie.max_age_seconds": 34560000,
+    "cookie.max_attribute_bytes": 1024,
+    "cookie.max_pair_bytes": 4096,
+    "cookie.prefixes": [
+      {
+        "prefix": "__Secure-",
+        "case_sensitive": false,
+        "reject_nameless": true,
+        "attributes": [
+          "secure"
+        ]
+      },
+      {
+        "prefix": "__Host-",
+        "case_sensitive": false,
+        "reject_nameless": true,
+        "attributes": [
+          "secure",
+          "host-only",
+          "root-path"
+        ]
+      },
+      {
+        "prefix": "__Http-",
+        "case_sensitive": false,
+        "reject_nameless": true,
+        "attributes": [
+          "secure",
+          "http-only"
+        ]
+      },
+      {
+        "prefix": "__Host-Http-",
+        "case_sensitive": false,
+        "reject_nameless": true,
+        "attributes": [
+          "secure",
+          "http-only",
+          "host-only",
+          "root-path"
+        ]
+      }
+    ],
+    "cookie.raw_fields": true,
+    "cookie.reset_order_on_value_change": true,
+    "dns.https_h3": true,
+    "dns.https_query_recursion_desired": true,
+    "dns.https_query_timeout_ms": 2000,
+    "dns.https_query_udp_payload_bytes": 4096,
+    "dns.https_records": true,
+    "dns.https_upgrade": true,
+    "dns.https_wait_max_ms": 50,
+    "dns.https_wait_min_ms": 5,
+    "dns.https_wait_percent": 20,
+    "dns.resolver": "built-in",
+    "h1.auth_body": "read-all",
+    "h1.chunked_bare_lf": true,
+    "h1.dropped_body": "drain",
+    "h1.idle_connection_timeout_ms": 300000,
+    "h1.idle_reap": "on-request",
+    "h1.max_connections": 6,
+    "h1.max_idle_connections": 6,
+    "h1.merged_head_body_bytes": 1400,
+    "h1.missing_status": 200,
+    "h1.preflight_body": "first-bytes",
+    "h1.preserve_framing_fields": true,
+    "h1.request_timeout_resend": true,
+    "h1.response_header_bytes": 262144,
+    "h1.restart_body": "close",
+    "h1.unread_grace_us": 2000,
+    "h1.zero_length_identity": false,
+    "h1.zero_length_identity_excluded_methods": [
+      "GET",
+      "HEAD"
+    ],
+    "h2.allow_huffman_expansion": true,
+    "h2.alps_settings": [
+      1,
+      3,
+      4,
+      8,
+      9
+    ],
+    "h2.auth_body": "close",
+    "h2.close_on_goaway": true,
+    "h2.connection_window_overflow_error": 1,
+    "h2.data_frame_payload": 16375,
+    "h2.dropped_body": "close",
+    "h2.encoder_table_bytes": 4294967295,
+    "h2.enforce_advertised_frame_limit": true,
+    "h2.header_frame_payload": 16374,
+    "h2.hpack_first_static_name": true,
+    "h2.hpack_index_oversized": true,
+    "h2.hpack_indexed_exceptions": [
+      ":authority"
+    ],
+    "h2.hpack_unindexed_prefixes": [
+      ":"
+    ],
+    "h2.idle_connection_timeout_ms": 0,
+    "h2.preface_ping_failed_goaway_code": 1,
+    "h2.preface_ping_failed_goaway_debug": "Failed ping.",
+    "h2.preface_ping_first_id": 1,
+    "h2.preface_ping_hung_ms": 10000,
+    "h2.preface_ping_idle_ms": 10000,
+    "h2.preflight_body": "first-bytes",
+    "h2.priority_dependency": "nearest-weight",
+    "h2.read_loop_start": "first-headers",
+    "h2.reject_unsolicited_ping_ack": true,
+    "h2.reset_data_before_headers": true,
+    "h2.restart_body": "close",
+    "h2.retries": 2,
+    "h2.retry_delay_ms": 0,
+    "h2.retry_errors": [
+      "refused-stream",
+      "goaway-no-error",
+      "ping-failed"
+    ],
+    "h2.strict_max_streams": true,
+    "h2.tolerated_response_fields": [
+      "connection",
+      "keep-alive"
+    ],
+    "h2.unread_grace_us": 500,
+    "h2.urgency_weights": [
+      255,
+      219,
+      182,
+      146,
+      109,
+      73,
+      36,
+      0
+    ],
+    "h2.window_update_delay_ms": 5000,
+    "h2.window_update_denominator": 2,
+    "h2.zero_window_stream_error": 3,
+    "h3.alps_close_code": 10,
+    "h3.alps_close_frame_type": 6,
+    "h3.alps_close_reason": "28:Error processing ALPS data: {detail}",
+    "h3.alps_close_space": "transport",
+    "h3.alps_errors": {
+      "accept_ch_origin": "Unable to read ACCEPT_CH origin.",
+      "accept_ch_value": "Unable to read ACCEPT_CH value.",
+      "cancel_push": "CANCEL_PUSH frame received.",
+      "data": "DATA frame forbidden",
+      "goaway": "GOAWAY frame forbidden",
+      "goaway_extra": "Superfluous data in GOAWAY frame.",
+      "goaway_id": "Unable to read GOAWAY ID.",
+      "headers": "HEADERS frame forbidden",
+      "http2_frame": "HTTP/2 frame received in a HTTP/3 connection: {type}",
+      "incomplete": "incomplete HTTP/3 frame",
+      "max_push_id": "MAX_PUSH_ID frame forbidden",
+      "max_push_id_extra": "Superfluous data in MAX_PUSH_ID frame.",
+      "max_push_id_id": "Unable to read MAX_PUSH_ID push_id.",
+      "metadata": "METADATA frame forbidden",
+      "origin_origin": "Unable to read ORIGIN origin.",
+      "priority_update": "PRIORITY_UPDATE frame forbidden",
+      "priority_update_id": "Unable to read prioritized element id.",
+      "push_promise": "PUSH_PROMISE frame received.",
+      "setting_id": "Unable to read setting identifier.",
+      "setting_twice": "Duplicate setting identifier.",
+      "setting_value": "Unable to read setting value.",
+      "settings_twice": "multiple SETTINGS frames",
+      "too_large": "Frame is too large."
+    },
+    "h3.alps_origin_frames": "abandon",
+    "h3.alps_reader": "quiche",
+    "h3.body_copy_bytes": 8192,
+    "h3.control_order": [
+      "settings",
+      "grease"
+    ],
+    "h3.control_stream": "with-finished",
+    "h3.cookie_crumbs": true,
+    "h3.grease_frame_n_bits": 32,
+    "h3.grease_frames": true,
+    "h3.grease_payload_lengths": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "h3.grease_setting_n_max": 4294967295,
+    "h3.grease_setting_n_min": 0,
+    "h3.grease_setting_nonzero": false,
+    "h3.grease_setting_placement": "before-greater-id",
+    "h3.grease_settings": true,
+    "h3.peer_reset": "read-side",
+    "h3.peer_settings": "quiche",
+    "h3.priority_frame_type": 984832,
+    "h3.priority_source": "header",
+    "h3.priority_updates": "per-request",
+    "h3.priority_value": "u=0, i",
+    "h3.pseudo_header_order": [
+      ":method",
+      ":authority",
+      ":scheme",
+      ":path"
+    ],
+    "h3.qpack.critical_close_code": 10,
+    "h3.qpack.critical_close_frame_type": 15,
+    "h3.qpack.critical_close_reason": "17:Attempt to close a static stream",
+    "h3.qpack.critical_close_space": "transport",
+    "h3.qpack.decoder_feedback": "on-section",
+    "h3.qpack.decoder_writes": "opportunistic",
+    "h3.qpack.draining_percent": 25,
+    "h3.qpack.encoder_strategy": "insert",
+    "h3.qpack.encoder_table_bytes": 65536,
+    "h3.qpack.encoder_warmup_sections": 0,
+    "h3.qpack.error_capacity_exceeded_reason": "185:Encoder stream error: Error updating dynamic table capacity.",
+    "h3.qpack.error_decoder_reason": "invalid or closed QPACK critical stream",
+    "h3.qpack.error_decompression_reason": "{detail}",
+    "h3.qpack.error_encoder_reason": "invalid or closed QPACK critical stream",
+    "h3.qpack.error_invalid_relative_index_reason": "126:Error decoding headers on stream {stream_id}: Invalid relative index.",
+    "h3.qpack.error_queue_exhausted_reason": "QPACK instruction queue exhausted",
+    "h3.qpack.error_stream_unavailable_reason": "QPACK stream unavailable",
+    "h3.qpack.error_stream_write_reason": "QPACK stream write failed",
+    "h3.qpack.error_zero_increment_reason": "187:Decoder stream error: Invalid increment value 0.",
+    "h3.qpack.huffman_names": "shorter",
+    "h3.qpack.huffman_values": "shorter",
+    "h3.qpack.never_index": [
+      "authorization",
+      "proxy-authorization",
+      "set-cookie"
+    ],
+    "h3.qpack.reference_base": "required",
+    "h3.qpack.stream_order": [
+      3,
+      2
+    ],
+    "h3.qpack.streams": "deferred",
+    "h3.request_writes": "one-flush",
+    "h3.retry_application_errors": [
+      512,
+      513,
+      514
+    ],
+    "h3.retry_attempts": 3,
+    "h3.retry_methods": [
+      "GET",
+      "HEAD"
+    ],
+    "h3.retry_transport_errors": [
+      10
+    ],
+    "h3.retry_unprocessed_attempts": 2,
+    "h3.server_bidi_stream_close_reason": "154:Server created bidirectional stream.",
+    "h3.settings": [
+      {
+        "id": 1,
+        "value": 65536
+      },
+      {
+        "id": 6,
+        "value": 262144
+      },
+      {
+        "id": 7,
+        "value": 100
+      },
+      {
+        "id": 51,
+        "value": 1
+      }
+    ],
+    "h3.settings_boolean": [
+      8,
+      51
+    ],
+    "h3.settings_boolean_names": [
+      "SETTINGS_ENABLE_CONNECT_PROTOCOL",
+      "SETTINGS_H3_DATAGRAM"
+    ],
+    "h3.settings_close_code": 265,
+    "h3.settings_close_space": "application",
+    "h3.settings_errors": {
+      "blocked": "164:Server sent an SETTINGS_QPACK_BLOCKED_STREAMS: {value} which reduces current value: {current}",
+      "boolean": "207:Received {name} with invalid value {value}",
+      "capacity": "164:Server sent an SETTINGS_QPACK_MAX_TABLE_CAPACITY: {value} while current value is: {current}",
+      "field_section": "164:Server sent an SETTINGS_MAX_FIELD_SECTION_SIZE: {value} which reduces current value: {current}",
+      "http2": "169:received HTTP/2 specific setting in HTTP/3 session: {id}",
+      "omitted_blocked": "164:Server accepted 0-RTT but omitted non-default SETTINGS_QPACK_BLOCKED_STREAMS",
+      "omitted_capacity": "164:Server accepted 0-RTT but omitted non-default SETTINGS_QPACK_MAX_TABLE_CAPACITY",
+      "omitted_field_section": "164:Server accepted 0-RTT but omitted non-default SETTINGS_MAX_FIELD_SECTION_SIZE"
+    },
+    "h3.settings_http2": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "headers.accept_fetch": "*/*",
+    "headers.accept_preflight": "*/*",
+    "headers.alps_after": "accept",
+    "headers.authorization_leading": [
+      "host",
+      "connection",
+      "content-length",
+      "cache-control"
+    ],
+    "headers.browser_base_fields": [
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "sec-ch-ua-platform",
+      "user-agent",
+      "accept-language",
+      "accept-encoding"
+    ],
+    "headers.browser_context": true,
+    "headers.client_hint_order": [
+      "device-memory",
+      "sec-ch-device-memory",
+      "dpr",
+      "sec-ch-dpr",
+      "viewport-width",
+      "sec-ch-viewport-width",
+      "sec-ch-viewport-height",
+      "rtt",
+      "downlink",
+      "ect",
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "sec-ch-ua-full-version",
+      "sec-ch-ua-arch",
+      "sec-ch-ua-platform",
+      "sec-ch-ua-platform-version",
+      "sec-ch-ua-model",
+      "sec-ch-ua-bitness",
+      "sec-ch-ua-wow64",
+      "sec-ch-ua-full-version-list",
+      "sec-ch-ua-form-factors",
+      "sec-ch-prefers-color-scheme",
+      "sec-ch-prefers-reduced-motion",
+      "sec-ch-prefers-reduced-transparency"
+    ],
+    "headers.cookie_after": "accept-language",
+    "headers.cookie_slot": true,
+    "headers.default_client_hints": [
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "sec-ch-ua-platform"
+    ],
+    "headers.default_referrer_policy": "strict-origin-when-cross-origin",
+    "headers.form_cache_control": "max-age=0",
+    "headers.form_order": [
+      "content-length",
+      "pragma",
+      "cache-control",
+      "authorization",
+      "@hints",
+      "upgrade-insecure-requests",
+      "content-type",
+      "user-agent",
+      "origin",
+      "@given",
+      "accept",
+      "sec-fetch-site",
+      "sec-fetch-mode",
+      "sec-fetch-user",
+      "sec-fetch-dest",
+      "referer",
+      "accept-encoding",
+      "accept-language",
+      "cookie",
+      "if-none-match",
+      "if-modified-since",
+      "priority"
+    ],
+    "headers.form_reload_order": [
+      "content-length",
+      "pragma",
+      "cache-control",
+      "authorization",
+      "@hints",
+      "upgrade-insecure-requests",
+      "user-agent",
+      "origin",
+      "content-type",
+      "accept",
+      "sec-fetch-site",
+      "sec-fetch-mode",
+      "sec-fetch-user",
+      "sec-fetch-dest",
+      "referer",
+      "accept-encoding",
+      "accept-language",
+      "cookie",
+      "if-none-match",
+      "if-modified-since",
+      "priority"
+    ],
+    "headers.given_order": "bytes",
+    "headers.given_redirect_drops": [
+      "cookie"
+    ],
+    "headers.h1_connection_default": "keep-alive",
+    "headers.h1_generated_priority": false,
+    "headers.h1_prefix": [
+      "host",
+      "connection"
+    ],
+    "headers.navigation_fetch_user": "?1",
+    "headers.navigation_order": [
+      "pragma",
+      "cache-control",
+      "authorization",
+      "@hints",
+      "upgrade-insecure-requests",
+      "user-agent",
+      "@given",
+      "accept",
+      "sec-fetch-site",
+      "sec-fetch-mode",
+      "sec-fetch-user",
+      "sec-fetch-dest",
+      "referer",
+      "accept-encoding",
+      "accept-language",
+      "cookie",
+      "if-none-match",
+      "if-modified-since",
+      "priority"
+    ],
+    "headers.network_hints": "weighted-observations",
+    "headers.preflight_order": [
+      "accept",
+      "access-control-request-method",
+      "access-control-request-headers",
+      "origin",
+      "user-agent",
+      "sec-fetch-mode",
+      "sec-fetch-site",
+      "sec-fetch-dest",
+      "referer",
+      "accept-encoding",
+      "accept-language",
+      "priority"
+    ],
+    "headers.priority_fetch": "u=1, i",
+    "headers.range_accept_encoding": "identity",
+    "headers.range_cache_control": "max-age=0",
+    "headers.redirected_hints_after": "sec-fetch-dest",
+    "headers.redirected_order": [
+      "content-length",
+      "pragma",
+      "cache-control",
+      "authorization",
+      "upgrade-insecure-requests",
+      "content-type",
+      "user-agent",
+      "origin",
+      "@given",
+      "accept",
+      "sec-fetch-site",
+      "sec-fetch-mode",
+      "sec-fetch-user",
+      "sec-fetch-dest",
+      "@hints",
+      "referer",
+      "accept-encoding",
+      "accept-language",
+      "cookie",
+      "if-none-match",
+      "if-modified-since",
+      "priority"
+    ],
+    "headers.reload_cache_control": "max-age=0",
+    "headers.renderer_default_hints": [
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "sec-ch-ua-platform"
+    ],
+    "headers.renderer_extra_fields": [
+      "user-agent"
+    ],
+    "headers.renderer_hint_insertion_order": [
+      "device-memory",
+      "sec-ch-device-memory",
+      "rtt",
+      "downlink",
+      "ect",
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "sec-ch-ua-arch",
+      "sec-ch-ua-platform",
+      "sec-ch-ua-platform-version",
+      "sec-ch-ua-model",
+      "sec-ch-ua-full-version",
+      "sec-ch-ua-full-version-list",
+      "sec-ch-ua-bitness",
+      "sec-ch-ua-wow64",
+      "sec-ch-ua-form-factors",
+      "save-data",
+      "sec-ch-prefers-reduced-transparency",
+      "sec-ch-prefers-reduced-motion",
+      "sec-ch-prefers-color-scheme",
+      "dpr",
+      "sec-ch-dpr",
+      "viewport-width",
+      "sec-ch-viewport-width",
+      "viewport-height",
+      "sec-ch-viewport-height",
+      "width",
+      "sec-ch-width"
+    ],
+    "headers.renderer_initial_buckets": 8,
+    "headers.renderer_load_denominator": 2,
+    "headers.renderer_order": "utf16-rapidhash-quadratic-v1",
+    "headers.renderer_origin_dests": [
+      "font"
+    ],
+    "headers.restarted_order": [
+      "pragma",
+      "cache-control",
+      "authorization",
+      "upgrade-insecure-requests",
+      "user-agent",
+      "@given",
+      "accept",
+      "@hints",
+      "sec-fetch-site",
+      "sec-fetch-mode",
+      "sec-fetch-user",
+      "sec-fetch-dest",
+      "referer",
+      "accept-encoding",
+      "accept-language",
+      "cookie",
+      "if-none-match",
+      "if-modified-since",
+      "priority"
+    ],
+    "headers.script_leading": [
+      "content-length"
+    ],
+    "headers.script_metadata": [
+      "sec-fetch-site",
+      "sec-fetch-mode",
+      "sec-fetch-dest",
+      "sec-fetch-storage-access"
+    ],
+    "headers.script_priority_exclusive": true,
+    "headers.script_priority_weight": 219,
+    "headers.script_trailing": [
+      "referer",
+      "accept-encoding",
+      "accept-language",
+      "cookie",
+      "if-none-match",
+      "if-modified-since",
+      "range",
+      "priority"
+    ],
+    "headers.sent_priority": [
+      "document=u=0, i",
+      "iframe=u=0, i",
+      "style=u=0",
+      "font=u=0",
+      "image=i",
+      "script=",
+      "empty=u=1, i"
+    ],
+    "headers.storage_access": "active",
+    "headers.untrusted_drop_codings": [
+      "br",
+      "zstd"
+    ],
+    "headers.untrusted_prefixes": [
+      "sec-ch-",
+      "sec-fetch-"
+    ],
+    "headers.withhold_untrusted": true,
+    "headers.without_context": "typed-navigation",
+    "http.auth_cache_entries": 20,
+    "http.auth_cache_paths": 10,
+    "http.auth_scheme_order": [
+      "basic",
+      "digest",
+      "ntlm",
+      "negotiate"
+    ],
+    "http.body_read_bytes": 8192,
+    "http.cache_scope": "browser-context",
+    "http.cache_validators": [
+      "if-none-match",
+      "if-modified-since"
+    ],
+    "http.connection_error_methods": "any",
+    "http.connection_error_retries": 50,
+    "http.content_coding_overflow": "error",
+    "http.content_codings": [
+      "gzip",
+      "x-gzip",
+      "deflate",
+      "br",
+      "zstd"
+    ],
+    "http.content_length_empty_body": true,
+    "http.digest_algorithms": [
+      "MD5",
+      "MD5-sess",
+      "SHA-256",
+      "SHA-256-sess"
+    ],
+    "http.digest_cnonce_bytes": 8,
+    "http.drain_bytes": 16384,
+    "http.drain_ms": 5000,
+    "http.first_bytes_ms": 0,
+    "http.gzip_decoder": "prefix-first-member",
+    "http.ignored_content_codings": [],
+    "http.instance_scope": "request",
+    "http.max_auth_restarts": 32,
+    "http.max_content_codings": 10,
+    "http.max_site_pools": 64,
+    "http.negotiate_auth": true,
+    "http.preflight_default_age_seconds": 5,
+    "http.preflight_max_age_seconds": 7200,
+    "http.redirects_fetch": 20,
+    "http.redirects_navigation": 19,
+    "http.unused_idle_connection_timeout_ms": 60000,
+    "http.zero_content_length_methods": [
+      "POST",
+      "PUT"
+    ],
+    "http.zstd_window_bytes": 8388608,
+    "proxy.connect_header_order": [
+      "user-agent",
+      "proxy-connection"
+    ],
+    "proxy.connect_priority_exclusive": true,
+    "proxy.connect_priority_weight": 146,
+    "proxy.connect_pseudo_order": [
+      ":method",
+      ":authority"
+    ],
+    "proxy.connection_value": "keep-alive",
+    "proxy.forward_http": true,
+    "proxy.idle_timeout_ms": 90000,
+    "proxy.profile_tls": true,
+    "proxy.tls_cache_entries": 32,
+    "quic.accept_zero_available_version": true,
+    "quic.ack_decimation": "threshold",
+    "quic.ack_decimation_after": 100,
+    "quic.ack_decimation_min_ms": 1,
+    "quic.ack_decimation_packets": 10,
+    "quic.ack_decimation_rtt_percent": 25,
+    "quic.ack_gap_packets": 4,
+    "quic.ack_gap_policy": "bounded-gap",
+    "quic.ack_initial_packets": 2,
+    "quic.ack_only_frame": "max-data",
+    "quic.ack_only_max": 19,
+    "quic.ack_reordering_threshold": 1,
+    "quic.ack_sent_after": "packet",
+    "quic.ack_timer_ms": 24,
+    "quic.active_cid_limit": 2,
+    "quic.alpn": [
+      "h3"
+    ],
+    "quic.alps_protocols": [
+      "h3"
+    ],
+    "quic.alt_svc": true,
+    "quic.alt_svc_remote_hosts": true,
+    "quic.alt_svc_tcp_waits_with_h2": false,
+    "quic.alt_svc_user_ports": false,
+    "quic.broken_doublings": 18,
+    "quic.broken_max_ms": 172800000,
+    "quic.broken_ms": 300000,
+    "quic.broken_recent_max": 200,
+    "quic.chaos_crypto_splits_max": 10,
+    "quic.chaos_crypto_splits_min": 2,
+    "quic.chaos_first_frame_min": 55,
+    "quic.chaos_first_frame_spread": 32,
+    "quic.chaos_pings_max": 10,
+    "quic.chaos_pings_min": 2,
+    "quic.close_early_application": "application",
+    "quic.config": "explicit",
+    "quic.connected_socket": true,
+    "quic.connection_id_change": "when-retired",
+    "quic.connection_receive_window": 15728640,
+    "quic.datagrams": true,
+    "quic.dedicated_socket": true,
+    "quic.ecn": "none",
+    "quic.enabled": true,
+    "quic.first_packet_number": 1,
+    "quic.grease_parameter_id_bits": 62,
+    "quic.grease_parameter_length_max": 15,
+    "quic.grease_parameter_length_min": 0,
+    "quic.grease_parameter_length_rule": "byte-modulo",
+    "quic.grease_version": true,
+    "quic.handshake_ack_timer_ms": 1,
+    "quic.handshake_idle_close_reason": "25:No recent network activity after {elapsed}. Timeout:{timeout} num_undecryptable_packets: {undecryptable_count} {{{undecryptable}}}",
+    "quic.handshake_idle_timeout_ms": 4000,
+    "quic.handshake_timeout_ms": 10000,
+    "quic.idle_close": "after-pto",
+    "quic.idle_close_code": 0,
+    "quic.idle_close_reason": "25:No recent network activity after {elapsed}. Timeout:{timeout}",
+    "quic.idle_timeout_ms": 30000,
+    "quic.ignore_vn_after_retry": true,
+    "quic.ignore_vn_wrong_cids": true,
+    "quic.incoming_bidi_streams": 100,
+    "quic.incoming_uni_streams": 103,
+    "quic.initial_dcid_bytes": 8,
+    "quic.initial_layout": "chaos",
+    "quic.initial_packet_bytes": 1250,
+    "quic.keep_alive_ms": 0,
+    "quic.max_ack_delay_ms": 25,
+    "quic.max_connection_receive_window": 15728640,
+    "quic.max_datagram_frame": 65536,
+    "quic.max_stream_receive_window": 6291456,
+    "quic.max_udp_payload": 1472,
+    "quic.mtu_probes": "none",
+    "quic.packet_number_length": "window",
+    "quic.packet_numbers": "shared",
+    "quic.padding_position": "end",
+    "quic.parameter_order": [
+      "grease",
+      "5",
+      "6",
+      "7",
+      "4",
+      "8",
+      "9",
+      "1",
+      "3",
+      "11",
+      "10",
+      "12",
+      "14",
+      "15",
+      "17",
+      "32",
+      "6745883625174385",
+      "4278509083"
+    ],
+    "quic.preserve_extensions": [
+      0,
+      65037,
+      27,
+      45,
+      51764,
+      10,
+      13,
+      51,
+      16,
+      43,
+      41,
+      17613
+    ],
+    "quic.pto_initial_rtt_ms": 100,
+    "quic.pto_no_sample_min_ms": 10,
+    "quic.pto_no_sample_multiplier": 3,
+    "quic.pto_probes": 1,
+    "quic.pto_rttvar_multiplier": 2,
+    "quic.pto_skip": "every-space",
+    "quic.remove_grease_groups": true,
+    "quic.retry_over_tcp": true,
+    "quic.server_rtts_max": 500,
+    "quic.session_cache": true,
+    "quic.session_cache_entries": 32,
+    "quic.session_cache_key": "host-port",
+    "quic.session_cache_sessions_per_entry": 2,
+    "quic.shuffle_extensions": true,
+    "quic.shuffle_parameters": true,
+    "quic.source_cid_bytes": 0,
+    "quic.stream_receive_window": 6291456,
+    "quic.tcp_wait_broken_ms": 0,
+    "quic.tcp_wait_cold_ms": 0,
+    "quic.tcp_wait_default_ms": 300,
+    "quic.tcp_wait_extra_ms": 0,
+    "quic.tcp_wait_max_ms": 3000,
+    "quic.tcp_wait_rtt_percent": 150,
+    "quic.tcp_waits_with_connection": false,
+    "quic.tls_cipher_suites": [
+      4865,
+      4866,
+      4867
+    ],
+    "quic.tls_signature_algorithms": [
+      1027,
+      2052,
+      1025,
+      1283,
+      2053,
+      1281,
+      2054,
+      1537,
+      513
+    ],
+    "quic.tls_source": "tcp-adapter",
+    "quic.tls_versions": [
+      772
+    ],
+    "quic.undecryptable_level_names": [
+      "ENCRYPTION_INITIAL",
+      "ENCRYPTION_HANDSHAKE",
+      "ENCRYPTION_ZERO_RTT",
+      "ENCRYPTION_FORWARD_SECURE"
+    ],
+    "quic.version_information": true,
+    "quic.version_mismatch_error": 10,
+    "quic.version_parse_error": 10,
+    "quic.versions": [
+      1
+    ],
+    "tcp.keepalive": true,
+    "tcp.keepalive_count": 0,
+    "tcp.keepalive_idle_seconds": 45,
+    "tcp.keepalive_interval_seconds": 45,
+    "tls.alpn_mismatch_alert": 47,
+    "tls.certificate_decode_alert": 50,
+    "tls.close_notify": false,
+    "tls.defer_key_update": true,
+    "tls.duplicate_extension_alert": 47,
+    "tls.ech": true,
+    "tls.ech_aeads": [
+      1,
+      2,
+      3
+    ],
+    "tls.ech_chacha_without_aes": true,
+    "tls.ech_inner_min_version": 772,
+    "tls.ech_inner_omitted": [
+      11,
+      23,
+      35,
+      65281
+    ],
+    "tls.ech_inner_own": [
+      0,
+      43,
+      65037
+    ],
+    "tls.ech_kdfs": [
+      1
+    ],
+    "tls.ech_kems": [
+      32
+    ],
+    "tls.ech_outer_psk": "none",
+    "tls.ech_padding_block": 32,
+    "tls.ech_retries": 1,
+    "tls.ech_retry_without": true,
+    "tls.false_start": true,
+    "tls.full_size_records": true,
+    "tls.handshake_retries": 1,
+    "tls.malformed_extension_alert": 50,
+    "tls.preserve_sni_trailing_dot": true,
+    "tls.resumption": true,
+    "tls.retry_local_alerts": [
+      10,
+      50,
+      51,
+      110
+    ],
+    "tls.session_cache_entries": 32,
+    "tls.session_cache_key": "host-port",
+    "tls.session_cache_sessions_per_entry": 2,
+    "tls.single_use_tickets": true,
+    "tls.ticket_age_quantum_ms": 1000,
+    "tls.trust_anchor_order": "captured",
+    "tls.unsolicited_extension_alert": 110,
+    "tls.validate_encrypted_extensions": true,
+    "tls.validate_server_hello_extensions": true,
+    "url.blocked_ports": [
+      0,
+      1,
+      7,
+      9,
+      11,
+      13,
+      15,
+      17,
+      19,
+      20,
+      21,
+      22,
+      23,
+      25,
+      37,
+      42,
+      43,
+      53,
+      69,
+      77,
+      79,
+      87,
+      95,
+      101,
+      102,
+      103,
+      104,
+      109,
+      110,
+      111,
+      113,
+      115,
+      117,
+      119,
+      123,
+      135,
+      137,
+      139,
+      143,
+      161,
+      179,
+      389,
+      427,
+      465,
+      512,
+      513,
+      514,
+      515,
+      526,
+      530,
+      531,
+      532,
+      540,
+      548,
+      554,
+      556,
+      563,
+      587,
+      601,
+      636,
+      989,
+      990,
+      993,
+      995,
+      1719,
+      1720,
+      1723,
+      2049,
+      3659,
+      4045,
+      5060,
+      5061,
+      6000,
+      6566,
+      6665,
+      6666,
+      6667,
+      6668,
+      6669,
+      6697,
+      10080
+    ]
+  },
+  "name": "chrome_157_windows",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+  "client_hello": "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",
+  "per_connection": {
+    "shuffles_extensions": true,
+    "ech_payload_lengths": [
+      128,
+      160,
+      192,
+      224
+    ]
+  },
+  "http1": {
+    "header_order": [
+      "Host",
+      "Connection",
+      "sec-ch-ua",
+      "sec-ch-ua-mobile",
+      "sec-ch-ua-platform",
+      "Upgrade-Insecure-Requests",
+      "User-Agent",
+      "Accept",
+      "Sec-Fetch-Site",
+      "Sec-Fetch-Mode",
+      "Sec-Fetch-User",
+      "Sec-Fetch-Dest",
+      "Accept-Encoding",
+      "Accept-Language"
+    ],
+    "headers": [
+      {
+        "name": "Connection",
+        "value": "keep-alive"
+      }
+    ]
+  },
+  "http2": {
+    "settings": [
+      {
+        "id": 1,
+        "value": 65536
+      },
+      {
+        "id": 2,
+        "value": 0
+      },
+      {
+        "id": 4,
+        "value": 6291456
+      },
+      {
+        "id": 6,
+        "value": 262144
+      }
+    ],
+    "connection_flow": 15663105,
+    "pseudo_header_order": [
+      ":method",
+      ":authority",
+      ":scheme",
+      ":path"
+    ],
+    "header_priority": {
+      "stream_id": 1,
+      "exclusive": true,
+      "depends_on": 0,
+      "weight": 255
+    }
+  },
+  "headers": [
+    {
+      "name": "sec-ch-ua",
+      "value": "\"Not-A.Brand\";v=\"99\", \"Google Chrome\";v=\"157\", \"Chromium\";v=\"157\""
+    },
+    {
+      "name": "sec-ch-ua-mobile",
+      "value": "?0"
+    },
+    {
+      "name": "sec-ch-ua-platform",
+      "value": "\"Windows\""
+    },
+    {
+      "name": "upgrade-insecure-requests",
+      "value": "1"
+    },
+    {
+      "name": "user-agent",
+      "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36"
+    },
+    {
+      "name": "accept",
+      "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    },
+    {
+      "name": "sec-fetch-site",
+      "value": "none"
+    },
+    {
+      "name": "sec-fetch-mode",
+      "value": "navigate"
+    },
+    {
+      "name": "sec-fetch-user",
+      "value": "?1"
+    },
+    {
+      "name": "sec-fetch-dest",
+      "value": "document"
+    },
+    {
+      "name": "accept-encoding",
+      "value": "gzip, deflate, br, zstd"
+    },
+    {
+      "name": "accept-language",
+      "value": "en-US,en;q=0.9"
+    },
+    {
+      "name": "priority",
+      "value": "u=0, i"
+    }
+  ],
+  "client_hints": [
+    {
+      "name": "device-memory",
+      "value": "8"
+    },
+    {
+      "name": "sec-ch-device-memory",
+      "value": "8"
+    },
+    {
+      "name": "dpr",
+      "value": "1"
+    },
+    {
+      "name": "sec-ch-dpr",
+      "value": "1"
+    },
+    {
+      "name": "viewport-width",
+      "value": "1280"
+    },
+    {
+      "name": "sec-ch-viewport-width",
+      "value": "1280"
+    },
+    {
+      "name": "sec-ch-viewport-height",
+      "value": "720"
+    },
+    {
+      "name": "sec-ch-ua-full-version",
+      "value": "\"157.0.8103.39\""
+    },
+    {
+      "name": "sec-ch-ua-arch",
+      "value": "\"x86\""
+    },
+    {
+      "name": "sec-ch-ua-platform-version",
+      "value": "\"19.0.0\""
+    },
+    {
+      "name": "sec-ch-ua-model",
+      "value": "\"\""
+    },
+    {
+      "name": "sec-ch-ua-bitness",
+      "value": "\"64\""
+    },
+    {
+      "name": "sec-ch-ua-wow64",
+      "value": "?0"
+    },
+    {
+      "name": "sec-ch-ua-full-version-list",
+      "value": "\"Not-A.Brand\";v=\"99.0.0.0\", \"Google Chrome\";v=\"157.0.8103.39\", \"Chromium\";v=\"157.0.8103.39\""
+    },
+    {
+      "name": "sec-ch-ua-form-factors",
+      "value": "\"Desktop\""
+    },
+    {
+      "name": "sec-ch-prefers-color-scheme",
+      "value": "light"
+    },
+    {
+      "name": "sec-ch-prefers-reduced-motion",
+      "value": "no-preference"
+    },
+    {
+      "name": "sec-ch-prefers-reduced-transparency",
+      "value": "no-preference"
+    }
+  ],
+  "network_hints": {
+    "mode": "estimated",
+    "policy": {
+      "addresses": {
+        "rules": [
+          {
+            "prefix": "0.0.0.0/8",
+            "public": false
+          },
+          {
+            "prefix": "10.0.0.0/8",
+            "public": false
+          },
+          {
+            "prefix": "100.64.0.0/10",
+            "public": false
+          },
+          {
+            "prefix": "127.0.0.0/8",
+            "public": false
+          },
+          {
+            "prefix": "169.254.0.0/16",
+            "public": false
+          },
+          {
+            "prefix": "172.16.0.0/12",
+            "public": false
+          },
+          {
+            "prefix": "192.0.0.0/24",
+            "public": false
+          },
+          {
+            "prefix": "192.0.2.0/24",
+            "public": false
+          },
+          {
+            "prefix": "192.88.99.0/24",
+            "public": false
+          },
+          {
+            "prefix": "192.168.0.0/16",
+            "public": false
+          },
+          {
+            "prefix": "198.18.0.0/15",
+            "public": false
+          },
+          {
+            "prefix": "198.51.100.0/24",
+            "public": false
+          },
+          {
+            "prefix": "203.0.113.0/24",
+            "public": false
+          },
+          {
+            "prefix": "224.0.0.0/3",
+            "public": false
+          },
+          {
+            "prefix": "0.0.0.0/0",
+            "public": true
+          },
+          {
+            "prefix": "2000::/3",
+            "public": true
+          },
+          {
+            "prefix": "ff00::/8",
+            "public": true
+          },
+          {
+            "prefix": "::/0",
+            "public": false
+          }
+        ],
+        "unmap_ipv4": true,
+        "default_public": false,
+        "missing_resolution_public": true,
+        "localhost_public": false
+      },
+      "environment": {
+        "source": "system",
+        "missing": "fallback",
+        "fallback": {
+          "type": "unknown",
+          "id": "",
+          "generation": 0,
+          "signal": null
+        },
+        "families": [
+          "ipv4",
+          "ipv6"
+        ],
+        "identity": "connection-type"
+      },
+      "algorithm": "weighted-observations",
+      "metrics": [
+        {
+          "name": "http",
+          "buffer": {
+            "capacity": 300,
+            "half_life_seconds": 60,
+            "signal_weight": 1
+          },
+          "recent_ms": 0,
+          "fallback_all": true,
+          "percentile": 50
+        },
+        {
+          "name": "transport",
+          "buffer": {
+            "capacity": 300,
+            "half_life_seconds": 60,
+            "signal_weight": 1
+          },
+          "recent_ms": 0,
+          "fallback_all": true,
+          "percentile": 50
+        },
+        {
+          "name": "end",
+          "buffer": {
+            "capacity": 300,
+            "half_life_seconds": 60,
+            "signal_weight": 1
+          },
+          "recent_ms": 0,
+          "fallback_all": true,
+          "percentile": 50
+        },
+        {
+          "name": "downlink",
+          "buffer": {
+            "capacity": 300,
+            "half_life_seconds": 60,
+            "signal_weight": 1
+          },
+          "recent_ms": 0,
+          "fallback_all": true,
+          "percentile": 50
+        }
+      ],
+      "sources": [
+        {
+          "name": "http",
+          "categories": [
+            "http"
+          ],
+          "default": false,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "tcp",
+          "categories": [
+            "transport"
+          ],
+          "default": false,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "quic",
+          "categories": [
+            "transport",
+            "end"
+          ],
+          "default": false,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "h2-ping",
+          "categories": [
+            "http",
+            "end"
+          ],
+          "default": false,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "seed-http",
+          "categories": [
+            "http"
+          ],
+          "default": true,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "seed-transport",
+          "categories": [
+            "transport"
+          ],
+          "default": true,
+          "cached": false,
+          "recompute": true
+        },
+        {
+          "name": "cache-http",
+          "categories": [
+            "http"
+          ],
+          "default": false,
+          "cached": true,
+          "recompute": false
+        },
+        {
+          "name": "cache-transport",
+          "categories": [
+            "transport"
+          ],
+          "default": false,
+          "cached": true,
+          "recompute": false
+        }
+      ],
+      "seeds": [
+        {
+          "type": "unknown",
+          "http_ms": {
+            "value": 115,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 55,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 1961,
+            "available": true
+          }
+        },
+        {
+          "type": "ethernet",
+          "http_ms": {
+            "value": 90,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 33,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 1456,
+            "available": true
+          }
+        },
+        {
+          "type": "wifi",
+          "http_ms": {
+            "value": 116,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 66,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 2658,
+            "available": true
+          }
+        },
+        {
+          "type": "2g",
+          "http_ms": {
+            "value": 1726,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 1531,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 74,
+            "available": true
+          }
+        },
+        {
+          "type": "3g",
+          "http_ms": {
+            "value": 273,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 209,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 749,
+            "available": true
+          }
+        },
+        {
+          "type": "4g",
+          "http_ms": {
+            "value": 137,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 80,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 1708,
+            "available": true
+          }
+        },
+        {
+          "type": "none",
+          "http_ms": {
+            "value": 163,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 83,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 575,
+            "available": true
+          }
+        },
+        {
+          "type": "bluetooth",
+          "http_ms": {
+            "value": 385,
+            "available": true
+          },
+          "transport_ms": {
+            "value": 318,
+            "available": true
+          },
+          "downlink_kbps": {
+            "value": 476,
+            "available": true
+          }
+        },
+        {
+          "type": "5g",
+          "http_ms": {
+            "value": 0,
+            "available": false
+          },
+          "transport_ms": {
+            "value": 0,
+            "available": false
+          },
+          "downlink_kbps": {
+            "value": 0,
+            "available": false
+          }
+        }
+      ],
+      "ect": [
+        {
+          "label": "slow-2g",
+          "min_http_ms": 2010,
+          "typical_http_ms": 3600,
+          "typical_transport_ms": 3000,
+          "typical_kbps": 40,
+          "clamp_downlink": true
+        },
+        {
+          "label": "2g",
+          "min_http_ms": 1420,
+          "typical_http_ms": 1800,
+          "typical_transport_ms": 1500,
+          "typical_kbps": 75,
+          "clamp_downlink": true
+        },
+        {
+          "label": "3g",
+          "min_http_ms": 270,
+          "typical_http_ms": 450,
+          "typical_transport_ms": 400,
+          "typical_kbps": 400,
+          "clamp_downlink": true
+        },
+        {
+          "label": "4g",
+          "min_http_ms": 0,
+          "typical_http_ms": 175,
+          "typical_transport_ms": 125,
+          "typical_kbps": 1600,
+          "clamp_downlink": false
+        }
+      ],
+      "compute": {
+        "headers_delivery": "headers",
+        "transaction_start": "headers",
+        "use_end": true,
+        "interval_ms": 10000,
+        "growth_ratio": 1.5,
+        "new_samples": 50,
+        "navigation": true,
+        "min_transport_samples": 5,
+        "min_end_samples": 5,
+        "transport_lower": 1,
+        "end_lower": 1,
+        "end_upper": 3,
+        "sparse_rtt_cap_ms": 175,
+        "cache_grace_ms": 60000,
+        "downlink_typical_cap": 3.5,
+        "hanging_http": 6,
+        "hanging_transport": 8,
+        "hanging_min_ms": 500,
+        "missing_rtt_ms": 10000
+      },
+      "throughput": {
+        "min_inflight": 5,
+        "min_transfer_bytes": 32768,
+        "max_requests": 300,
+        "hanging_cwnd_bytes": 15000,
+        "hanging_cwnd_multiplier": 1,
+        "hanging_rtt_multiplier": 5,
+        "hanging_min_ms": 3000,
+        "missing_http_ms": 60000,
+        "sweep_ms": 1000
+      },
+      "socket": {
+        "tcp_source": "none",
+        "capacity": 300,
+        "per_socket_ms": 1000,
+        "global_ms": 200,
+        "min_rtt_us": 1,
+        "allow_private": false,
+        "skip_first_quic": true
+      },
+      "publication": {
+        "latency_difference": 20,
+        "bandwidth_difference": 100,
+        "ratio": 1.2
+      },
+      "cache": {
+        "capacity": 20,
+        "key": "connection-type",
+        "enabled": true,
+        "read_after_bootstrap": true
+      },
+      "noise": {
+        "scope": "browser-instance",
+        "hash": "libcxx-city64-le-abi2",
+        "sum_bits": 32,
+        "salt_min": 1,
+        "salt_max": 21,
+        "buckets": 21,
+        "base": 0.9,
+        "step": 0.01,
+        "rtt_cap_ms": 3000,
+        "rtt_quantum_ms": 50,
+        "missing_rtt_ms": 0,
+        "downlink_cap_kbps": 10000,
+        "downlink_quantum_kbps": 50,
+        "missing_downlink_kbps": 10000,
+        "missing_ect": "4g"
+      },
+      "methods": [
+        "GET"
+      ],
+      "exclude_private": true,
+      "exclude_cached": true,
+      "offline_ect": "offline",
+      "unknown_ect": "unknown"
+    }
+  },
+  "notes": "captured 2026-11-07T00:14:32Z from Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36; policy basis: chrome_156_windows (unmeasured policies inherited)"
+}

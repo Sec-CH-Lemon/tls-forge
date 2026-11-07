@@ -7,8 +7,8 @@ import (
 	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
-// shippedChrome names the 18 Chrome profiles tls-forge ships.
-var shippedChrome = regexp.MustCompile(`^chrome_15[1-6]_(macos|linux|windows)$`)
+// shippedChrome names the 21 Chrome profiles tls-forge ships.
+var shippedChrome = regexp.MustCompile(`^chrome_15[1-7]_(macos|linux|windows)$`)
 
 // Chrome's TLS and QUIC session caches keep two sessions a key
 // (SSLClientSessionCache::Entry of net/ssl, quiche's QuicClientSessionCache
@@ -43,7 +43,7 @@ func TestEveryChromeProfileKeepsTwoSessionsAKeyAsChrome(t *testing.T) {
 		}
 		seen++
 	}
-	if seen != 18 {
-		t.Fatalf("%d Chrome profiles, want 18", seen)
+	if seen != 21 {
+		t.Fatalf("%d Chrome profiles, want 21", seen)
 	}
 }

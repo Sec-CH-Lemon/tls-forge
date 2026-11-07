@@ -33,7 +33,7 @@ These are selectable values for mechanisms the engine already implements. TLS au
 From a source checkout, copy a complete profile and change only a supported value. This example changes the local response content-coding limit; it is a custom candidate and does not claim a Chrome match.
 
 ```bash title="Terminal"
-cp profile/data/chrome_156/macos.json /tmp/my-chrome-profile.json
+cp profile/data/chrome_157/macos.json /tmp/my-chrome-profile.json
 python3 - <<'PY'
 import json
 from pathlib import Path
