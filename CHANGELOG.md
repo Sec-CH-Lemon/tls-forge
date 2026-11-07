@@ -38,6 +38,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   155's. tls-forge sends what it is asked, as before: it does not model
   HTTPS-Upgrades.
 
+- Require `github.com/andybalholm/brotli` v1.2.7 and
+  `github.com/klauspost/compress` v1.20.2, which fix what govulncheck found
+  reachable from the decoding of a compressed answer: GO-2026-6888 (a crafted
+  Brotli stream made the decoder allocate without bound) and GO-2026-6865 (a
+  Zstandard frame of two blocks made it panic).
+
 - Changed: without `--profile`, `fetch`, `proxy` and `daemon` wear `chrome`,
   the newest Chrome, shipped or kept on this machine under its version. A
   browser measured here with `capture --install` was worn whenever it was

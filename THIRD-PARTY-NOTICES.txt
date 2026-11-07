@@ -11,7 +11,7 @@ changes; `go list` below is the source of truth, not this paragraph.
 
 
 --------------------------------------------------------------------------------
-github.com/andybalholm/brotli v1.2.3
+github.com/andybalholm/brotli v1.2.7
 --------------------------------------------------------------------------------
 
 Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors.
@@ -532,7 +532,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/klauspost/compress v1.20.0
+github.com/klauspost/compress v1.20.2
 --------------------------------------------------------------------------------
 
 Copyright (c) 2012 The Go Authors. All rights reserved.

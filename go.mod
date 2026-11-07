@@ -3,11 +3,11 @@ module github.com/Sec-CH-Lemon/tls-forge
 go 1.26.10
 
 require (
-	github.com/andybalholm/brotli v1.2.3
+	github.com/andybalholm/brotli v1.2.7
 	github.com/andybalholm/cascadia v1.3.3
 	github.com/ebitengine/purego v0.10.2
 	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261106040259-301d6b0ce994
-	github.com/klauspost/compress v1.20.0
+	github.com/klauspost/compress v1.20.2
 	github.com/spf13/pflag v1.0.10
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.62.0
