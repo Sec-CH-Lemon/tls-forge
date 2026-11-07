@@ -25,10 +25,20 @@ jobs:
         include:
           - os: ubuntu-latest
             race-scope: root
-            root-shard: 0
+            package: .
+            shard: 0
           - os: ubuntu-latest
             race-scope: root
-            root-shard: 1
+            package: .
+            shard: 1
+          - os: ubuntu-latest
+            race-scope: cli
+            package: ./cmd/tls-forge
+            shard: 0
+          - os: ubuntu-latest
+            race-scope: cli
+            package: ./cmd/tls-forge
+            shard: 1
           - os: ubuntu-latest
             race-scope: packages
           - os: macos-latest
@@ -49,22 +59,24 @@ jobs:
       - run: go vet ./...
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        if: matrix.os == 'ubuntu-latest' && matrix.race-scope == 'root'
+        if: matrix.os == 'ubuntu-latest' && (matrix.race-scope == 'root' || matrix.race-scope == 'cli')
         with:
           python-version: '3.13'
 
-      # The root and CLI suites are both heavy under race. Separate Linux
-      # runners keep them from competing for the same CPU and sockets. The
-      # complete root compiler inventory is partitioned without omissions;
-      # other packages still run once. Every binary retains the20m timeout.
-      - name: test root under race
-        if: matrix.os == 'ubuntu-latest' && matrix.race-scope == 'root'
-        run: python3 scripts/go_root_shard.py --index '${{ matrix.root-shard }}' --count 2 --manifest "$RUNNER_TEMP/root-race-${{ matrix.root-shard }}.json"
+      # The root and CLI suites are both heavy under race, each too long for
+      # one runner within the 20m every binary keeps (the CLI's ran 882s on
+      # 2026-11-01, past 1200s on 2026-11-07). Each one's complete compiler
+      # inventory is partitioned across two Linux runners without omissions;
+      # the other packages still run once, on a runner of their own. Every
+      # binary retains the 20m timeout.
+      - name: test ${{ matrix.race-scope }} under race
+        if: matrix.os == 'ubuntu-latest' && (matrix.race-scope == 'root' || matrix.race-scope == 'cli')
+        run: python3 scripts/go_root_shard.py --package '${{ matrix.package }}' --index '${{ matrix.shard }}' --count 2 --manifest "$RUNNER_TEMP/${{ matrix.race-scope }}-race-${{ matrix.shard }}.json"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && matrix.os == 'ubuntu-latest' && matrix.race-scope == 'root'
+        if: always() && matrix.os == 'ubuntu-latest' && (matrix.race-scope == 'root' || matrix.race-scope == 'cli')
         with:
-          name: root-race-inventory-${{ matrix.root-shard }}
-          path: ${{ runner.temp }}/root-race-${{ matrix.root-shard }}.json
+          name: ${{ matrix.race-scope }}-race-inventory-${{ matrix.shard }}
+          path: ${{ runner.temp }}/${{ matrix.race-scope }}-race-${{ matrix.shard }}.json
           if-no-files-found: error
           retention-days: 7
       - name: test all other packages under race
@@ -72,17 +84,21 @@ jobs:
         shell: bash
         run: |
           root="$(go list -m)"
+          cli="$root/cmd/tls-forge"
           discovered="$(go list ./...)"
           others=()
           found_root=false
+          found_cli=false
           while IFS= read -r package; do
             if [[ "$package" == "$root" ]]; then
               found_root=true
+            elif [[ "$package" == "$cli" ]]; then
+              found_cli=true
             else
               others+=("$package")
             fi
           done <<< "$discovered"
-          if [[ "$found_root" != true || "${#others[@]}" -eq 0 ]]; then
+          if [[ "$found_root" != true || "$found_cli" != true || "${#others[@]}" -eq 0 ]]; then
             exit 1
           fi
           go test -race -timeout 20m "${others[@]}"
@@ -99,12 +115,19 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.13'
+      # The root's partitions and the CLI's, each held to its own inventory.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: root-race-inventory-*
           path: ${{ runner.temp }}/root-race-manifests
           merge-multiple: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: cli-race-inventory-*
+          path: ${{ runner.temp }}/cli-race-manifests
+          merge-multiple: true
       - run: python3 scripts/go_root_shard.py --verify "$RUNNER_TEMP/root-race-manifests" --count 2 --source "$GITHUB_SHA"
+      - run: python3 scripts/go_root_shard.py --verify "$RUNNER_TEMP/cli-race-manifests" --count 2 --source "$GITHUB_SHA" --package ./cmd/tls-forge
 
   coverage:
     timeout-minutes: 30

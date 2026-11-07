@@ -44,6 +44,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   Brotli stream made the decoder allocate without bound) and GO-2026-6865 (a
   Zstandard frame of two blocks made it panic).
 
+- Run the CLI's tests under race, as the root's, in two Linux partitions of
+  its complete compiled inventory, each on a runner of its own, in CI and in
+  the release; the go-root-inventory gate holds them to that inventory as it
+  holds the root's. In one run they had passed the 20 minutes every test
+  binary keeps, beside every other package on one runner.
+
 - Changed: without `--profile`, `fetch`, `proxy` and `daemon` wear `chrome`,
   the newest Chrome, shipped or kept on this machine under its version. A
   browser measured here with `capture --install` was worn whenever it was
@@ -594,10 +600,11 @@ packages use1.0.0; the latest published stable release remains0.2.2.
 - Keep the existing release gates and distribute one verified immutable set of
   five native archives, six npm packages, one Python sdist and five wheels,
   licence notices and a Homebrew formula. Linux race partitions the complete
-  compiled root test/example/fuzz inventory across two runners and retains all
-  other packages. A separate manifest gate requires one source, disjoint complete
-  selections and successful execution. Every binary retains20m; normal tests
-  retain all three OSes with10m limits. Set storage waits for every gate.
+  compiled root and CLI test/example/fuzz inventories across two runners each
+  and retains all other packages. A separate manifest gate requires one
+  source, disjoint complete selections and successful execution. Every binary
+  retains20m; normal tests retain all three OSes with10m limits. Set storage
+  waits for every gate.
 
 ### Security and correctness
 

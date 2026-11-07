@@ -64,6 +64,40 @@ class InventoryTests(unittest.TestCase):
                         self.assertIn("-race", receipt["discovery_command"])
                         self.assertEqual(receipt["selected"], ["TestA"])
 
+    def test_a_package_of_the_module_is_listed_and_run_by_its_path(self):
+        self.assertEqual(shard.commands(".", "^(TestA)$"), (
+            ["go", "test", "-race", "-list", ".", "-timeout", "20m", "."],
+            ["go", "test", "-race", "-count=1", "-timeout", "20m", "-run", "^(TestA)$", "."]))
+        discovery, command = shard.commands("./cmd/tls-forge", "^(TestA)$")
+        self.assertEqual(discovery[-1], "./cmd/tls-forge")
+        self.assertEqual(command[-2:], ["^(TestA)$", "./cmd/tls-forge"])
+        for package in ["", "cmd/tls-forge", "./...", "./cmd/...", "../other", "./a/../b",
+                        "/abs", "./a b", "./a/", "github.com/x/y"]:
+            with self.subTest(package=package), self.assertRaises(ValueError):
+                shard.commands(package, "^(TestA)$")
+
+    def test_a_package_runs_and_is_verified_as_itself(self):
+        with tempfile.TemporaryDirectory() as folder:
+            manifest = Path(folder) / "result.json"
+            listed = subprocess.CompletedProcess([], 0, "TestA\nok example/cli 0.1s\n", "")
+            ran = subprocess.CompletedProcess([], 0, "ok example/cli 0.1s\n")
+            with contextlib.redirect_stdout(io.StringIO()), \
+                    mock.patch.dict(os.environ, {"GITHUB_SHA": "c" * 40}), \
+                    mock.patch.object(shard.subprocess, "run", side_effect=[listed, ran]) as run:
+                self.assertEqual(shard.main(["--index", "0", "--count", "1", "--manifest", str(manifest),
+                                             "--package", "./cli"]), 0)
+            self.assertEqual([call.args[0][-1] for call in run.call_args_list], ["./cli", "./cli"])
+            shard.verify(Path(folder), 1, "c" * 40, "./cli")
+            for other in [".", "./cmd"]:
+                with self.subTest(package=other), self.assertRaises(ValueError):
+                    shard.verify(Path(folder), 1, "c" * 40, other)
+            with contextlib.redirect_stdout(io.StringIO()) as said:
+                self.assertEqual(shard.main(["--verify", folder, "--count", "1", "--source", "c" * 40,
+                                             "--package", "./cli"]), 0)
+            self.assertIn("of ./cli", said.getvalue())
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(shard.main(["--verify", folder, "--count", "1", "--source", "c" * 40]), 2)
+
     def test_invalid_cli_or_missing_tool_fails_without_running_tests(self):
         with tempfile.TemporaryDirectory() as folder:
             args = ["--index", "0", "--count", "0", "--manifest", folder + "/x.json"]
@@ -160,6 +194,44 @@ func TestRaceOnly(t *testing.T) { record("TestRaceOnly") }
                     shard.verify(root, 2, source)
             finally:
                 manifest.write_text(original)
+
+    def test_real_compiler_and_runner_partition_another_package_of_the_module(self):
+        script = Path(shard.__file__).resolve()
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "go.mod").write_text("module shardfixture\n\ngo 1.26.10\n")
+            (root / "root_test.go").write_text('''package shardfixture
+import "testing"
+func TestRootIsNotThePackage(t *testing.T) { t.Fatal("the root ran") }
+''')
+            (root / "cli").mkdir()
+            (root / "cli" / "cli_test.go").write_text('''package cli
+import ("fmt"; "os"; "testing")
+func record(name string) {
+ f, err := os.OpenFile(os.Getenv("SHARD_SEEN"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+ if err != nil { panic(err) }; defer f.Close(); fmt.Fprintln(f, name)
+}
+func TestOne(t *testing.T) { record("TestOne") }
+func TestTwo(t *testing.T) { record("TestTwo") }
+func TestThree(t *testing.T) { record("TestThree") }
+''')
+            seen = root / "seen.txt"
+            source = "d" * 40
+            env = dict(os.environ, GOWORK="off", SHARD_SEEN=str(seen), GITHUB_SHA=source)
+            env.pop("GIT_DIR", None)
+            env.pop("GIT_WORK_TREE", None)
+            manifests = root / "manifests"
+            for index in range(2):
+                result = subprocess.run([sys.executable, str(script), "--index", str(index), "--count", "2",
+                                         "--manifest", str(manifests / f"shard-{index}.json"),
+                                         "--package", "./cli"],
+                                        cwd=root, env=env, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(Counter(seen.read_text().splitlines()),
+                             Counter(["TestOne", "TestTwo", "TestThree"]))
+            shard.verify(manifests, 2, source, "./cli")
+            with self.assertRaises(ValueError):
+                shard.verify(manifests, 2, source)
 
 
 if __name__ == "__main__":

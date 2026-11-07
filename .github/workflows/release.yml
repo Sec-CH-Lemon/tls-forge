@@ -220,9 +220,17 @@ jobs:
       matrix:
         include:
           - scope: root
-            root-shard: 0
+            package: .
+            shard: 0
           - scope: root
-            root-shard: 1
+            package: .
+            shard: 1
+          - scope: cli
+            package: ./cmd/tls-forge
+            shard: 0
+          - scope: cli
+            package: ./cmd/tls-forge
+            shard: 1
           - scope: packages
     runs-on: ubuntu-latest
     steps:
@@ -236,19 +244,20 @@ jobs:
       - run: go build ./...
       - run: go vet ./...
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        if: matrix.scope == 'root'
+        if: matrix.scope == 'root' || matrix.scope == 'cli'
         with:
           python-version: '3.13'
-      # Match CI's complete compiled root partitions and retain all remaining
-      # packages. No individual test or fuzz seed is dropped or retried.
-      - name: test root under race
-        if: matrix.scope == 'root'
-        run: python3 scripts/go_root_shard.py --index '${{ matrix.root-shard }}' --count 2 --manifest "$RUNNER_TEMP/root-race-${{ matrix.root-shard }}.json"
+      # Match CI's complete compiled root and CLI partitions and retain all
+      # remaining packages. No individual test or fuzz seed is dropped or
+      # retried.
+      - name: test ${{ matrix.scope }} under race
+        if: matrix.scope == 'root' || matrix.scope == 'cli'
+        run: python3 scripts/go_root_shard.py --package '${{ matrix.package }}' --index '${{ matrix.shard }}' --count 2 --manifest "$RUNNER_TEMP/${{ matrix.scope }}-race-${{ matrix.shard }}.json"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && matrix.scope == 'root'
+        if: always() && (matrix.scope == 'root' || matrix.scope == 'cli')
         with:
-          name: release-root-race-inventory-${{ matrix.root-shard }}
-          path: ${{ runner.temp }}/root-race-${{ matrix.root-shard }}.json
+          name: release-${{ matrix.scope }}-race-inventory-${{ matrix.shard }}
+          path: ${{ runner.temp }}/${{ matrix.scope }}-race-${{ matrix.shard }}.json
           if-no-files-found: error
           retention-days: 7
       - name: test all other packages under race
@@ -256,17 +265,21 @@ jobs:
         shell: bash
         run: |
           root="$(go list -m)"
+          cli="$root/cmd/tls-forge"
           discovered="$(go list ./...)"
           others=()
           found_root=false
+          found_cli=false
           while IFS= read -r package; do
             if [[ "$package" == "$root" ]]; then
               found_root=true
+            elif [[ "$package" == "$cli" ]]; then
+              found_cli=true
             else
               others+=("$package")
             fi
           done <<< "$discovered"
-          if [[ "$found_root" != true || "${#others[@]}" -eq 0 ]]; then
+          if [[ "$found_root" != true || "$found_cli" != true || "${#others[@]}" -eq 0 ]]; then
             exit 1
           fi
           go test -race -timeout 20m "${others[@]}"
@@ -282,12 +295,19 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.13'
+      # The root's partitions and the CLI's, each held to its own inventory.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: release-root-race-inventory-*
           path: ${{ runner.temp }}/root-race-manifests
           merge-multiple: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-cli-race-inventory-*
+          path: ${{ runner.temp }}/cli-race-manifests
+          merge-multiple: true
       - run: python3 scripts/go_root_shard.py --verify "$RUNNER_TEMP/root-race-manifests" --count 2 --source "$GITHUB_SHA"
+      - run: python3 scripts/go_root_shard.py --verify "$RUNNER_TEMP/cli-race-manifests" --count 2 --source "$GITHUB_SHA" --package ./cmd/tls-forge
 
   go-platforms:
     timeout-minutes: 40
