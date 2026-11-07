@@ -54,6 +54,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   release: `ubuntu-latest` is Ubuntu 26.04 now, for which no Python 3.9 is
   built, and the package smoke test of the release stopped there.
 
+- `capture.yml` takes `gate`: it captures nothing, and holds the shipped
+  profile of the browser's major to it as the release's pinned gate holds the
+  newest Chrome to Stable, on Chrome Stable or on the pinned Chrome 156
+  installers (`browser: 156`), so that `chrome_156` can be held to Chrome 156
+  now that Stable is 157 ([research/pinned.md](research/pinned.md)).
+
 - Changed: without `--profile`, `fetch`, `proxy` and `daemon` wear `chrome`,
   the newest Chrome, shipped or kept on this machine under its version. A
   browser measured here with `capture --install` was worn whenever it was

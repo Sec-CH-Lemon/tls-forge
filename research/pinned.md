@@ -160,3 +160,17 @@ retains the order in2cohorts x3launches after an explicit warm fetch then11s
 idle on the same connection. First cold-socket closure is preserved separately;
 it is not a persistent-connection PING measurement. Full fork/native acceptance
 of the fix is required before release.
+
+## The gate of another major, by hand (2026-11-07)
+
+`capture.yml` with `gate: true` captures nothing: on each runner it installs
+the browser the run asks for, Google Chrome Stable or, with `browser: 156`, the
+pinned Chrome 156 installers of `verification/chrome156-installers.json`, and
+holds the shipped profile of its major (`--profile chrome_<major>`, the
+runner's platform) to it by `internal/pinned`, with the request fixture the
+release takes for that platform. The result of each runner is the artifact
+`gate-<OS>`, and a difference fails the job, as in the release. No evidence
+certificate is needed: a gate keeps no raw capture. The pinned Chrome 156
+builds (156.0.8078.74, Linux .73) are older than the build `chrome_156` says
+(156.0.8078.80, Linux .79), and the bench says so wherever a request carries
+`sec-ch-ua-full-version` or `-list`.

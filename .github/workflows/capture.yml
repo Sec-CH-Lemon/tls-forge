@@ -16,6 +16,11 @@ name: capture
 #
 # Default captures current stable. A pinned156 run uses original official
 # installers whose exact hashes are in verification/chrome156-installers.json.
+#
+# With gate, nothing is captured: the shipped profile of the browser's major
+# (chrome_156 on a pinned156 run, chrome_157 on Chrome 157 Stable) is held to
+# the browser as the release's pinned gate holds the newest Chrome to Stable,
+# by internal/pinned, and its result is the run's artifact.
 on:
   workflow_dispatch:
     inputs:
@@ -51,6 +56,10 @@ on:
         default: ''
       release-auth-oracle:
         description: Only record the two Windows release-auth oracle cohorts; no profile capture or fixture promotion
+        type: boolean
+        default: false
+      gate:
+        description: Capture nothing; hold the shipped profile of the browser's major to it, as the release's pinned gate does
         type: boolean
         default: false
   # Callable, so the drift check can measure without a second copy of all this.
@@ -90,6 +99,10 @@ on:
         description: Only record the two Windows release-auth oracle cohorts
         type: boolean
         default: false
+      gate:
+        description: Capture nothing; hold the shipped profile of the browser's major to it
+        type: boolean
+        default: false
     outputs:
       profile:
         description: the name the capture was filed under, e.g. chrome_152_linux
@@ -123,6 +136,7 @@ jobs:
       PYTHONUTF8: '1'
       CAPTURE_BROWSER: ${{ inputs.browser || 'stable' }}
       EVIDENCE_CERTIFICATE: ${{ inputs.evidence-certificate }}
+      GATE: ${{ inputs.gate }}
       # Chrome's sandbox does not work on a hosted runner and fails silently:
       # the browser starts, never loads the page, and the capture times out
       # having watched something that was never going to answer. Ubuntu 24.04
@@ -149,7 +163,7 @@ jobs:
         run: |
           case "$CAPTURE_BROWSER" in
             stable) ;;
-            156) [ -n "$EVIDENCE_CERTIFICATE" ] || { echo "pinned156 requires a public evidence certificate"; exit 1; }
+            156) [ -n "$EVIDENCE_CERTIFICATE" ] || [ "$GATE" = true ] || { echo "pinned156 requires a public evidence certificate"; exit 1; }
                  python3 scripts/chrome-archive.py --manifest verification/chrome156-installers.json \
                    --platform "$RUNNER_OS" --output "$RUNNER_TEMP/chrome156" >> "$GITHUB_OUTPUT" ;;
             *) echo "unsupported browser selection"; exit 1 ;;
@@ -339,6 +353,7 @@ jobs:
       # be here rather than a reason to stop.
       - name: does the shipped profile still match
         id: shipped
+        if: ${{ !inputs.gate }}
         continue-on-error: true
         shell: bash
         run: |
@@ -352,6 +367,7 @@ jobs:
           fi
 
       - name: capture
+        if: ${{ !inputs.gate }}
         shell: bash
         run: |
           mkdir -p captured
@@ -377,6 +393,7 @@ jobs:
       # version in it is the browser's, which is the whole point.
       - name: what was captured
         id: captured
+        if: ${{ !inputs.gate }}
         shell: bash
         run: |
           file=$(find captured -name '*.json' | head -1)
@@ -393,6 +410,7 @@ jobs:
       # This compares measured TLS/H1/H2 fields only. Unmeasured policies remain
       # inherited candidates and need their own native browser/wire acceptance.
       - name: the capture reproduces the browser
+        if: ${{ !inputs.gate }}
         shell: bash
         run: |
           run() { go run ./cmd/tls-forge compare \
@@ -405,7 +423,7 @@ jobs:
           fi
 
       - name: paired native H3 observation
-        if: inputs.h3
+        if: inputs.h3 && !inputs.gate
         shell: bash
         env:
           CHROME: ${{ steps.chrome.outputs.path }}
@@ -428,7 +446,7 @@ jobs:
           fi
 
       - name: fixture acceptance on the native browser
-        if: inputs.fixtures != false
+        if: inputs.fixtures != false && !inputs.gate
         shell: bash
         env:
           CHROME: ${{ steps.chrome.outputs.path }}
@@ -453,8 +471,48 @@ jobs:
           [ -z "$ONLY" ] || args+=("--only=$ONLY")
           go run ./internal/harness/measure "${args[@]}" > fixture-differences.txt 2> fixture-measure.log
 
+      # The profile shipped for this browser's major, held to it: the
+      # comparison, then every scenario and page on the bench, as the release's
+      # pinned gate runs it (release.yml), its fixtures and all. A pinned156
+      # browser is an older build of 156 than chrome_156 says it is
+      # (verification/chrome156-installers.json against the profile's
+      # sec-ch-ua-full-version), and the bench says so where a request carries
+      # the build.
+      - name: hold the shipped profile to the browser
+        if: inputs.gate
+        shell: bash
+        env:
+          CHROME: ${{ steps.chrome.outputs.path }}
+          VERSION: ${{ steps.browser.outputs.version }}
+        run: |
+          major=$(echo "$VERSION" | tr -dc '0-9.' | cut -d. -f1)
+          case "$RUNNER_OS" in
+            macOS) platform=macos ;;
+            Linux) platform=linux ;;
+            Windows) platform=windows ;;
+          esac
+          requests=testdata/chrome155-requests.json
+          [ "$platform" != windows ] || requests=testdata/chrome156-windows-requests.json
+          mkdir -p gate
+          gate=(go run ./internal/pinned --browser "$CHROME" --profile "chrome_$major" --commit "$GITHUB_SHA"
+            --requests "$requests" --out "gate/chrome_${major}_$platform.json")
+          if [ "$RUNNER_OS" != macOS ]; then gate+=("$FLAGS"); fi
+          if [ "$RUNNER_OS" = Linux ]; then
+            sudo apt-get update && sudo apt-get install -y xvfb
+            xvfb-run -a "${gate[@]}"
+          else
+            "${gate[@]}"
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && inputs.gate
+        with:
+          name: gate-${{ runner.os }}
+          path: gate/
+          if-no-files-found: ignore
+
       # A third-party opinion, so the profile is not only self-consistent.
       - name: what a third party sees
+        if: ${{ !inputs.gate }}
         shell: bash
         run: |
           go run ./cmd/tls-forge fetch \
@@ -469,6 +527,7 @@ jobs:
       # HTTP/2 fingerprint is full of `|`, which ends a cell in a Markdown table
       # however many backticks are around it.
       - name: summary
+        if: ${{ !inputs.gate }}
         shell: bash
         env:
           PROFILE: ${{ steps.captured.outputs.name }}
