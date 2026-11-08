@@ -29,4 +29,4 @@ func main() {
 
 A browser is not needed to make requests. The Go package can also start a local echo server, measure a browser, compare captures, load profiles, and start a local proxy. Continue with the [Go guide](../integrations/go.md) and [generated API reference](../reference/go-api.md).
 
-For unpublished source, use a checkout and an appropriate `replace` directive in your application rather than assuming the 1.0.1 API has been published.
+The module is published as `github.com/Sec-CH-Lemon/tls-forge@v1.0.1`. For unpublished source, use a checkout and an appropriate `replace` directive in your application.

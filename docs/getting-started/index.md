@@ -6,7 +6,7 @@
   <a class="tf-card" href="install-cli/#release-binary"><strong>Download a release binary</strong><span>Use a prebuilt archive for macOS, Linux, or Windows. Check available release verification artifacts.</span></a>
   <a class="tf-card" href="install-cli/#homebrew"><strong>Install with Homebrew</strong><span>Use the published third-party tap on macOS or Linux.</span></a>
   <a class="tf-card" href="install-cli/#go-install"><strong>Install the CLI with Go</strong><span>Build the latest published module version with your Go toolchain.</span></a>
-  <a class="tf-card" href="install-cli/#build-from-source"><strong>Build from source</strong><span>Compile the unreleased development engine or a custom checkout.</span></a>
+  <a class="tf-card" href="install-cli/#build-from-source"><strong>Build from source</strong><span>Compile the development engine or a custom checkout.</span></a>
   <a class="tf-card" href="docker/"><strong>Run with Docker</strong><span>Use the published Linux image or build an image from this checkout.</span></a>
   <a class="tf-card" href="go/"><strong>Add the Go library</strong><span>Create a native client inside a Go application.</span></a>
   <a class="tf-card" href="node/"><strong>Add the Node.js SDK</strong><span>Use the ESM package and its matching transport executable.</span></a>

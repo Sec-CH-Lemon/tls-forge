@@ -24,7 +24,7 @@ Profiles that cannot send the run's requests as the newest Chrome sends them are
 
 ## Engine gate
 
-The development source is **engine 1.0.1**, profile **schema 4**, daemon protocol **3**. Every executable profile needs a top-level integer `engine_major: 1`. The engine rejects older, newer, missing or invalid majors **before request-related network I/O**. A schema number, filename, User-Agent or browser alias does not imply compatibility. SDKs also check the daemon engine major.
+Release 1.0.1 is **engine 1.0.1**, profile **schema 4**, daemon protocol **3**. Every executable profile needs a top-level integer `engine_major: 1`. The engine rejects older, newer, missing or invalid majors **before request-related network I/O**. A schema number, filename, User-Agent or browser alias does not imply compatibility. SDKs also check the daemon engine major.
 
 ```json title="JSON"
 {
@@ -42,4 +42,4 @@ This is metadata only, **not** a complete executable profile. The [profile behav
 
 Shipped Chrome profiles cover multiple builds and platforms, but a current Chrome witness does not freshly validate every historical build and platform. New connection keys, tickets, counters, QPACK state, cookies and request-derived headers must be generated from current context. A renamed file or edited `engine_major` cannot make an incompatible profile equivalent.
 
-Browser-specific behaviour belongs in JSON. A new protocol, algorithm, parser or state-machine primitive is an engine change. The pending 1.0.1 release shares one major for its runtime changes; another change before publication does not create engine 2. See [release status](../support/release-status.md).
+Browser-specific behaviour belongs in JSON. A new protocol, algorithm, parser or state-machine primitive is an engine change. Engine 1 is published (1.0.1): the next engine change targets engine 2. See [release status](../support/release-status.md).

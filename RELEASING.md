@@ -164,8 +164,8 @@ the draft, npm and PyPI what each has, saying what it would give each. It
 stores, signs and publishes nothing. Run on a tag, it takes the set the tag
 has, if it has one, and says what a release run again would do.
 
-Use the exact candidate branch commit for preparation; the example above is
-the current unreleased 1.0.1 candidate on `development`. A full dry run retains
+Use the exact candidate branch commit for preparation; the example above
+names the version of the engine on `development`. A full dry run retains
 the three strict Google Chrome gates and all five package-smoke targets.
 It creates no release tag and advances no release metadata.
 
