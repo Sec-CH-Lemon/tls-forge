@@ -158,7 +158,11 @@ export function npm({ dir, version, tag, dryRun = false }, { npmRun, log }) {
     const remote = integrity === '' ? new Map() : new Map([[file, integrity]]);
     const { upload } = plan(local, remote);
     if (upload.length > 0) {
-      if (!dryRun) npmRun(['publish', path.join(dir, file), '--access', 'public', '--provenance', '--tag', tag]);
+      // The path whole: npm reads a spec of one slash, the workflow's
+      // set/tls-forge-....tgz, as a GitHub repository (user/repo) and asks
+      // git for it, where ./set/... or /.../set/... is a file (1.0.0's
+      // publish-npm failed so, its draft's set intact).
+      if (!dryRun) npmRun(['publish', path.resolve(dir, file), '--access', 'public', '--provenance', '--tag', tag]);
       published.push(file);
     }
   }

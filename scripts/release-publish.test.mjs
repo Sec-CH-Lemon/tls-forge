@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -33,6 +34,11 @@ function aSet(t, version = '1.2.3') {
 }
 
 const quiet = () => {};
+
+// npa is how npm reads what it is asked to publish: the npm-package-arg of
+// the npm that runs the release, not a rule of the test's.
+const npa = createRequire(path.join(execFileSync('npm', ['root', '-g'], { encoding: 'utf8', shell: process.platform === 'win32' }).trim(),
+  'npm', 'package.json'))('npm-package-arg');
 
 // fakeGitHub keeps releases as GitHub would, and fails the upload after
 // failAfter files when told to.
@@ -86,6 +92,8 @@ function fakeNpm({ registry = new Map(), failAfter = Infinity, failView = null, 
     }
     if (published.length >= failAfter) throw new Error('npm error code E503');
     const file = args[1];
+    // npm publishes a file only when it reads the spec as one.
+    assert.equal(npa(file).type, 'file', `npm reads ${file} as ${npa(file).type}`);
     const name = path.basename(file).slice(0, -'-1.2.3.tgz'.length);
     registry.set(`${name}@1.2.3`, sha512(file));
     published.push(path.basename(file));
@@ -259,6 +267,21 @@ test('npm gets the platform packages first and the one that pins them last', (t)
     'tls-forge-linux-x64-1.2.3.tgz', 'tls-forge-windows-x64-1.2.3.tgz', 'tls-forge-1.2.3.tgz',
   ]);
   assert.deepEqual(lines, ['npm: published 6 of 6']);
+});
+
+test('npm is given each package as a file, the set in a directory named as the workflow names it', (t) => {
+  const dir = aSet(t);
+  const cwd = process.cwd();
+  t.after(() => process.chdir(cwd));
+  // The workflow's --dir set: a directory of one name, beside the run. Its
+  // packages joined to it are of one slash, which npm reads as a GitHub
+  // repository.
+  process.chdir(path.dirname(dir));
+  const named = path.basename(dir);
+  assert.equal(npa(path.join(named, 'tls-forge-1.2.3.tgz')).type, 'git');
+  const fake = fakeNpm();
+  npm({ dir: named, version: '1.2.3', tag: 'latest' }, { npmRun: fake.npmRun, log: quiet });
+  assert.equal(fake.published.length, 6);
 });
 
 test('npm run again publishes what the last attempt did not, and nothing twice', (t) => {

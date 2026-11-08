@@ -11,6 +11,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- Fix: a release gives npm its packages as files. `release-publish.mjs`
+  named each `set/tls-forge-….tgz`, its path joined to the workflow's
+  `--dir set`, which npm reads as a GitHub repository (one slash, as
+  `user/repo`) and asks git for: 1.0.0's `publish-npm` failed so, before
+  publishing anything. Each is given by its whole path now. A dry run never
+  calls `npm publish`, and the tests' npm was given paths of a temporary
+  directory, which npm reads as files: it reads every spec it is given with
+  npm's own npm-package-arg now, and a set named as the workflow names it is
+  published through it.
+
 ## [1.0.0] - 2026-11-08
 
 The first release of engine major 1, after 0.2.2. The compiled engine, the CLI
