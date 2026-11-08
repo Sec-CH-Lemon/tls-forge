@@ -38,9 +38,11 @@ const (
 	maxInitials = 16
 )
 
-// maxEarly is the most lines of an ECH offer the wire holds for a random no
-// connection has sent yet: a QUIC handshake writes its offer to the key log
-// before the socket sends the hello that carries it.
+// maxEarly is the most lines the wire holds of a random no connection has
+// sent yet: a QUIC handshake writes its ECH offer to the key log before the
+// socket sends the hello that carries it, and its socket tells the wire of a
+// datagram after it went, when the server may have answered and the handshake
+// written its secrets already.
 const maxEarly = 64
 
 // wire is what the connections of a run carried, kept for --pcap: every byte
@@ -59,7 +61,7 @@ type wire struct {
 	// offers are what the key log said of each connection's ECH offer, by its
 	// outer random: the lines that open its inner hello, whose random the
 	// handshake's secrets are written by when the server accepted it. early
-	// are such lines of a random no connection has sent yet, maxEarly at most.
+	// are the lines of a random no connection has sent yet, maxEarly at most.
 	offers map[string]*echOffer
 	early  []string
 }
@@ -278,10 +280,16 @@ func (w *wire) wrote(c *wiredConn, data []byte) {
 }
 
 // want has the wire keep the secrets of random, a connection's client random,
-// those of an ECH offer written before it was sent among them.
+// those written before it was sent among them.
 func (w *wire) want(c *wiredConn, random string) {
 	c.random = random
 	w.secrets[random] = nil
+	w.keepEarly()
+}
+
+// keepEarly takes the lines held for a random no connection had sent again,
+// now that the wire wants another: those of no connection's still wait.
+func (w *wire) keepEarly() {
 	early := w.early
 	w.early = nil
 	for _, line := range early {
@@ -301,6 +309,7 @@ func (w *wire) openInner(c *wiredConn) {
 		c.inner = inner
 		if _, kept := w.secrets[inner]; !kept {
 			w.secrets[inner] = nil
+			w.keepEarly()
 		}
 	}
 }
@@ -376,29 +385,24 @@ func (w *wire) Write(p []byte) (int, error) {
 
 // keepLine keeps a line of the key log, LABEL CLIENT_RANDOM SECRET, the
 // random and the secret in hex, when it is of a connection's random, and
-// says what it says of an ECH offer; an offer's line of a random no
-// connection has sent yet waits for one.
+// says what it says of an ECH offer; a line of a random no connection has
+// sent yet waits for one (maxEarly).
 func (w *wire) keepLine(line string) {
 	fields := strings.Fields(line)
 	if len(fields) != 3 {
 		return
 	}
 	label, random := fields[0], strings.ToLower(fields[1])
-	offer := label == pcapng.ECHSecretLabel || label == pcapng.ECHConfigLabel
 	kept, wanted := w.secrets[random]
-	switch {
-	case wanted:
-		w.secrets[random] = append(kept, line...)
-	case offer:
+	if !wanted {
 		w.early = append(w.early, line)
 		if len(w.early) > maxEarly {
 			w.early = w.early[len(w.early)-maxEarly:]
 		}
 		return
-	default:
-		return
 	}
-	if !offer {
+	w.secrets[random] = append(kept, line...)
+	if label != pcapng.ECHSecretLabel && label != pcapng.ECHConfigLabel {
 		return
 	}
 	value, err := hex.DecodeString(fields[2])

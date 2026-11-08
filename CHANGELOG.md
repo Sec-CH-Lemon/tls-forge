@@ -189,6 +189,13 @@ and the Node.js and Python packages are 1.0.0.
   that a block encoded before them goes before them and none encoded for them
   goes before their acknowledgement.
 
+- Fix: `fetch --pcap` keeps the secrets of a QUIC connection that the key log
+  wrote before the capture had the connection's hello. A QUIC socket tells
+  the capture of a datagram once it went, by when the server may have
+  answered and the handshake written its secrets: an accepted ECH offer's
+  inner hello lost its four lines so, now and then. The lines of a random no
+  connection has sent yet wait for one, 64 at most, as an ECH offer's did.
+
 - Add Chrome 157: `chrome_157_macos`, `chrome_157_linux` and
   `chrome_157_windows`, captured headed on Google Chrome Stable 157.0.8103.39
   (macOS, Windows) and 157.0.8103.38 (Linux), with the Chrome 156 profile of
