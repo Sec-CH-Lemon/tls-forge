@@ -155,11 +155,8 @@ func TestReleaseHintBuildsPreserveEveryEarlierProvenanceLayer(t *testing.T) {
 		t.Fatal("incomplete base/close-notify build refresh")
 	}
 	for path, row := range latest {
-		raw, err := os.ReadFile("../" + path)
+		raw, err := unwindPolicyAdditions(chainBytes(t, path))
 		if err != nil {
-			t.Fatal(err)
-		}
-		if raw, err = unwindPolicyAdditions(raw); err != nil {
 			t.Fatal(path, err)
 		}
 		if a13SHA(raw) != row.AfterSHA {

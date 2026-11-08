@@ -93,12 +93,10 @@ func assertA13Derivation(t *testing.T, path string, raw []byte, originalSHA stri
 }
 func TestA13ProfileDerivationRejectsChangesOutsideNewChoices(t *testing.T) {
 	path := "profile/data/chrome_156/macos.json"
-	raw, err := os.ReadFile("data/chrome_156/macos.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	raw := keptBytes(t, path)
 	row := a13DerivationOf(t, path)
-	if err = checkA13Derivation(raw, row, row.BeforeSHA); err != nil {
+	err := checkA13Derivation(raw, row, row.BeforeSHA)
+	if err != nil {
 		t.Fatal(err)
 	}
 	var fields map[string]json.RawMessage

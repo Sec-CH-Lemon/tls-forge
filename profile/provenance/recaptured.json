@@ -1,0 +1,60 @@
+{
+ "schema": 1,
+ "engine_major": 1,
+ "files": [
+  {
+   "path": "profile/data/chrome_156/linux.json",
+   "kept_file": "provenance/recaptured/27556f2b91a210311ac12eb549cb9ceb62ec143fd9e7252d06edd948af4e67c2.json.txt",
+   "sha256": "27556f2b91a210311ac12eb549cb9ceb62ec143fd9e7252d06edd948af4e67c2",
+   "why": "recaptured: capture.yml run 42463760501 at e698386c6c0356d28383f9b0898589c3372f24e7: Google Chrome 156.0.8078.79 headed, policy basis chrome_156_linux (these bytes)"
+  },
+  {
+   "path": "profile/provenance/chrome_156/linux.json",
+   "kept_file": "provenance/recaptured/702138b725e2429d1331d4d0892ffae20f89d2ff9687cde92d809874bc881184.json.txt",
+   "sha256": "702138b725e2429d1331d4d0892ffae20f89d2ff9687cde92d809874bc881184",
+   "why": "the A8 capture's provenance of the bytes replaced; the recapture's provenance replaces it (capture.yml run 42463760501 at e698386c6c0356d28383f9b0898589c3372f24e7: Google Chrome 156.0.8078.79 headed, policy basis chrome_156_linux (these bytes))"
+  },
+  {
+   "path": "example/profiles/chrome_156_linux_close_notify.json",
+   "kept_file": "provenance/recaptured/52a0eb61ed071421d11f8a0cb7939ef956d62c6bc565088b7936917f5d6cdbc0.json.txt",
+   "sha256": "52a0eb61ed071421d11f8a0cb7939ef956d62c6bc565088b7936917f5d6cdbc0",
+   "why": "made again of the recaptured profile/data/chrome_156/linux.json, tls.close_notify true (A12's choice), as these were of the bytes it replaced"
+  },
+  {
+   "path": "profile/data/chrome_156/macos.json",
+   "kept_file": "provenance/recaptured/9f49ed5689e9af8b877b815df9d9acc6e4866f5f67ee55c4b8da7fbfb317f04f.json.txt",
+   "sha256": "9f49ed5689e9af8b877b815df9d9acc6e4866f5f67ee55c4b8da7fbfb317f04f",
+   "why": "recaptured: capture.yml run 42463760501 at e698386c6c0356d28383f9b0898589c3372f24e7: Google Chrome 156.0.8078.80 headed, policy basis chrome_156_macos (these bytes)"
+  },
+  {
+   "path": "profile/provenance/chrome_156/macos.json",
+   "kept_file": "provenance/recaptured/972e72642106bde79dc67dd068e25b41b729058250370996349f90ed0c6d8a4b.json.txt",
+   "sha256": "972e72642106bde79dc67dd068e25b41b729058250370996349f90ed0c6d8a4b",
+   "why": "the A8 capture's provenance of the bytes replaced; the recapture's provenance replaces it (capture.yml run 42463760501 at e698386c6c0356d28383f9b0898589c3372f24e7: Google Chrome 156.0.8078.80 headed, policy basis chrome_156_macos (these bytes))"
+  },
+  {
+   "path": "example/profiles/chrome_156_macos_close_notify.json",
+   "kept_file": "provenance/recaptured/d192d1ab892529a23ab5efdb8a3e7c0a6b97a2366afb591e0b30a5a8b401be30.json.txt",
+   "sha256": "d192d1ab892529a23ab5efdb8a3e7c0a6b97a2366afb591e0b30a5a8b401be30",
+   "why": "made again of the recaptured profile/data/chrome_156/macos.json, tls.close_notify true (A12's choice), as these were of the bytes it replaced"
+  },
+  {
+   "path": "profile/data/chrome_156/windows.json",
+   "kept_file": "provenance/recaptured/4a6f949cb0bd3fe30315ce08b7cd802afa0f416513db9cc4275f5bad12be78cf.json.txt",
+   "sha256": "4a6f949cb0bd3fe30315ce08b7cd802afa0f416513db9cc4275f5bad12be78cf",
+   "why": "recaptured: capture.yml run 42463984662 at 683564cf57c647ffbd6439ec34cc74358f9aabd9: Google Chrome 156.0.8078.80 headed, policy basis chrome_156_windows (these bytes)"
+  },
+  {
+   "path": "profile/provenance/chrome_156/windows.json",
+   "kept_file": "provenance/recaptured/ef825a085ef3efaddb2c0ea9b3abaf1fe2e4769c6b59a5b322749b3ba8208255.json.txt",
+   "sha256": "ef825a085ef3efaddb2c0ea9b3abaf1fe2e4769c6b59a5b322749b3ba8208255",
+   "why": "the A8 capture's provenance of the bytes replaced; the recapture's provenance replaces it (capture.yml run 42463984662 at 683564cf57c647ffbd6439ec34cc74358f9aabd9: Google Chrome 156.0.8078.80 headed, policy basis chrome_156_windows (these bytes))"
+  },
+  {
+   "path": "example/profiles/chrome_156_windows_close_notify.json",
+   "kept_file": "provenance/recaptured/96ad44b49478212b108141b4f475cd8b93dc6e5fceb980514a6d73fac05d2410.json.txt",
+   "sha256": "96ad44b49478212b108141b4f475cd8b93dc6e5fceb980514a6d73fac05d2410",
+   "why": "made again of the recaptured profile/data/chrome_156/windows.json, tls.close_notify true (A12's choice), as these were of the bytes it replaced"
+  }
+ ]
+}

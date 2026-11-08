@@ -163,10 +163,7 @@ func TestPolicyAdditionsPreserveEveryEarlierLayer(t *testing.T) {
 		}
 	}
 	for path, after := range anchors {
-		raw, err := os.ReadFile("../" + path)
-		if err != nil {
-			t.Fatal(err)
-		}
+		raw := chainBytes(t, path)
 		if a13SHA(raw) != after {
 			t.Fatalf("%s differs from its latest layer", path)
 		}

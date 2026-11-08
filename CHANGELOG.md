@@ -23,6 +23,22 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   `profile/provenance/chrome_157/` says field by field: carried over, not
   measured again.
 
+- Chrome 156 captured again, on the last build of 156 of each platform:
+  `chrome_156_macos` and `chrome_156_windows` on Google Chrome
+  156.0.8078.80, `chrome_156_linux` on 156.0.8078.79, headed, from the
+  pinned installers (`capture.yml`, runs 42463760501 and, for Windows,
+  42463984662), with the `chrome_156` they replace as their policy basis.
+  They were captured on 156.0.8078.74 (Linux .73) and said a later build
+  since; now the build they say is the one they were captured on. The
+  handshake is the one captured before, its draws aside, and the headers
+  are; the client hints are, but macOS's platform version, 26.7.2. Every
+  policy is the replaced profile's, unchanged. The replaced files, their
+  capture provenance and the `close_notify` variants of
+  `example/profiles/` are kept by their hashes in
+  `profile/provenance/recaptured/` (`recaptured.json`), where the layers of
+  provenance before the capture end; the variants are made again of the new
+  profiles.
+
 - Hold Chrome 157 to the bench as it behaves. The bench (`internal/harness`)
   runs the scenario of a cached preflight with its certificate trusted:
   Chrome 157 keeps no preflight answered over a certificate it took with an

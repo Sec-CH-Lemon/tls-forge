@@ -112,11 +112,8 @@ func TestA13NetworkDerivationsPreserveAllEarlierFields(t *testing.T) {
 	}
 	for path, row := range rows {
 		t.Run(path, func(t *testing.T) {
-			raw, e := os.ReadFile("../" + path)
-			if e != nil {
-				t.Fatal(e)
-			}
-			if _, _, e = unwindA13NetworkDerivation(raw, row.BeforeSHA); e != nil {
+			raw := chainBytes(t, path)
+			if _, _, e := unwindA13NetworkDerivation(raw, row.BeforeSHA); e != nil {
 				t.Fatal(e)
 			}
 			p, e := Load(raw)

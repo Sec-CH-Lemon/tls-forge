@@ -1,9 +1,9 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "81e6ab0d1a5c265a23039a0ba3d653f4daa37439b4fab6016df5f1bfafd3d5b2",
-  "capture_canonical_sha256": "d36f84bcd4cf589e97b684be51d506ae7adb2324d30c15e639b171090cee4cfe",
-  "basis_name": "chrome_155_windows",
-  "basis_sha256": "63100070f060b6df63e2b767c435f9e5470aa448cd871360a3c6efbfdd4c7b82",
+  "profile_sha256": "e630d0eb6e01126b6bdab2ae79727de9da2f52aa234bf44f8ef2399ca5393011",
+  "capture_canonical_sha256": "880b6a0bb11d58962601aa762c0f132dcba30d2603ef8da54828b2f5f4700e64",
+  "basis_name": "chrome_156_windows",
+  "basis_sha256": "cb82bb17538410bbf0cdd43918b24185b5f7488420f3b7ff9cad6f4f6025ebb5",
   "browser": {
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
     "languages": [
@@ -33,17 +33,17 @@
       },
       {
         "brand": "Chromium",
-        "version": "156.0.8078.74"
+        "version": "156.0.8078.80"
       },
       {
         "brand": "Google Chrome",
-        "version": "156.0.8078.74"
+        "version": "156.0.8078.80"
       }
     ],
     "architecture": "x86",
     "bitness": "64",
     "platform_version": "19.0.0",
-    "ua_full_version": "156.0.8078.74",
+    "ua_full_version": "156.0.8078.80",
     "form_factors": [
       "Desktop"
     ],
@@ -52,6 +52,14 @@
   },
   "browser_mode": "headed",
   "fields": {
+    "behavior.cache.delta_seconds_limit": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.duplicate_freshness_policy": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.cache.entries": {
       "class": "inherited",
       "source": "policy basis"
@@ -60,7 +68,55 @@
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.cache.freshness_quoted_values": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.generated_header_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.heuristic_percent": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.heuristic_statuses": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.heuristic_with_must_revalidate": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.implicit_fresh_statuses": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.invalid_freshness_policy": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.request_no_cache": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.response_pragma_no_cache": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.store_any_status": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.cache.total_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cache.validated_statuses": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.cookie.identity": {
       "class": "inherited",
       "source": "policy basis"
     },
@@ -100,6 +156,18 @@
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.dns.https_query_recursion_desired": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.dns.https_query_timeout_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.dns.https_query_udp_payload_bytes": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.dns.https_records": {
       "class": "inherited",
       "source": "policy basis"
@@ -125,6 +193,10 @@
       "source": "policy basis"
     },
     "behavior.h1.auth_body": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.h1.chunked_bare_lf": {
       "class": "inherited",
       "source": "policy basis"
     },
@@ -372,6 +444,10 @@
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.h3.cookie_crumbs": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.h3.grease_frame_n_bits": {
       "class": "inherited",
       "source": "policy basis"
@@ -556,6 +632,10 @@
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.h3.server_bidi_stream_close_reason": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.h3.settings": {
       "class": "inherited",
       "source": "policy basis"
@@ -665,6 +745,10 @@
       "source": "policy basis"
     },
     "behavior.headers.navigation_order": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.headers.network_hints": {
       "class": "inherited",
       "source": "policy basis"
     },
@@ -788,6 +872,14 @@
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.http.cache_scope": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.cache_validators": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.http.connection_error_methods": {
       "class": "inherited",
       "source": "policy basis"
@@ -833,6 +925,10 @@
       "source": "policy basis"
     },
     "behavior.http.ignored_content_codings": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.http.instance_scope": {
       "class": "inherited",
       "source": "policy basis"
     },
@@ -920,6 +1016,10 @@
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.quic.ack_decimation": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.quic.ack_decimation_after": {
       "class": "inherited",
       "source": "policy basis"
@@ -940,11 +1040,23 @@
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.quic.ack_gap_policy": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_initial_packets": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.quic.ack_only_frame": {
       "class": "inherited",
       "source": "policy basis"
     },
     "behavior.quic.ack_only_max": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.ack_reordering_threshold": {
       "class": "inherited",
       "source": "policy basis"
     },
@@ -1028,6 +1140,10 @@
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.quic.config": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.quic.connected_socket": {
       "class": "inherited",
       "source": "policy basis"
@@ -1061,6 +1177,18 @@
       "source": "policy basis"
     },
     "behavior.quic.grease_parameter_id_bits": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.grease_parameter_length_max": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.grease_parameter_length_min": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.grease_parameter_length_rule": {
       "class": "inherited",
       "source": "policy basis"
     },
@@ -1128,11 +1256,23 @@
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.quic.keep_alive_ms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.quic.max_ack_delay_ms": {
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.quic.max_connection_receive_window": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.quic.max_datagram_frame": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.max_stream_receive_window": {
       "class": "inherited",
       "source": "policy basis"
     },
@@ -1153,6 +1293,10 @@
       "source": "policy basis"
     },
     "behavior.quic.padding_position": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.parameter_order": {
       "class": "inherited",
       "source": "policy basis"
     },
@@ -1193,6 +1337,22 @@
       "source": "policy basis"
     },
     "behavior.quic.server_rtts_max": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.session_cache": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.session_cache_entries": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.session_cache_key": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.session_cache_sessions_per_entry": {
       "class": "inherited",
       "source": "policy basis"
     },
@@ -1245,6 +1405,10 @@
       "source": "policy basis"
     },
     "behavior.quic.tls_signature_algorithms": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.quic.tls_source": {
       "class": "inherited",
       "source": "policy basis"
     },
@@ -1384,6 +1548,18 @@
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.tls.session_cache_entries": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.session_cache_key": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
+    "behavior.tls.session_cache_sessions_per_entry": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.tls.single_use_tickets": {
       "class": "inherited",
       "source": "policy basis"
@@ -1404,6 +1580,10 @@
       "class": "inherited",
       "source": "policy basis"
     },
+    "behavior.tls.validate_server_hello_extensions": {
+      "class": "inherited",
+      "source": "policy basis"
+    },
     "behavior.url.blocked_ports": {
       "class": "inherited",
       "source": "policy basis"
@@ -1417,44 +1597,32 @@
       "source": "capture raw ClientHello; public changing bytes retained as provenance only"
     },
     "client_hints.device-memory": {
-      "class": "user-provided",
-      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
-    },
-    "client_hints.downlink": {
       "class": "inherited",
       "source": "policy basis; context/persona values not remeasured"
     },
     "client_hints.dpr": {
-      "class": "user-provided",
-      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
-    },
-    "client_hints.ect": {
-      "class": "inherited",
-      "source": "policy basis; context/persona values not remeasured"
-    },
-    "client_hints.rtt": {
       "class": "inherited",
       "source": "policy basis; context/persona values not remeasured"
     },
     "client_hints.sec-ch-device-memory": {
-      "class": "user-provided",
-      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
     },
     "client_hints.sec-ch-dpr": {
-      "class": "user-provided",
-      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
     },
     "client_hints.sec-ch-prefers-color-scheme": {
-      "class": "user-provided",
-      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
     },
     "client_hints.sec-ch-prefers-reduced-motion": {
-      "class": "user-provided",
-      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
     },
     "client_hints.sec-ch-prefers-reduced-transparency": {
-      "class": "user-provided",
-      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
     },
     "client_hints.sec-ch-ua-arch": {
       "class": "measured",
@@ -1489,20 +1657,20 @@
       "source": "capture UA hint/persona field; original value retained, not a constancy claim"
     },
     "client_hints.sec-ch-viewport-height": {
-      "class": "user-provided",
-      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
     },
     "client_hints.sec-ch-viewport-width": {
-      "class": "user-provided",
-      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
     },
     "client_hints.viewport-width": {
-      "class": "user-provided",
-      "source": "Explicit A12 virtual desktop persona; see profile/provenance/a12-persona.json; not a capture or host property"
+      "class": "inherited",
+      "source": "policy basis; context/persona values not remeasured"
     },
     "headers": {
       "class": "measured",
-      "source": "capture HTTP/2 fields; request-specific fields excluded"
+      "source": "capture HTTP/2 fields; request-specific and network-estimate values excluded"
     },
     "http1": {
       "class": "measured",
@@ -1512,121 +1680,18 @@
       "class": "measured",
       "source": "capture SETTINGS, flow and header representation; unobserved initial stream choice inherited"
     },
+    "network_hints": {
+      "class": "inherited",
+      "source": "explicit basis network policy; capture does not measure selection or lifecycle rules"
+    },
+    "network_hints.values": {
+      "class": "generated/stateful/environment-dependent",
+      "source": "actual browser-instance observations, network context and fresh salt; captured values are provenance only"
+    },
     "per_connection": {
       "class": "inherited",
       "source": "basis generation constraints; finite draw observations are not a complete distribution"
-    },
-    "behavior.http.instance_scope": {
-      "class": "user-provided",
-      "source": "Owner decision2026-10-30:each top-level request owns a fresh browser instance"
-    },
-    "behavior.http.cache_scope": {
-      "class": "user-provided",
-      "source": "Explicit browser-context cache mechanism; request-owned instances have no cross-call cache"
-    },
-    "behavior.http.cache_validators": {
-      "class": "inherited",
-      "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md;not a new observation of this version/platform"
-    },
-    "behavior.cache.duplicate_freshness_policy": {
-      "class": "inherited",
-      "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md;not a new observation of this version/platform"
-    },
-    "behavior.cache.invalid_freshness_policy": {
-      "class": "inherited",
-      "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md;not a new observation of this version/platform"
-    },
-    "behavior.cache.freshness_quoted_values": {
-      "class": "inherited",
-      "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md;not a new observation of this version/platform"
-    },
-    "behavior.cache.delta_seconds_limit": {
-      "class": "inherited",
-      "source": "Chromium main http_response_headers.cc blob242c34edcfc8b3759dc82f2a14aff863158fb822 uint32 saturation; finite156samples establish saturated hit behavior,not exact threshold"
-    },
-    "behavior.cache.generated_header_order": {
-      "class": "inherited",
-      "source": "Existing profile validator slots preserved; ordered generated range fallback replaces prior fixed-before-priority mechanism; range positions not freshly measured in A10"
-    },
-    "behavior.dns.https_query_recursion_desired": {
-      "class": "inherited",
-      "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
-    },
-    "behavior.dns.https_query_udp_payload_bytes": {
-      "class": "inherited",
-      "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
-    },
-    "behavior.dns.https_query_timeout_ms": {
-      "class": "inherited",
-      "source": "A12 explicit transfer of current product RD/EDNS/exchange timeout; not a fresh browser DNS measurement"
     }
   },
-  "acceptance": "candidate; browser/wire acceptance not established by capture",
-  "subsequent_changes": [
-    {
-      "change": "A10 explicit request ownership and cache policy",
-      "previous_profile_sha256": "4efad921ada8e0daaf232dbd35b9cab3926469f2137c22db714e931f4db59c5c",
-      "inventory": "profile/provenance/a10.json",
-      "source": "A10 Chrome156.0.8078.74 macOS27.0.1arm64;two independent cohorts H1/H2 and H3;docs/remediation/2026-10-30/A10.ru.md",
-      "acceptance": "A8 exact-source acceptance stays historical; see A10 field scope"
-    }
-  ],
-  "post_capture_changes": [
-    {
-      "stage": "A12/F06",
-      "before_profile_sha256": "43fe713296bab8993b8a62e96ebcb109fe9381028ba914c6cbcbd2833af3a165",
-      "after_profile_sha256": "379f88ea8386030d0e06e1f2989bcfd815bcb9b62004c8eac6d9edf357ed47a0",
-      "inventory": "a12-dns.json",
-      "preserved": "Original browser/capture/basis hashes and prior field origins; original bytes in A12 before archive and Git parent"
-    },
-    {
-      "stage": "A12/F03-0",
-      "before_sha256": "379f88ea8386030d0e06e1f2989bcfd815bcb9b62004c8eac6d9edf357ed47a0",
-      "after_sha256": "81e6ab0d1a5c265a23039a0ba3d653f4daa37439b4fab6016df5f1bfafd3d5b2",
-      "inventory": "profile/provenance/a12-persona.json",
-      "previous_field_origins": {
-        "client_hints.device-memory": {
-          "class": "inherited",
-          "source": "policy basis; context/persona values not remeasured"
-        },
-        "client_hints.sec-ch-device-memory": {
-          "class": "inherited",
-          "source": "policy basis; context/persona values not remeasured"
-        },
-        "client_hints.dpr": {
-          "class": "inherited",
-          "source": "policy basis; context/persona values not remeasured"
-        },
-        "client_hints.sec-ch-dpr": {
-          "class": "inherited",
-          "source": "policy basis; context/persona values not remeasured"
-        },
-        "client_hints.viewport-width": {
-          "class": "inherited",
-          "source": "policy basis; context/persona values not remeasured"
-        },
-        "client_hints.sec-ch-viewport-width": {
-          "class": "inherited",
-          "source": "policy basis; context/persona values not remeasured"
-        },
-        "client_hints.sec-ch-viewport-height": {
-          "class": "inherited",
-          "source": "policy basis; context/persona values not remeasured"
-        },
-        "client_hints.sec-ch-prefers-color-scheme": {
-          "class": "inherited",
-          "source": "policy basis; context/persona values not remeasured"
-        },
-        "client_hints.sec-ch-prefers-reduced-motion": {
-          "class": "inherited",
-          "source": "policy basis; context/persona values not remeasured"
-        },
-        "client_hints.sec-ch-prefers-reduced-transparency": {
-          "class": "inherited",
-          "source": "policy basis; context/persona values not remeasured"
-        }
-      },
-      "capture_and_basis_hashes": "preserved; historical identity, not new acceptance"
-    }
-  ]
+  "acceptance": "candidate; browser/wire acceptance not established by capture"
 }
