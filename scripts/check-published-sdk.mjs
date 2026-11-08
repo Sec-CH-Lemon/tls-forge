@@ -34,6 +34,12 @@ if (!RELEASE_VERSION.test(version)) {
   throw new Error(`version ${JSON.stringify(version)} is not a release version`);
 }
 
+// Go names a module's major in its path from v2 on (/v2, /v3); v0 and v1 are
+// the path alone. 1.0.1's check asked for /v4, a label of an unpublished
+// engine snapshot, and found no such package.
+const major = Number(version.split('.')[0]);
+const MODULE = `github.com/Sec-CH-Lemon/tls-forge${major >= 2 ? `/v${major}` : ''}`;
+
 const workspace = mkdtempSync(path.join(os.tmpdir(), `tls-forge-${sdk}-published-`));
 const cleanEnvironment = { ...process.env };
 delete cleanEnvironment.TLSFORGE_BIN;
@@ -93,7 +99,7 @@ async function checkGo() {
 
   run('go', ['mod', 'init', 'tls-forge-published-smoke'], moduleDir);
   await retry('downloading the Go module', () =>
-    run('go', ['get', `github.com/Sec-CH-Lemon/tls-forge/v4@v${version}`], moduleDir));
+    run('go', ['get', `${MODULE}@v${version}`], moduleDir));
   writeFileSync(
     path.join(moduleDir, 'main.go'),
     `package main
@@ -101,7 +107,7 @@ async function checkGo() {
 import (
   "fmt"
 
-  tlsforge "github.com/Sec-CH-Lemon/tls-forge/v4"
+  tlsforge "${MODULE}"
 )
 
 func main() {
@@ -122,7 +128,7 @@ func main() {
   await retry('installing the Go CLI', () =>
     run(
       'go',
-      ['install', `github.com/Sec-CH-Lemon/tls-forge/v4/cmd/tls-forge@v${version}`],
+      ['install', `${MODULE}/cmd/tls-forge@v${version}`],
       workspace,
       { env: goEnvironment },
     ));
@@ -130,7 +136,7 @@ func main() {
   const buildInfo = run('go', ['version', '-m', binary], workspace, { capture: true });
   assertIncludes(
     buildInfo,
-    `\tmod\tgithub.com/Sec-CH-Lemon/tls-forge/v4\tv${version}\t`,
+    `\tmod\t${MODULE}\tv${version}\t`,
     'Go CLI build info',
   );
   run(binary, ['profiles'], workspace);

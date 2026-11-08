@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- `published-e2e.yml` asks for the Go module by the path its version has:
+  unsuffixed for v0 and v1, `/vN` from v2 on. It asked for `/v4`, a label of
+  an unpublished engine snapshot, and its check of 1.0.1 failed before the
+  Node.js and Python packages were tried; on macOS all three passed against
+  the published 1.0.1.
+
 ## [1.0.1] - 2026-11-08
 
 The first release of engine major 1 published in full: 1.0.0 with what
