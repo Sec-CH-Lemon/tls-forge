@@ -92,16 +92,16 @@ function pastDeadline<T>(t: TestContext, ask: () => T): T {
 test('a transport says the protocol it speaks and what it can do, once', async () => {
   await withTransport({ TLSFORGE_TEST_CAPABILITIES: 'one,two,catalogue_json_v1,network_hints_estimator_v1' }, async (client) => {
     const first = await client.hello();
-    assert.deepEqual(first, { protocol: 3, capabilities: ['one', 'two', 'catalogue_json_v1', 'network_hints_estimator_v1'], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(first, { protocol: 3, capabilities: ['one', 'two', 'catalogue_json_v1', 'network_hints_estimator_v1'], engine_major: 1, version: '1.0.1' });
     // A copy each time: what one caller does with it is not the next's.
     first.capabilities.push('three');
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['one', 'two', 'catalogue_json_v1', 'network_hints_estimator_v1'], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['one', 'two', 'catalogue_json_v1', 'network_hints_estimator_v1'], engine_major: 1, version: '1.0.1' });
     const { controls, requests } = await seen(client);
     assert.equal(controls, 1);
     assert.equal(requests, 1);
   });
   await withTransport({ TLSFORGE_TEST_CAPABILITIES: '' }, async (client) => {
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: [], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: [], engine_major: 1, version: '1.0.1' });
   });
 });
 
@@ -109,7 +109,7 @@ test('a transport newer than this package is read for what it says it can do', a
   // A protocol after 2, and a capability no package knows yet, are no reason
   // to refuse what both know.
   await withTransport({ TLSFORGE_TEST_PROTOCOL: 'newer' }, async (client) => {
-    assert.deepEqual(await client.hello(), { protocol: 7, capabilities: ['browser_context', 'teleport', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 7, capabilities: ['browser_context', 'teleport', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.1' });
     const context: BrowserContext = { kind: 'fetch', initiator: 'https://example.com/' };
     const answer = JSON.parse((await client.get('https://ok/', { browserContext: context })).body);
     assert.deepEqual(answer.browser, context);
@@ -124,7 +124,7 @@ test('a transport older than the question speaks protocol 1', async () => {
 
 test('the committed answers to hello read as they say', async () => {
   for (const [mode, want] of [
-    ['fixture', { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' }],
+    ['fixture', { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.1' }],
     ['fixture-old', { protocol: 1, capabilities: [] }],
   ] as [string, Hello][]) {
     await withTransport({ TLSFORGE_TEST_PROTOCOL: mode }, async (client) => {
@@ -159,7 +159,7 @@ test('a transport that does not answer hello has said nothing, and is asked agai
 test('a question asked after a session went leaves the next request to be told', async (t) => {
   await withTransport({}, async (client) => {
     await assert.rejects(pastDeadline(t, () => client.get('https://silent/')), /request timed out/);
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.1' });
     await assert.rejects(client.get('https://ok/'), (err: Error) => err.name === 'SessionReset');
     assert.equal((await seen(client)).requests, 1);
   }, { timeout: COLD_START });

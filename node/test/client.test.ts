@@ -345,7 +345,7 @@ test('a transport started again is told its proxy again, first', async (t) => {
     const after = JSON.parse((await c.get('https://ok/c')).body);
     assert.notEqual(after.pid, first.pid);
     assert.equal(after.proxy, 'http://alice:s3cret@proxy.test:8080');
-    assert.deepEqual(await c.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(await c.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.1' });
   } finally {
     c.close();
   }

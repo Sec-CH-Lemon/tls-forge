@@ -21,7 +21,7 @@ func TestEngineGateBeforeDaemonClientAndProxyInit(t *testing.T) {
 	}
 	client := &fakeClient{}
 	got := handle(context.Background(), `{"id":5,"control":"hello"}`, client)
-	if got.EngineMajor == nil || *got.EngineMajor != 1 || got.Version != "1.0.0" || got.Protocol != 3 || client.got != nil {
+	if got.EngineMajor == nil || *got.EngineMajor != 1 || got.Version != "1.0.1" || got.Protocol != 3 || client.got != nil {
 		t.Fatal(got)
 	}
 	if got := handle(context.Background(), `{"id":6,"engine_major":1,"url":"https://example.invalid/"}`, client); got.Error != "" || client.got == nil {

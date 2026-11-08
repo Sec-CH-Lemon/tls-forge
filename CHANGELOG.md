@@ -11,6 +11,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-08
+
+The first release of engine major 1 published in full: 1.0.0 with what
+stopped its release at npm fixed. 1.0.0's release reached PyPI alone, and
+its set, which can never be built again, was let go of as RELEASING.md says:
+the engine, the CLI and the Node.js and Python packages are 1.0.1, and
+nothing else changed.
+
+### Fixed
+
 - Fix: a release gives npm its packages as files. `release-publish.mjs`
   named each `set/tls-forge-….tgz`, its path joined to the workflow's
   `--dir set`, which npm reads as a GitHub repository (one slash, as
@@ -23,7 +33,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [1.0.0] - 2026-11-08
 
-The first release of engine major 1, after 0.2.2. The compiled engine, the CLI
+Published to PyPI alone: its release stopped at npm, before any of it
+reached npm, GitHub Releases, Homebrew or the container registry; 1.0.1 is
+this release with that fixed. The first release of engine major 1, after
+0.2.2. The compiled engine, the CLI
 and the Node.js and Python packages are 1.0.0.
 
 ### Breaking changes and migration

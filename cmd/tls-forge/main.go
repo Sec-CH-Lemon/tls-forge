@@ -29,7 +29,7 @@ import (
 
 // version is stamped at build time:
 //
-//	go build -ldflags "-X main.version=v1.0.0"
+//	go build -ldflags "-X main.version=v1.0.1"
 //
 // Keep the variable linker-addressable. A computed initializer would silently
 // overwrite -X at startup and hide a misleading stamp instead of rejecting it.

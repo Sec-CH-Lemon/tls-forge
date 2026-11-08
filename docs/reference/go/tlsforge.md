@@ -469,7 +469,7 @@ fmt.Println(tlsforge.Version(), tlsforge.EngineMajor())
 ```
 
 ```text title="Response" linenums="0"
-1.0.0 1
+1.0.1 1
 ```
 
 </div>

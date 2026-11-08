@@ -444,7 +444,7 @@ def test_the_real_go_daemon_applies_a_browser_context_cors_and_all() -> None:
         elsewhere = f"http://127.0.0.1:{other.server_port}"
         initiator = f"{base}/page"
         with Client(binary=binary) as client:
-            assert client.hello() == Hello(3, ('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), 1, "1.0.0")
+            assert client.hello() == Hello(3, ('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), 1, "1.0.1")
             answer = client.get(f"{base}/api", browser_context={"kind": "fetch", "initiator": initiator})
             assert answer.status == 200
             method, path, headers = page_seen[0]

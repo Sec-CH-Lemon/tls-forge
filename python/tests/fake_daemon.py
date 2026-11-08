@@ -213,7 +213,7 @@ def _blank(request: dict, **extra: object) -> dict:
 
 def _hello(request: dict) -> None:
     capabilities = [name for name in os.environ.get("TLSFORGE_TEST_CAPABILITIES", "browser_context,engine_major,catalogue_json_v1,network_hints_estimator_v1,network_context_v1").split(",") if name]
-    identity = {"protocol": 3, "version": os.environ.get("TLSFORGE_TEST_ENGINE_VERSION", "1.0.0"), "capabilities": capabilities}
+    identity = {"protocol": 3, "version": os.environ.get("TLSFORGE_TEST_ENGINE_VERSION", "1.0.1"), "capabilities": capabilities}
     major = os.environ.get("TLSFORGE_TEST_ENGINE_MAJOR")
     if major != "missing":
         identity["engine_major"] = 1 if major is None else json.loads(major)
@@ -237,7 +237,7 @@ PROTOCOLS: dict[str, Callable[[dict], None]] = {
     "bad-capabilities": lambda request: emit(_blank(request, protocol=2, capabilities=[7])),
     "no-capabilities": lambda request: emit(_blank(request, protocol=2, capabilities="all")),
     "low": lambda request: emit(_blank(request, protocol=1)),
-    "newer": lambda request: emit(_blank(request, protocol=7, engine_major=1, version="1.0.0", capabilities=["browser_context", "teleport", "catalogue_json_v1", "network_hints_estimator_v1", "network_context_v1"])),
+    "newer": lambda request: emit(_blank(request, protocol=7, engine_major=1, version="1.0.1", capabilities=["browser_context", "teleport", "catalogue_json_v1", "network_hints_estimator_v1", "network_context_v1"])),
     "silent": lambda _request: None,
     "exit": _exit,
 }

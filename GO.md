@@ -1,8 +1,8 @@
 # TLS Forge for Go
 
-## Engine/profile compatibility (1.0.0)
+## Engine/profile compatibility (1.0.1)
 
-The compiled engine version is **1.0.0**, independently of the browser build and
+The compiled engine version is **1.0.1**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
 non-negative integer `engine_major: 1`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
@@ -17,8 +17,8 @@ This illustrates metadata only; a complete profile still needs captured TLS/HTTP
 data and the explicit `behavior` object. Browser values and selections stay in
 JSON. Major selection is anchored to the latest published stable release:
 `latest_released_major + 1` for an engine change, once for the whole next release.
-This is release **1.0.0**, engine major 1, after 0.2.2; the next engine change
-targets 2.0.0. Existing primitives can be configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
+This is release **1.0.1**, engine major 1, after 0.2.2 (1.0.0's release reached
+PyPI alone); the next engine change targets 2.0.0. Existing primitives can be configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
 a different version stamp. Go v1 uses the unsuffixed module path; `/v2` starts with major2. The release anchor and pending status are recorded in `engine/version.json`.
 

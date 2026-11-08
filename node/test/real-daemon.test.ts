@@ -311,7 +311,7 @@ test('the real Go daemon applies a browser context, CORS and all', { skip: !bina
   try {
     const base = `http://127.0.0.1:${portOf(page.server)}`;
     const elsewhere = `http://127.0.0.1:${portOf(other.server)}`;
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.1' });
     const from = `${base}/page`;
     const response = await client.get(`${base}/api`, { browserContext: { kind: 'fetch', initiator: from } });
     assert.equal(response.status, 200);

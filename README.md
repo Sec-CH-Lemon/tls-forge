@@ -25,7 +25,7 @@ only inside that request.
 **Documentation:** installation, guides, integrations and generated API and CLI
 references are in [`docs/`](docs/index.md) and at <https://tls-forge.com/docs/>.
 
-**Release status:** this README describes release **1.0.0**, which the
+**Release status:** this README describes release **1.0.1**, which the
 release binaries, Homebrew, npm, PyPI and Docker install. See
 [release status](docs/support/release-status.md).
 
@@ -152,7 +152,7 @@ toolchain:
 
 ```bash
 CGO_ENABLED=0 go build -trimpath \
-  -ldflags "-s -w -X main.version=v1.0.0" \
+  -ldflags "-s -w -X main.version=v1.0.1" \
   -o tls-forge ./cmd/tls-forge
 
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \

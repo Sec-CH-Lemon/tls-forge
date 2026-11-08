@@ -153,7 +153,7 @@ other change: what each action's new commit changes is part of it.
 ## A dry run
 
 ```bash
-gh workflow run release.yml --ref development -f dry_run=true -f version=1.0.0
+gh workflow run release.yml --ref development -f dry_run=true -f version=1.0.1
 ```
 
 `dry_run` is on unless it is turned off. Off a tag it builds the engine's
@@ -165,7 +165,7 @@ stores, signs and publishes nothing. Run on a tag, it takes the set the tag
 has, if it has one, and says what a release run again would do.
 
 Use the exact candidate branch commit for preparation; the example above is
-the current unreleased1.0.0 candidate on `development`. A full dry run retains
+the current unreleased 1.0.1 candidate on `development`. A full dry run retains
 the three strict Google Chrome gates and all five package-smoke targets.
 It creates no release tag and advances no release metadata.
 

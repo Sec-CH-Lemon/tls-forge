@@ -2129,7 +2129,7 @@ func TestWrongBuildIdentityCannotDispatch(t *testing.T) {
 	version = "v2.0.0"
 	var out, diagnostic bytes.Buffer
 	code := run(context.Background(), []string{"version"}, &out, &diagnostic)
-	if code != 2 || out.Len() != 0 || !strings.Contains(diagnostic.String(), "compiled engine 1.0.0 (major 1)") {
+	if code != 2 || out.Len() != 0 || !strings.Contains(diagnostic.String(), "compiled engine 1.0.1 (major 1)") {
 		t.Fatal(code, out.String(), diagnostic.String())
 	}
 }

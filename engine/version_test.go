@@ -37,15 +37,15 @@ func TestReleaseAnchoredDevelopmentMajor(t *testing.T) {
 }
 
 func TestCompiledIdentity(t *testing.T) {
-	if Version() != "1.0.0" || Major() != 1 {
+	if Version() != "1.0.1" || Major() != 1 {
 		t.Fatalf("wrong compiled identity: %s/%d", Version(), Major())
 	}
-	for _, v := range []string{"1.0.0", "v1.0.0"} {
+	for _, v := range []string{"1.0.1", "v1.0.1"} {
 		if err := CheckBuildVersion(v); err != nil {
 			t.Fatal(err)
 		}
 	}
-	for _, v := range []string{"dev", "v0.1.0", "v7.0.0", "v2.0.1", "v3.0.0", "v4.0.0", "v5.0.0", "v6.0.0", "v1.0.1", "v1.0.0-dirty"} {
+	for _, v := range []string{"dev", "v0.1.0", "v7.0.0", "v2.0.1", "v3.0.0", "v4.0.0", "v5.0.0", "v6.0.0", "v1.0.0", "v1.0.1-dirty"} {
 		if CheckBuildVersion(v) == nil {
 			t.Fatal(v)
 		}
