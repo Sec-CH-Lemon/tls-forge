@@ -481,8 +481,12 @@ def test_a_write_into_a_dead_pipe_fails_that_request(deaf):
 def test_requests_waiting_when_the_session_goes_are_told_unsent(client):
     # Every thread waiting for the transport when its session goes is told,
     # and none of their requests is sent; the request after them starts a new
-    # session.
-    one = client(timeout=0.5)
+    # session. The waiting threads start half the timeout after the request
+    # in flight, so that their own deadlines outlast its timeout and the
+    # transport's stop after it (up to _SHUTDOWN_GRACE): with 0.1 s, a loaded
+    # runner (macOS, 2026-11-08) took longer to stop it, and a waiting
+    # request timed out first, unsent, as it should.
+    one = client(timeout=1.0)
     before = one.get("https://ok/before").json()["pid"]
     outcomes: dict[str, BaseException | None] = {}
     started = threading.Event()
@@ -499,7 +503,7 @@ def test_requests_waiting_when_the_session_goes_are_told_unsent(client):
     first = threading.Thread(target=asking, args=("in flight", "https://silent/x"))
     first.start()
     started.wait()
-    time.sleep(0.1)
+    time.sleep(0.5)
     waiting = [threading.Thread(target=asking, args=(f"waiting {n}", "https://ok/waiting")) for n in (1, 2)]
     for thread in waiting:
         thread.start()

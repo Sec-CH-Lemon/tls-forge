@@ -239,19 +239,21 @@ func TestHowLateALonePacketIsAcknowledgedIsTheProfilesToSay(t *testing.T) {
 		t.Errorf("acknowledged after %s, want 74 ms at least", ack.DelayTime)
 	}
 	// none said: on its timer, as quic-go's alarms, and the Linux and
-	// Windows profiles', which say none; a run of a machine under load may
-	// go late
+	// Windows profiles', which say none. A run of a machine under load may
+	// go late, but no timer fires early: one ACK sooner than 28 ms of eight
+	// says no slack is added, which a slack of 4 ms could never give
+	// (2026-11-08: all three of three went late on a loaded macOS runner).
 	for name, p := range map[string]*profile.Profile{
 		"none said": quicProfile(t, map[string]string{"quic.alarm_slack_ms": "", "quic.ack_alarm_slack_percent": ""}),
 		"linux":     shippedProfile(t, "chrome_155_linux"),
 		"windows":   shippedProfile(t, "chrome_155_windows"),
 	} {
 		late := true
-		for i := 0; i < 3 && late; i++ {
+		for i := 0; i < 8 && late; i++ {
 			late = loneACK(t, p).DelayTime >= 28*time.Millisecond
 		}
 		if late {
-			t.Errorf("%s: acknowledged after its timer and 4 ms more in three runs of three", name)
+			t.Errorf("%s: acknowledged after its timer and 4 ms more in eight runs of eight", name)
 		}
 	}
 }

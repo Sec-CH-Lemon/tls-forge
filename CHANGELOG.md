@@ -196,6 +196,10 @@ and the Node.js and Python packages are 1.0.0.
   inner hello lost its four lines so, now and then. The lines of a random no
   connection has sent yet wait for one, 64 at most, as an ECH offer's did.
 
+- Two tests timed on a loaded runner now leave room for it: a Python request
+  waiting behind one that times out starts half the timeout after it, and a
+  QUIC ACK on its timer is looked for in eight runs, not three.
+
 - Add Chrome 157: `chrome_157_macos`, `chrome_157_linux` and
   `chrome_157_windows`, captured headed on Google Chrome Stable 157.0.8103.39
   (macOS, Windows) and 157.0.8103.38 (Linux), with the Chrome 156 profile of
