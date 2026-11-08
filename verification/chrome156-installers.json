@@ -2,7 +2,7 @@
   "schema": 1,
   "browser": "Google Chrome",
   "major": 156,
-  "provenance": "Official Google update2 targetversionprefix 156 answers (acceptformat download) for macOS and Windows, their SHA-256 as Google states them; Linux from Google's apt pool, its SHA-256 of the downloaded package (2026-11-08). The builds chrome_156's sec-ch-ua-full-version says; 156.0.8078.74/.73 before (A8)",
+  "provenance": "Official Google update2 targetversionprefix 156 answers (acceptformat download; Windows x64, ap x64-stable) for macOS and Windows, their SHA-256 as Google states them, the same query of 156.0.8078.74 answering the A8 pins; Linux from Google's apt pool, its SHA-256 of the downloaded package (2026-11-08). The builds chrome_156's sec-ch-ua-full-version says; 156.0.8078.74/.73 before (A8)",
   "platforms": {
     "Linux": {
       "version": "156.0.8078.79",
@@ -12,8 +12,8 @@
     },
     "Windows": {
       "version": "156.0.8078.80",
-      "url": "https://dl.google.com/release2/chrome/acpvmvph6azmnleo3any6quriw6a_156.0.8078.80/156.0.8078.80_chrome_installer_uncompressed.exe",
-      "sha256": "f7a5713fcc6594e006b0a73730bb1f846d09f92834cc0397ca692b61cb18461d",
+      "url": "https://dl.google.com/release2/chrome/aczq54y7kwp55hzkkdtm7qgz2x6a_156.0.8078.80/156.0.8078.80_chrome_installer_uncompressed.exe",
+      "sha256": "43cca215206b634b89d226ed71522c7f58c5430b8559b92e782dd7bd77add7cc",
       "kind": "exe"
     },
     "macOS": {

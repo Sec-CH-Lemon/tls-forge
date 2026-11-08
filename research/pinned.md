@@ -178,4 +178,7 @@ Linux .79): no difference in the comparison, and on the bench only
 `sec-ch-ua-full-version` and `-list`, wherever a request carries them. The
 pin is the last builds of 156 since 2026-11-08: Google's update service
 answers a `targetversionprefix` of `156.` with 156.0.8078.80 for macOS and
-Windows, and its apt pool still holds 156.0.8078.79 for Linux.
+Windows, and its apt pool still holds 156.0.8078.79 for Linux. Windows is
+asked for x64 (`arch` and `ap` `x64-stable`): asked without, the service gave
+the 32-bit build, whose capture said `sec-ch-ua-wow64: ?1` (run 42463760501).
+The same query of `156.0.8078.74` answers with the installers A8 pinned.
