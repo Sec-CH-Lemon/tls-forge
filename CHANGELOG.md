@@ -172,10 +172,22 @@ and the Node.js and Python packages are 1.0.0.
 
 ### After the candidate of 1 November
 
-- The release dry run of the source this release is tagged on, but for this
-  section and the release status in the READMEs (run 42477990184, 19023de9):
-  every job passed at the first attempt, the three pinned gates among them,
-  `chrome` (Chrome 157) on Google Chrome Stable of each platform.
+- The release dry run (run 42477990184, 19023de9) passed every job at the
+  first attempt, the three pinned gates among them, `chrome` (Chrome 157) on
+  Google Chrome Stable of each platform. CI on `main` after it (runs
+  42503015111 and 42503015118) found what the entries below fix.
+
+- Fix: what an HTTP/2 connection writes while a write its server does not
+  take is held no longer holds up the client's other requests. The fork of
+  fhttp took the server's SETTINGS, a body read's WINDOW_UPDATE, a body let
+  go of, what it frees at once of a frame and a shutdown's GOAWAY under the
+  connection's lock while each waited for the held write; the pool asks every
+  connection under its own lock whether it takes a request, so a request to
+  any host waited too, and nothing bounded it while the server kept sending.
+  Each is decided under the lock and written without it now, as in x/net, and
+  the SETTINGS are taken in the turn of the connection's header blocks, so
+  that a block encoded before them goes before them and none encoded for them
+  goes before their acknowledgement.
 
 - Add Chrome 157: `chrome_157_macos`, `chrome_157_linux` and
   `chrome_157_windows`, captured headed on Google Chrome Stable 157.0.8103.39

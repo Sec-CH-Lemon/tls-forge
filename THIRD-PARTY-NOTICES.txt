@@ -384,7 +384,7 @@ github.com/ebitengine/purego v0.10.2
    limitations under the License.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/fhttp v0.6.10-0.20261106171632-6959ccf0752c
+github.com/igor-lemon/fhttp v0.6.10-0.20261108185233-87f7dcb80e8a
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
@@ -416,7 +416,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261106040259-301d6b0ce994
+github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261108185339-bdf1726e3bb4
 --------------------------------------------------------------------------------
 
 MIT License
@@ -442,7 +442,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/tls-client v1.15.2-0.20261106124849-ef58241568a3
+github.com/igor-lemon/tls-client v1.15.2-0.20261108185518-110cdf2d923c
 --------------------------------------------------------------------------------
 
 Copyright (c) 2023, Bogdan Finn
@@ -505,7 +505,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/websocket v1.5.6-barnius.0.20261026204638-961b3d7db465
+github.com/igor-lemon/websocket v1.5.6-barnius.0.20261108185305-c80e48bcc6b6
 --------------------------------------------------------------------------------
 
 Copyright (c) 2013 The Gorilla WebSocket Authors. All rights reserved.
