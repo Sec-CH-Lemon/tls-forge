@@ -16,6 +16,9 @@ name: capture
 #
 # Default captures current stable. A pinned156 run uses original official
 # installers whose exact hashes are in verification/chrome156-installers.json.
+# What a capture does not measure it inherits from a basis: by default the
+# newest shipped profile of its family and platform, or the one policy-from
+# names (chrome_156, say, for a pinned156 run that replaces chrome_156).
 #
 # With gate, nothing is captured: the shipped profile of the browser's major
 # (chrome_156 on a pinned156 run, chrome_157 on Chrome 157 Stable) is held to
@@ -52,6 +55,10 @@ on:
         default: true
       evidence-certificate:
         description: Base64 PEM public certificate for private raw evidence (required for pinned156)
+        type: string
+        default: ''
+      policy-from:
+        description: Profile whose unmeasured policies the capture inherits (default the newest shipped)
         type: string
         default: ''
       release-auth-oracle:
@@ -93,6 +100,10 @@ on:
         default: true
       evidence-certificate:
         description: Base64 PEM public certificate for private raw evidence
+        type: string
+        default: ''
+      policy-from:
+        description: Profile whose unmeasured policies the capture inherits
         type: string
         default: ''
       release-auth-oracle:
@@ -137,6 +148,7 @@ jobs:
       CAPTURE_BROWSER: ${{ inputs.browser || 'stable' }}
       EVIDENCE_CERTIFICATE: ${{ inputs.evidence-certificate }}
       GATE: ${{ inputs.gate }}
+      POLICY_FROM: ${{ inputs.policy-from }}
       # Chrome's sandbox does not work on a hosted runner and fails silently:
       # the browser starts, never loads the page, and the capture times out
       # having watched something that was never going to answer. Ubuntu 24.04
@@ -378,8 +390,10 @@ jobs:
           # No --name. The name is derived from the browser's own user-agent and
           # this machine's platform, which is what makes this workflow measure
           # whatever Chrome is current rather than whatever was written here.
+          # The basis by name from the environment, which xvfb-run's shell
+          # inherits as it does not an array of this one's.
           run() { go run ./cmd/tls-forge capture \
-            --browser "${{ steps.chrome.outputs.path }}" "$FLAGS" \
+            --browser "${{ steps.chrome.outputs.path }}" "$FLAGS" ${POLICY_FROM:+--policy-from "$POLICY_FROM"} \
             --json --save captured --provenance-dir captured-provenance --timeout 3m > capture-raw.json; }
           if [ "$RUNNER_OS" = Linux ]; then
             xvfb-run -a bash -c "$(declare -f run); run"

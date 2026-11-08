@@ -170,7 +170,12 @@ holds the shipped profile of its major (`--profile chrome_<major>`, the
 runner's platform) to it by `internal/pinned`, with the request fixture the
 release takes for that platform. The result of each runner is the artifact
 `gate-<OS>`, and a difference fails the job, as in the release. No evidence
-certificate is needed: a gate keeps no raw capture. The pinned Chrome 156
-builds (156.0.8078.74, Linux .73) are older than the build `chrome_156` says
-(156.0.8078.80, Linux .79), and the bench says so wherever a request carries
-`sec-ch-ua-full-version` or `-list`.
+certificate is needed: a gate keeps no raw capture.
+
+Run 42423476026 held `chrome_156` to the installers pinned then
+(156.0.8078.74, Linux .73), older than the build it says (156.0.8078.80,
+Linux .79): no difference in the comparison, and on the bench only
+`sec-ch-ua-full-version` and `-list`, wherever a request carries them. The
+pin is the last builds of 156 since 2026-11-08: Google's update service
+answers a `targetversionprefix` of `156.` with 156.0.8078.80 for macOS and
+Windows, and its apt pool still holds 156.0.8078.79 for Linux.

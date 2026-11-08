@@ -60,6 +60,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   installers (`browser: 156`), so that `chrome_156` can be held to Chrome 156
   now that Stable is 157 ([research/pinned.md](research/pinned.md)).
 
+- The pinned Chrome 156 installers are the last builds of 156,
+  156.0.8078.80 on macOS and Windows and 156.0.8078.79 on Linux: the builds
+  `chrome_156` says in `sec-ch-ua-full-version`, which the gate holds it to.
+  They were 156.0.8078.74 and .73, older than the profile, and the gate
+  failed on the build alone. `capture.yml` takes `policy-from`, the profile
+  whose unmeasured policies a capture inherits (`capture --policy-from`);
+  without it, the newest shipped of the family and platform, which for a
+  Chrome 156 capture is now Chrome 157's.
+
 - Changed: without `--profile`, `fetch`, `proxy` and `daemon` wear `chrome`,
   the newest Chrome, shipped or kept on this machine under its version. A
   browser measured here with `capture --install` was worn whenever it was

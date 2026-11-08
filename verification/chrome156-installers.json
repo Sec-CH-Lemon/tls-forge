@@ -2,24 +2,24 @@
   "schema": 1,
   "browser": "Google Chrome",
   "major": 156,
-  "provenance": "Official ChromiumDash platform builds and Google update2 rollback target156 metadata; downloaded original artifacts retained privately",
+  "provenance": "Official Google update2 targetversionprefix 156 answers (acceptformat download) for macOS and Windows, their SHA-256 as Google states them; Linux from Google's apt pool, its SHA-256 of the downloaded package (2026-11-08). The builds chrome_156's sec-ch-ua-full-version says; 156.0.8078.74/.73 before (A8)",
   "platforms": {
     "Linux": {
-      "version": "156.0.8078.73",
-      "url": "https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_156.0.8078.73-1_amd64.deb",
-      "sha256": "fd19c6895dad77f4d7f712c2d9f0d5eb682f4a6e7ff22b1bd0d40d03710d288c",
+      "version": "156.0.8078.79",
+      "url": "https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_156.0.8078.79-1_amd64.deb",
+      "sha256": "be1a1e161419f5c8272432f6860912550d8e29985e925913fa800493a0d0c955",
       "kind": "deb"
     },
     "Windows": {
-      "version": "156.0.8078.74",
-      "url": "https://dl.google.com/release2/chrome/adnbzwqfdty3qpprdhwig7aufvyq_156.0.8078.74/156.0.8078.74_chrome_installer_uncompressed.exe",
-      "sha256": "8783e3a9a3bb263a6b39da9e9ea6bdb7f31bb9dc9806f9b438ae7c1dde0480b0",
+      "version": "156.0.8078.80",
+      "url": "https://dl.google.com/release2/chrome/acpvmvph6azmnleo3any6quriw6a_156.0.8078.80/156.0.8078.80_chrome_installer_uncompressed.exe",
+      "sha256": "f7a5713fcc6594e006b0a73730bb1f846d09f92834cc0397ca692b61cb18461d",
       "kind": "exe"
     },
     "macOS": {
-      "version": "156.0.8078.74",
-      "url": "https://dl.google.com/release2/chrome/acg2teiapq4qsajscuhoyboaquhq_156.0.8078.74/GoogleChrome-156.0.8078.74.dmg",
-      "sha256": "55d7c75223f4f27a748b8c7ec985d7a752ef357ead43f5bf1a5477aedb797551",
+      "version": "156.0.8078.80",
+      "url": "https://dl.google.com/release2/chrome/hmx6fwnspbytmrtkulm2cctvey_156.0.8078.80/GoogleChrome-156.0.8078.80.dmg",
+      "sha256": "f805340c73f5e569124d0fd5e0c0b9a3eba81b76016198ea7703b349c0006d9a",
       "kind": "dmg"
     }
   }
