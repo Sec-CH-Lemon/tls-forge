@@ -11,6 +11,172 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-08
+
+The first release of engine major 1, after 0.2.2. The compiled engine, the CLI
+and the Node.js and Python packages are 1.0.0.
+
+### Breaking changes and migration
+
+- Every executable JSON profile requires an exact integer `engine_major: 1`.
+  Missing, malformed, older or newer metadata is rejected before DNS, sockets,
+  proxy setup or origin traffic. The gate also covers programmatic profiles,
+  catalogue entries, clones, SDK requests and daemon replacement processes.
+- Profile format is schema4 and daemon protocol is3. Update the CLI and SDKs
+  together. Legacy daemon compatibility is refused. Use `profile.Inspect` for
+  offline archives; explicit migration creates a separate candidate requiring
+  validation and preserves the original profile and capture provenance.
+- The Go module remains `github.com/Sec-CH-Lemon/tls-forge`, without `/v1`.
+  Release tags and package stamps must equal `engine/version.json`; further
+  changes before publication remain in this single pending engine major1.
+- The default `chrome` profile selects 157 for the host platform. Pin an exact
+  profile name when changing the default would change an application's contract.
+- By default each logical `Client.Do` starts an isolated browser instance:
+  cookies, cache, transport/TLS/QUIC sessions and network observations belong to
+  that request. Redirects and Critical-CH restarts retain their own chain state.
+  Profile scope choices are explicit; a raw transport option cannot replace the
+  owner-selected profile adapter with an unversioned preset.
+
+### Added and changed
+
+- Record the complete 1.0.0 release dry-run: 30 successful CI jobs, 19 successful
+  release jobs and 5 expected publication skips. All 3 native Chrome 156 gates and
+  all 8 fork graphs passed; exact source/set and limitations are in the
+  [readiness receipt](research/releases/1.0.0-readiness.json). It published nothing.
+- Preserve original Go coverage profiles after success or failure as
+  `go-coverage`/`release-go-coverage` artifacts for7days; coverage stays100%.
+- Require the complete413response in the proxy body-limit test before
+  closing its caller/server. Preserve the body bound and100%coverage gate.
+- Fix an HTTP/2 preface PING being suppressed by a fast peer response during
+  HEADERS Write. Decide before HEADERS I/O, keep the separate PING after it.
+  JSON timers/IDs and existing wire/deadline checks remain unchanged.
+- Use a Windows release-browser reference for the two measured SSPI auth
+  scenarios: two independent Chrome156.0.8078.80/Windows26100 cohorts agree
+  exactly. Preserve the other226scenarios, all228perOS and all174decodings;
+  token/request mutations remain strict failures. Original macOS fixture unchanged.
+- Allow the registered capture workflow to call the same release-auth oracle
+  explicitly; default capture and every strict release gate remain unchanged.
+- Calibrate Windows release-browser auth fixtures in two native cohorts,
+  retaining every scenario, exact SSPI bytes and the original15s observation.
+  Add an encrypted, manual-only evidence workflow and explicit fixture
+  `observation_ms`; unfinished or silent measurements cannot become fixtures.
+- Refresh only Chrome156 full-version/full-version-list hints from measured
+  Google Stable builds:156.0.8078.79 on Linux and156.0.8078.80 on macOS/Windows.
+  Keep close_notify variants aligned. Preserve exact prior bytes and append
+  an explicit derivation; original capture and A13 hashes stay unchanged.
+- Render Python API defaults from their source expressions, preserving host
+  dependence such as `sys.platform` without freezing the documentation builder's
+  OS. Require identical actual-SDK reference output for three platform contexts
+  and retain detection of source/default changes.
+- Rebuild public documentation in `docs/` with installation paths, task guides,
+  CLI/Go/Node.js/Python examples and source-generated reference pages. Move
+  historical reports and evidence to `research/` without including them in the public MkDocs site.
+- Style the documentation with the landing page's glass panels, colors and
+  local Inter font. Use Stripe-inspired UX with sticky section tabs, a
+  contextual desktop sidebar and a three-column grid with equal side rails,
+  centered reading column and search, aligned tables and code examples,
+  compact mobile drawer and tabbed examples. Match
+  Stripe's measured reading and code scale: 16px/26px body copy, 32px/40px
+  page headings, 14px table cells and 13px/19px Menlo/Consolas code. Add
+  numbered code lines, a distinct code header and aligned mobile table and
+  example edges; short tables become labeled cards on phones, while wider
+  matrices scroll horizontally. Frame tables and code with symmetric corners;
+  center search, repository and copy icons in their controls. The home terminal
+  command wraps at spaces, and copy controls sit in code headers so they do not
+  cover code. Keep both themes readable across desktop and mobile,
+  including full-screen mobile search. Keep the theme override in `docs-theme/`
+  and the styles in `docs/assets/extra.css`; check rendered HTML-card links
+  before deployment.
+
+- Browser JSON owns supported values, vectors, ordering, header templates,
+  generation rules, protocol policies, limits, retries and timers. The engine
+  implements generic parsing, state transitions, cryptography, I/O and resource
+  bounds. Strict unknown/duplicate/type/range checks apply before execution.
+- Add profile-driven dynamic QPACK, HTTP/3 stream setup and feedback, QUIC
+  transport/layout/ACK policies, TLS/HRR/ECH handling, ALPS, DNS HTTPS and Alt-Svc
+  negotiation. Unsupported capabilities fail explicitly rather than falling back.
+- Represent the83-entry catalogue and its native QUIC choices as explicit pinned
+  JSON. Catalogue support does not establish fresh browser equivalence for every
+  historical preset or platform.
+- Replace captured RTT/downlink/ECT literals in existing155/156 profiles with
+  JSON-selected network observation and generation policies: actual HTTP/TCP/QUIC
+  inputs, instance salt, host rounding and isolated lifecycle. Add typed actual
+  `NetworkContext` metadata across Go, daemon, Node and Python. Historical151–154
+  profiles preserve their previous absence of network hints.
+- Align connection ownership, proxy discovery, draining and site-pool lifetime
+  with request cancellation and body ownership. Keep concrete transport bodies
+  compatible with their existing buffering and drain machinery.
+- Improve CLI request/page checks, error classification, capture/compare,
+  redacted diagnostics, traces and packet output. The command and flag reference
+  is in [README.md](README.md).
+- Keep the existing release gates and distribute one verified immutable set of
+  five native archives, six npm packages, one Python sdist and five wheels,
+  licence notices and a Homebrew formula. Linux race partitions the complete
+  compiled root and CLI test/example/fuzz inventories across two runners each
+  and retains all other packages. A separate manifest gate requires one
+  source, disjoint complete selections and successful execution. Every binary
+  retains20m; normal tests retain all three OSes with10m limits. Set storage
+  waits for every gate.
+
+### Security and correctness
+
+- Derive strict release-gate network-hint availability from the declared,
+  implemented JSON generator. Preserve all original scenario/header checks and
+  add canonical syntax, bounds, quantization and ECT-vocabulary validation.
+  Missing/disabled generators and malformed values remain failures; actual
+  H1/H2 Client.Do controls verify JSON availability and origin opt-in.
+  The JSON result retains original generated-hint samples and normalization
+  metadata, including on successful comparisons.
+- Bound HTTP/2 HPACK/CONTINUATION processing, chunk parsing, content-decoding
+  layers and response/header memory. Keep malformed-input controls and bounded
+  resource regressions.
+- Authenticate TLS Finished/ECH paths, rebuild PSK binders after HRR, bound
+  compressed-certificate decoding and revalidate cached certificate chains
+  against current trust roots and time.
+- Fix URL/IDNA edge cases, cookie validation, HTTP framing, QPACK arithmetic,
+  blocked-section cancellation, queue ownership and local SETTINGS ordering.
+- Protect capture paths with scoped names and filesystem roots; bind navigation
+  tokens to their visitor. Export TLS secrets only by explicit opt-in, strip
+  inherited SSLKEYLOGFILE at SDK daemon starts, and redact proxy credentials and
+  sensitive diagnostic URLs without altering the transmitted application data.
+- Preserve complete bodies and actual protocol/connection counts in test peers;
+  Alt-Svc readiness waits for client pool publication, not peer handshake alone.
+  Python backpressure controls complete offline hello before timing a body write
+  and require an actual blocked writer at stop; the0.2s request deadline,2s
+  elapsed bound, cleanup and SessionReset assertions remain.
+
+### Validation and limits
+
+- The completed product acceptance includes native Linux/Windows/macOS CI,
+  Linux100% statement coverage across24 packages, full Linux race coverage and
+  eight exact-source fork graphs. Existing fork skips remain explicit. See the
+  [native acceptance report](research/remediation/2026-11-01/Network-hints-native.ru.md).
+- The finite Chrome156.0.8078.80/macOS comparison covers network hints, cold
+  TLS/H1/H2 and selected H3/QPACK and request sequences. It is not a claim of
+  universal browser indistinguishability, RNG distribution equality or new
+  historical/all-platform browser acceptance. See the
+  [browser comparison](research/remediation/2026-11-01/Network-hints-final.ru.md).
+- Default request isolation is preserved. Physical network-change notification
+  and complete process-wide network-quality estimation remain outside this
+  accepted scope; profiles cannot replace the host TCP/IP implementation.
+- Browser profiles preserve owner-selected deviations for TLS close_notify,
+  macOS delayed ACK, early QUIC application close and replay policies. Explicit
+  alternatives and their consequences are documented in
+  [support boundaries](research/support.md). Browser fidelity does not imply complete
+  RFC compliance or make a non-idempotent replay safe.
+- A retained macOS ACK timing-control failure has an unconfirmed cause; the same
+  full job passed one unchanged repeat. This is not reported as a fixed cause.
+- Release-specific acceptance, including the strict three-platform browser gates
+  and the exact built set, is tracked in the
+  [release readiness receipt](research/releases/1.0.0-readiness.ru.md).
+
+### After the candidate of 1 November
+
+- The release dry run of the source this release is tagged on, but for this
+  section and the release status in the READMEs (run 42477990184, 19023de9):
+  every job passed at the first attempt, the three pinned gates among them,
+  `chrome` (Chrome 157) on Google Chrome Stable of each platform.
+
 - Add Chrome 157: `chrome_157_macos`, `chrome_157_linux` and
   `chrome_157_windows`, captured headed on Google Chrome Stable 157.0.8103.39
   (macOS, Windows) and 157.0.8103.38 (Linux), with the Chrome 156 profile of
@@ -532,166 +698,6 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   panel without a title, the copy button covered a line too long for the
   panel, at every width (813 places over the 46 pages at eight widths): the
   code now scrolls left of the button, never under it.
-
-## [1.0.0] - Unreleased
-
-Prepared release; no release tag or publication has been made. The publication
-date is set when the release is approved. The compiled engine, Node and Python
-packages use1.0.0; the latest published stable release remains0.2.2.
-
-### Breaking changes and migration
-
-- Every executable JSON profile requires an exact integer `engine_major: 1`.
-  Missing, malformed, older or newer metadata is rejected before DNS, sockets,
-  proxy setup or origin traffic. The gate also covers programmatic profiles,
-  catalogue entries, clones, SDK requests and daemon replacement processes.
-- Profile format is schema4 and daemon protocol is3. Update the CLI and SDKs
-  together. Legacy daemon compatibility is refused. Use `profile.Inspect` for
-  offline archives; explicit migration creates a separate candidate requiring
-  validation and preserves the original profile and capture provenance.
-- The Go module remains `github.com/Sec-CH-Lemon/tls-forge`, without `/v1`.
-  Release tags and package stamps must equal `engine/version.json`; further
-  changes before publication remain in this single pending engine major1.
-- The default `chrome` profile selects156 for the host platform. Pin an exact
-  profile name when changing the default would change an application's contract.
-- By default each logical `Client.Do` starts an isolated browser instance:
-  cookies, cache, transport/TLS/QUIC sessions and network observations belong to
-  that request. Redirects and Critical-CH restarts retain their own chain state.
-  Profile scope choices are explicit; a raw transport option cannot replace the
-  owner-selected profile adapter with an unversioned preset.
-
-### Added and changed
-
-- Record the complete 1.0.0 release dry-run: 30 successful CI jobs, 19 successful
-  release jobs and 5 expected publication skips. All 3 native Chrome 156 gates and
-  all 8 fork graphs passed; exact source/set and limitations are in the
-  [readiness receipt](research/releases/1.0.0-readiness.json). No release/tag published.
-- Preserve original Go coverage profiles after success or failure as
-  `go-coverage`/`release-go-coverage` artifacts for7days; coverage stays100%.
-- Require the complete413response in the proxy body-limit test before
-  closing its caller/server. Preserve the body bound and100%coverage gate.
-- Fix an HTTP/2 preface PING being suppressed by a fast peer response during
-  HEADERS Write. Decide before HEADERS I/O, keep the separate PING after it.
-  JSON timers/IDs and existing wire/deadline checks remain unchanged.
-- Use a Windows release-browser reference for the two measured SSPI auth
-  scenarios: two independent Chrome156.0.8078.80/Windows26100 cohorts agree
-  exactly. Preserve the other226scenarios, all228perOS and all174decodings;
-  token/request mutations remain strict failures. Original macOS fixture unchanged.
-- Allow the registered capture workflow to call the same release-auth oracle
-  explicitly; default capture and every strict release gate remain unchanged.
-- Calibrate Windows release-browser auth fixtures in two native cohorts,
-  retaining every scenario, exact SSPI bytes and the original15s observation.
-  Add an encrypted, manual-only evidence workflow and explicit fixture
-  `observation_ms`; unfinished or silent measurements cannot become fixtures.
-- Refresh only Chrome156 full-version/full-version-list hints from measured
-  Google Stable builds:156.0.8078.79 on Linux and156.0.8078.80 on macOS/Windows.
-  Keep close_notify variants aligned. Preserve exact prior bytes and append
-  an explicit derivation; original capture and A13 hashes stay unchanged.
-- Render Python API defaults from their source expressions, preserving host
-  dependence such as `sys.platform` without freezing the documentation builder's
-  OS. Require identical actual-SDK reference output for three platform contexts
-  and retain detection of source/default changes.
-- Rebuild public documentation in `docs/` with installation paths, task guides,
-  CLI/Go/Node.js/Python examples and source-generated reference pages. Move
-  historical reports and evidence to `research/` without including them in the public MkDocs site.
-- Style the documentation with the landing page's glass panels, colors and
-  local Inter font. Use Stripe-inspired UX with sticky section tabs, a
-  contextual desktop sidebar and a three-column grid with equal side rails,
-  centered reading column and search, aligned tables and code examples,
-  compact mobile drawer and tabbed examples. Match
-  Stripe's measured reading and code scale: 16px/26px body copy, 32px/40px
-  page headings, 14px table cells and 13px/19px Menlo/Consolas code. Add
-  numbered code lines, a distinct code header and aligned mobile table and
-  example edges; short tables become labeled cards on phones, while wider
-  matrices scroll horizontally. Frame tables and code with symmetric corners;
-  center search, repository and copy icons in their controls. The home terminal
-  command wraps at spaces, and copy controls sit in code headers so they do not
-  cover code. Keep both themes readable across desktop and mobile,
-  including full-screen mobile search. Keep the theme override in `docs-theme/`
-  and the styles in `docs/assets/extra.css`; check rendered HTML-card links
-  before deployment.
-
-- Browser JSON owns supported values, vectors, ordering, header templates,
-  generation rules, protocol policies, limits, retries and timers. The engine
-  implements generic parsing, state transitions, cryptography, I/O and resource
-  bounds. Strict unknown/duplicate/type/range checks apply before execution.
-- Add profile-driven dynamic QPACK, HTTP/3 stream setup and feedback, QUIC
-  transport/layout/ACK policies, TLS/HRR/ECH handling, ALPS, DNS HTTPS and Alt-Svc
-  negotiation. Unsupported capabilities fail explicitly rather than falling back.
-- Represent the83-entry catalogue and its native QUIC choices as explicit pinned
-  JSON. Catalogue support does not establish fresh browser equivalence for every
-  historical preset or platform.
-- Replace captured RTT/downlink/ECT literals in existing155/156 profiles with
-  JSON-selected network observation and generation policies: actual HTTP/TCP/QUIC
-  inputs, instance salt, host rounding and isolated lifecycle. Add typed actual
-  `NetworkContext` metadata across Go, daemon, Node and Python. Historical151–154
-  profiles preserve their previous absence of network hints.
-- Align connection ownership, proxy discovery, draining and site-pool lifetime
-  with request cancellation and body ownership. Keep concrete transport bodies
-  compatible with their existing buffering and drain machinery.
-- Improve CLI request/page checks, error classification, capture/compare,
-  redacted diagnostics, traces and packet output. The command and flag reference
-  is in [README.md](README.md).
-- Keep the existing release gates and distribute one verified immutable set of
-  five native archives, six npm packages, one Python sdist and five wheels,
-  licence notices and a Homebrew formula. Linux race partitions the complete
-  compiled root and CLI test/example/fuzz inventories across two runners each
-  and retains all other packages. A separate manifest gate requires one
-  source, disjoint complete selections and successful execution. Every binary
-  retains20m; normal tests retain all three OSes with10m limits. Set storage
-  waits for every gate.
-
-### Security and correctness
-
-- Derive strict release-gate network-hint availability from the declared,
-  implemented JSON generator. Preserve all original scenario/header checks and
-  add canonical syntax, bounds, quantization and ECT-vocabulary validation.
-  Missing/disabled generators and malformed values remain failures; actual
-  H1/H2 Client.Do controls verify JSON availability and origin opt-in.
-  The JSON result retains original generated-hint samples and normalization
-  metadata, including on successful comparisons.
-- Bound HTTP/2 HPACK/CONTINUATION processing, chunk parsing, content-decoding
-  layers and response/header memory. Keep malformed-input controls and bounded
-  resource regressions.
-- Authenticate TLS Finished/ECH paths, rebuild PSK binders after HRR, bound
-  compressed-certificate decoding and revalidate cached certificate chains
-  against current trust roots and time.
-- Fix URL/IDNA edge cases, cookie validation, HTTP framing, QPACK arithmetic,
-  blocked-section cancellation, queue ownership and local SETTINGS ordering.
-- Protect capture paths with scoped names and filesystem roots; bind navigation
-  tokens to their visitor. Export TLS secrets only by explicit opt-in, strip
-  inherited SSLKEYLOGFILE at SDK daemon starts, and redact proxy credentials and
-  sensitive diagnostic URLs without altering the transmitted application data.
-- Preserve complete bodies and actual protocol/connection counts in test peers;
-  Alt-Svc readiness waits for client pool publication, not peer handshake alone.
-  Python backpressure controls complete offline hello before timing a body write
-  and require an actual blocked writer at stop; the0.2s request deadline,2s
-  elapsed bound, cleanup and SessionReset assertions remain.
-
-### Validation and limits
-
-- The completed product acceptance includes native Linux/Windows/macOS CI,
-  Linux100% statement coverage across24 packages, full Linux race coverage and
-  eight exact-source fork graphs. Existing fork skips remain explicit. See the
-  [native acceptance report](research/remediation/2026-11-01/Network-hints-native.ru.md).
-- The finite Chrome156.0.8078.80/macOS comparison covers network hints, cold
-  TLS/H1/H2 and selected H3/QPACK and request sequences. It is not a claim of
-  universal browser indistinguishability, RNG distribution equality or new
-  historical/all-platform browser acceptance. See the
-  [browser comparison](research/remediation/2026-11-01/Network-hints-final.ru.md).
-- Default request isolation is preserved. Physical network-change notification
-  and complete process-wide network-quality estimation remain outside this
-  accepted scope; profiles cannot replace the host TCP/IP implementation.
-- Browser profiles preserve owner-selected deviations for TLS close_notify,
-  macOS delayed ACK, early QUIC application close and replay policies. Explicit
-  alternatives and their consequences are documented in
-  [support boundaries](research/support.md). Browser fidelity does not imply complete
-  RFC compliance or make a non-idempotent replay safe.
-- A retained macOS ACK timing-control failure has an unconfirmed cause; the same
-  full job passed one unchanged repeat. This is not reported as a fixed cause.
-- Release-specific acceptance, including the strict three-platform browser gates
-  and the exact built set, is tracked in the
-  [release readiness receipt](research/releases/1.0.0-readiness.ru.md).
 
 ### Development provenance
 

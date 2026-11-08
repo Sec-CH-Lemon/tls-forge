@@ -24,9 +24,8 @@ This illustrates metadata only; a complete profile still needs captured TLS/HTTP
 data and the explicit `behavior` object. Browser values and selections stay in
 JSON. Major selection is anchored to the latest published stable release:
 `latest_released_major + 1` for an engine change, once for the whole next release.
-The current candidate is **unreleased1.0.0** after0.2.2. Further runtime changes
-before1.0.0 is published stay in major1; after publication, the next engine change
-targets2.0.0. Existing primitives can be configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
+This is release **1.0.0**, engine major 1, after 0.2.2; the next engine change
+targets 2.0.0. Existing primitives can be configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
 a different version stamp. Go v1 uses the unsuffixed module path; `/v2` starts with major2. The release anchor and pending status are recorded in `engine/version.json`.
 
@@ -43,7 +42,7 @@ migratedJSON, err := candidate.Save() // save to a separate destination
 
 Preserve the original file. Migration is not browser equivalence acceptance;
 repeat the relevant actual browser/wire checks before relying on its behavior.
-The 15 shipped profiles and all backend catalogue policies have explicit unreleased engine-1
+The 15 migrated shipped profiles and all backend catalogue policies have explicit engine-1
 migration provenance; older captured browser builds are not new measurements.
 A bare catalogue preset still supplies no browser headers.
 
