@@ -30,6 +30,11 @@ export const ENGINE_MAJOR = Number(
 
 const DEFAULT_TIMEOUT_MS = 45_000;
 
+// EXIT_GRACE_MS is how long the first line written to a process, when its
+// write failed, waits for the process to say it exited: one that refuses its
+// arguments closes its input as it exits, and the pipe can say so first.
+const EXIT_GRACE_MS = 1_000;
+
 /** The most a request can be, in bytes, as the transport reads it: one line of
  * JSON, its newline included, in UTF-8. A longer one would end the transport,
  * and the session in it, so it is refused with a RangeError before it is
@@ -376,6 +381,9 @@ export class Client {
   // Why the transport the session was in went, until a request has been told
   // with SessionReset; null when nothing is to be told.
   #lost: string | null = null;
+  // Whether nothing has been written to the process yet: only its first line
+  // can meet a usage error, which comes before it reads anything.
+  #unwritten = false;
 
   // close() is final. A client is one identity; once it has been given up there
   // is no identity left to make requests with, so a later request is a caller
@@ -585,6 +593,7 @@ export class Client {
     );
     const child = spawn(this.#binary, this.#args, { stdio: ['pipe', 'pipe', 'pipe'], env });
     this.#process = child;
+    this.#unwritten = true;
     this.#reader = readline.createInterface({ input: child.stdout });
     this.#reader.on('line', (line) => this.#onLine(line));
     this.#stderrReader = readline.createInterface({ input: child.stderr });
@@ -847,14 +856,30 @@ export class Client {
     }, job.deadline - performance.now());
 
     // Started above when there was none: #start sets it, or throws.
+    const first = this.#unwritten;
+    this.#unwritten = false;
     this.#process!.stdin.write(job.line, (err) => {
       if (!err || this.#inFlight !== job) return;
       // The process can die between the liveness check above and the write
-      // reaching the pipe.
-      this.#inFlight = null;
-      clearTimeout(job.timer);
-      job.reject(new TransportError(`tlsforge: write failed: ${err.message}`, { cause: err }));
-      if (!job.init) this.#restart(`a request could not be written to it: ${err.message}`);
+      // reaching the pipe. One that refused its arguments closed its input as
+      // it exited, and its pipe can say so before its exit is told (EPIPE, on
+      // a loaded runner, 2026-11-09): for its first line its exit is waited
+      // for, a moment at most, so that every request waiting is told why it
+      // went, by the 'exit' handler. One alive that stopped reading says
+      // nothing more.
+      const failed = (): void => {
+        if (this.#inFlight !== job) return;
+        this.#inFlight = null;
+        clearTimeout(job.timer);
+        job.reject(new TransportError(`tlsforge: write failed: ${err.message}`, { cause: err }));
+        if (!job.init) this.#restart(`a request could not be written to it: ${err.message}`);
+      };
+      if (!first) {
+        failed();
+        return;
+      }
+      // The request's own deadline keeps Node alive meanwhile, not this.
+      setTimeout(failed, EXIT_GRACE_MS).unref();
     });
   }
 }

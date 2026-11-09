@@ -33,6 +33,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   listener on one port are asked of each protocol by turns
   (`localhost.UDPAndTCP`), as Windows keeps ranges of ports from each.
 
+- Fix: the Node.js and Python packages say that a tls-forge refused its
+  arguments (exit code 2, an older one that does not know `--proxy-stdin`
+  among them) when their first line's write found the pipe gone as the
+  process exited, as they say it when the line is read: now and then, on a
+  loaded machine, they said `write failed: write EPIPE` instead (CI run
+  42539900721). The Node.js package waits a second at most for the exit of
+  a transport whose first line could not be written; a later line's failed
+  write is said at once, as before.
+
 ## [1.0.1] - 2026-11-08
 
 The first release of engine major 1 published in full: 1.0.0 with what

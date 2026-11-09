@@ -365,6 +365,28 @@ test('a transport that refuses its arguments without a proxy says only that', as
   });
 });
 
+test('a transport that refuses its arguments is said to, though its pipe said it was gone first', {
+  skip: configuredDaemon ? 'a shell script of its own, which the native fake is not' : false,
+}, async () => {
+  // An init line longer than a pipe holds, which the transport never reads:
+  // its write fails as the transport closes its input, a moment before it
+  // exits with code 2. Before, every request waiting was told the write
+  // failed (EPIPE, 2026-11-09, a Linux runner, with a short line the parent
+  // wrote late).
+  const proxy = `http://alice:s3cret@proxy.test:8080/${'x'.repeat(1 << 20)}`;
+  const c = new Client({ binary: path.join(here, 'refusing-late.sh'), proxy, timeout: COLD_START });
+  try {
+    const [first, second] = await Promise.allSettled([c.get('https://ok/a'), c.get('https://ok/b')]);
+    for (const outcome of [first, second]) {
+      assert.equal(outcome.status, 'rejected');
+      assert.match(outcome.reason.message, /refused its arguments \(code 2\): a tls-forge older than this package does not know --proxy-stdin/);
+      assert.ok(!outcome.reason.message.includes('s3cret'));
+    }
+  } finally {
+    c.close();
+  }
+});
+
 test('cookie file options become daemon arguments', async () => {
   const c = fake({ cookieFile: '/tmp/warm.json', cookieSet: 'eu' });
   const argv = JSON.parse((await c.get('https://ok/x')).body).argv;

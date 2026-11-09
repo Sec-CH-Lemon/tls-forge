@@ -181,6 +181,36 @@ def test_a_transport_older_than_the_client_is_said_to_be(client, monkeypatch):
 
 
 @pytest.mark.parametrize(
+    ("refuse", "proxy", "says"),
+    [
+        ("proxy-stdin", "http://alice:s3cret@proxy.test:8080",
+         r"refused its arguments \(code 2\): a tls-forge older than this package does not know --proxy-stdin"),
+        ("always", None, r"refused its arguments \(code 2\)$"),
+    ],
+)
+def test_a_transport_that_refused_its_arguments_before_its_first_line_is_said_to(
+        client, monkeypatch, refuse, proxy, says):
+    # Its first line written after it refused its arguments and exited, as a
+    # write that comes late does on a loaded machine (2026-11-09, the Node
+    # client on a Linux runner): the pipe is gone, and what the request is told
+    # is why, not that the write failed.
+    monkeypatch.setenv("TLSFORGE_TEST_REFUSE", refuse)
+    c = client(proxy=proxy)
+    start = c._start
+
+    def started_and_gone() -> None:
+        start()
+        c._process.wait(timeout=10)
+
+    monkeypatch.setattr(c, "_start", started_and_gone)
+    with pytest.raises(tlsforge.TransportError, match=says) as refused:
+        c.get("https://ok/a")
+    assert isinstance(refused.value.__cause__, OSError)
+    assert "s3cret" not in str(refused.value)
+    assert c._process is None
+
+
+@pytest.mark.parametrize(
     ("mode", "error", "says"),
     [
         ("refuse", tlsforge.TransportError,

@@ -655,8 +655,13 @@ class Client:
         if failed:
             if closed:
                 raise TransportError(_CLOSED_IN_FLIGHT) from failed[0]
-            # The process can die between starting it and the bytes landing.
-            self._stop()
+            # The process can die between starting it and the bytes landing:
+            # one that refused its arguments, with code 2, exits at once, and
+            # a write that comes after finds its pipe gone. That it refused
+            # them is what the request is told, as when it is read after.
+            stopped = self._stop()
+            if stopped is not None and stopped.returncode == 2:
+                raise TransportError(_refused_arguments(self._binary, self._proxy is not None)) from failed[0]
             if session:
                 self._lose(f"a request could not be written to it: {failed[0]}")
             raise TransportError(f"tlsforge: write failed: {failed[0]}") from failed[0]
