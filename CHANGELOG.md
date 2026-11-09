@@ -11,6 +11,12 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
+- The Node.js package's own `package.json` names no platform package: the
+  release writes the main package's `optionalDependencies` itself
+  (`npm-release.mjs`), and a checkout's `npm ci` failed once 1.0.1's platform
+  packages were published (its lock file held them unresolved, as packages
+  npm did not have).
+
 - `published-e2e.yml` asks for the Go module by the path its version has:
   unsuffixed for v0 and v1, `/vN` from v2 on. It asked for `/v4`, a label of
   an unpublished engine snapshot, and its check of 1.0.1 failed before the

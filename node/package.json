@@ -24,13 +24,6 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "tsc -p tsconfig.json && node --test --experimental-test-coverage --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100 \"test/*.test.ts\""
   },
-  "optionalDependencies": {
-    "tls-forge-darwin-arm64": "1.0.1",
-    "tls-forge-darwin-x64": "1.0.1",
-    "tls-forge-linux-arm64": "1.0.1",
-    "tls-forge-linux-x64": "1.0.1",
-    "tls-forge-windows-x64": "1.0.1"
-  },
   "devDependencies": {
     "@types/node": "20.19.43",
     "typescript": "5.9.3"
