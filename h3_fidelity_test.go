@@ -18,6 +18,8 @@ import (
 	"github.com/igor-lemon/quic-go-utls/http3"
 	tc "github.com/igor-lemon/tls-client"
 	tls "github.com/igor-lemon/utls"
+
+	"github.com/Sec-CH-Lemon/tls-forge/internal/localhost"
 )
 
 // Both transports reach the same owned origin. The TCP listener makes a losing
@@ -48,25 +50,15 @@ func h3Origin(t *testing.T, handler http.Handler, observe ...func([]byte, net.Ad
 	return "https://" + addr, tcpRequests, connections
 }
 
-// udpAndTCP are a UDP socket and a TCP listener on one loopback port: the
-// port the system gave the UDP socket, which TCP may hold already, in which
-// case another is asked for, a few times at most.
+// udpAndTCP are a UDP socket and a TCP listener on one loopback port
+// (localhost.UDPAndTCP).
 func udpAndTCP(t *testing.T) (net.PacketConn, net.Listener) {
 	t.Helper()
-	for tries := 1; ; tries++ {
-		udp, err := net.ListenPacket("udp4", "127.0.0.1:0")
-		if err != nil {
-			t.Fatal(err)
-		}
-		tcp, err := net.Listen("tcp4", udp.LocalAddr().String())
-		if err == nil {
-			return udp, tcp
-		}
-		_ = udp.Close()
-		if tries == 10 {
-			t.Fatal(err)
-		}
+	udp, tcp, err := localhost.UDPAndTCP(net.ListenPacket, net.Listen)
+	if err != nil {
+		t.Fatal(err)
 	}
+	return udp, tcp
 }
 
 func racingChrome(t *testing.T) *Client {

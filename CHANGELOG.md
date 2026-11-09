@@ -23,6 +23,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   Node.js and Python packages were tried; on macOS all three passed against
   the published 1.0.1.
 
+- Tests timed on a loaded runner, again (2026-11-08). The test of a lone
+  QUIC packet's ACK sends up to twelve lone packets a connection, on eight
+  connections at most, until one ACK says that no slack is added; it counts
+  an ACK only when it was for that packet alone. A run of a QPACK Stream
+  Cancellation is run again when another of the server's packets was
+  waiting for its ACK as the reset came. The test of a drained answer gives
+  the drain the whole grace the engine allows. A UDP socket and a TCP
+  listener on one port are asked of each protocol by turns
+  (`localhost.UDPAndTCP`), as Windows keeps ranges of ports from each.
+
 ## [1.0.1] - 2026-11-08
 
 The first release of engine major 1 published in full: 1.0.0 with what

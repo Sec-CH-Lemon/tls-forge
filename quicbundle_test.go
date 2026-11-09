@@ -8,6 +8,7 @@ import (
 	stdhttp "net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -272,16 +273,23 @@ func TestARequestsWritesAreFlushedAsItsProfileSays(t *testing.T) {
 	t.Error("written as quic-go writes them, the request went in one packet in three runs of three")
 }
 
+// cancellationTries is how many times cancellationACK runs at most.
+const cancellationTries = 6
+
 // cancellationACK is the ACK the client wearing p (probedLate) sends with
 // the decoded QPACK Stream Cancellation of the request a
 // bundleSite resets by after, and whether it acknowledges the reset. A
 // server of quic-go's skips a packet number now and then, which the client
-// acknowledges at once: such a run says nothing of when the ACK goes, and is
-// run again.
+// acknowledges at once; a packet of the server's still waiting for its ACK
+// when the reset came, on a runner under load, has the client acknowledge
+// both at once, or as the first one's overdue alarm says (waiting;
+// 2026-11-08: the reset acknowledged after 40 µs on a Linux runner): such a
+// run says nothing of when the ACK goes, and is run again.
 func cancellationACK(t *testing.T, p *profile.Profile, after func(control *quic.SendStream), immediate bool) (*qlog.AckFrame, []quic.StreamID, time.Duration) {
 	t.Helper()
 	p = probedLate(p)
-	for range 3 {
+	var why []string
+	for range cancellationTries {
 		port, heard := bundleSite(t, func(control *quic.SendStream, str *quic.Stream) {
 			_, _ = str.Read(make([]byte, 1))
 			// everything acknowledged, the reset alone in its packet
@@ -292,6 +300,12 @@ func cancellationACK(t *testing.T, p *profile.Profile, after func(control *quic.
 		c := echClient(t, alpsNames(t), WithProfileValue(p))
 		if got := came(t, c, "https://h3.h3.test:"+port+"/"); got != "HTTP/2.0" {
 			t.Fatalf("came over %q, want TCP's after the reset", got)
+		}
+		if heard.carrying(0, 0) == nil {
+			// TCP's answer, a round trip late, before QUIC was up: on a
+			// loaded machine a handshake takes longer than that now and then
+			why = append(why, "the request went over TCP before QUIC was up")
+			continue
 		}
 		var packet *qlog.PacketReceived
 		for deadline := time.Now().Add(2 * time.Second); packet == nil && time.Now().Before(deadline); {
@@ -324,11 +338,16 @@ func cancellationACK(t *testing.T, p *profile.Profile, after func(control *quic.
 		}
 		t.Logf("instruction_packet=%d ack_delay=%s instruction_delay=%s", packet.Header.PacketNumber, ack.DelayTime, delay)
 		ids, _ := streamsIn(packet)
-		if len(ack.AckRanges) == 1 {
+		switch w := heard.waiting(heard.resetIn(0)); {
+		case len(ack.AckRanges) != 1:
+			why = append(why, "a packet number skipped")
+		case w != "":
+			why = append(why, "the reset: "+w)
+		default:
 			return ack, ids, delay
 		}
 	}
-	t.Fatal("a packet number skipped in every run")
+	t.Fatalf("disturbed in every run: %s", strings.Join(why, "; "))
 	return nil, nil, 0
 }
 

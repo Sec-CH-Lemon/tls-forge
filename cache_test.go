@@ -488,9 +488,13 @@ func TestAnAnswerLeftUnreadThatIsNoRedirectIsKeptOnlyWithItsBody(t *testing.T) {
 // An answer left unread that the cache would keep with its whole body, a
 // Critical-CH restart's, is drained as the transport's own body is: through
 // the cache's, the transport's told it is let go of, and kept when the drain
-// read all of it.
+// read all of it. The drain reads in a goroutine of its own, which leave
+// waits for as long as the protocol's grace (hN.unread_grace_us): the whole
+// grace the engine allows, so that a loaded machine runs it within it
+// (2026-11-08: the 500 µs of Chrome's profiles passed on a macOS runner).
 func TestAnAnswerLeftUnreadThatIsNoRedirectIsDrainedAsTheTransportsOwn(t *testing.T) {
-	client := newTestClient(t, WithProfile("chrome_155_macos"))
+	client := newTestClient(t, WithProfileValue(quicProfile(t, map[string]string{
+		"h1.unread_grace_us": "10000000", "h2.unread_grace_us": "10000000"})))
 	for _, major := range []int{1, 2} {
 		c := cacheOf(t, nil)
 		body := &releasedBody{detachable: detachable{Reader: strings.NewReader("page")}}

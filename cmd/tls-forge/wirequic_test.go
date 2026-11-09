@@ -23,6 +23,7 @@ import (
 	utls "github.com/igor-lemon/utls"
 	"golang.org/x/net/dns/dnsmessage"
 
+	"github.com/Sec-CH-Lemon/tls-forge/internal/localhost"
 	"github.com/Sec-CH-Lemon/tls-forge/internal/pcapng"
 )
 
@@ -100,20 +101,9 @@ func (c *lateFirstWrite) Write(b []byte) (int, error) {
 // connections to keys.
 func h3Site(t *testing.T, keys io.Writer) string {
 	t.Helper()
-	var udp net.PacketConn
-	var tcp net.Listener
-	for tries := 1; ; tries++ {
-		var err error
-		if udp, err = net.ListenPacket("udp4", "127.0.0.1:0"); err != nil {
-			t.Fatal(err)
-		}
-		if tcp, err = net.Listen("tcp4", udp.LocalAddr().String()); err == nil {
-			break
-		}
-		_ = udp.Close()
-		if tries == 10 {
-			t.Fatal(err)
-		}
+	udp, tcp, err := localhost.UDPAndTCP(net.ListenPacket, net.Listen)
+	if err != nil {
+		t.Fatal(err)
 	}
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, r.Proto)

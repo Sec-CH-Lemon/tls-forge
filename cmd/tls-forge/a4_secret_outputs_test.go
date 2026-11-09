@@ -20,6 +20,7 @@ import (
 	utls "github.com/igor-lemon/utls"
 
 	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/localhost"
 )
 
 // A request URL with a password fetch refuses is said without it, however it
@@ -189,20 +190,9 @@ func secretSite(t *testing.T, protocol string, heard func(proto string, header f
 		t.Cleanup(server.Close)
 		return server.URL, nil
 	}
-	var udp net.PacketConn
-	var tcp net.Listener
-	for tries := 1; ; tries++ {
-		var err error
-		if udp, err = net.ListenPacket("udp4", "127.0.0.1:0"); err != nil {
-			t.Fatal(err)
-		}
-		if tcp, err = net.Listen("tcp4", udp.LocalAddr().String()); err == nil {
-			break
-		}
-		_ = udp.Close()
-		if tries == 10 {
-			t.Fatal(err)
-		}
+	udp, tcp, err := localhost.UDPAndTCP(net.ListenPacket, net.Listen)
+	if err != nil {
+		t.Fatal(err)
 	}
 	server := httptest.NewUnstartedServer(http.HandlerFunc(answer))
 	server.Listener = lateHandshakes{tcp}
