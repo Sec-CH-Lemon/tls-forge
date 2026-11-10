@@ -37,6 +37,14 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   writes every boolean flag of the help as `--flag[=true|false]`.
 - `Migrate` adds its note of QUIC candidate defaults only when it filled one
   in: a profile whose QUIC data is its own is not said to have taken them.
+- `chrome_157_macos`, `chrome_157_linux` and `chrome_157_windows` are
+  captured again, on Google Chrome Stable 157.0.8103.51 (macOS, Windows) and
+  157.0.8103.50 (Linux), headed, with the chrome_157 they replace as their
+  policy basis; they stay `engine_major: 1`. Against the first capture
+  (157.0.8103.39, Linux .38), which 1.0.1 shipped, only the build the client
+  hints say and what Chrome draws for each connection changed. The files
+  replaced, and their capture provenance, are kept by their hashes in
+  `profile/provenance/recaptured/`.
 
 - The Node.js package's own `package.json` names no platform package: the
   release writes the main package's `optionalDependencies` itself
