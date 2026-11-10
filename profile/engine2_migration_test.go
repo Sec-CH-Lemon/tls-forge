@@ -86,11 +86,18 @@ func undoEngine2(raw []byte, m engine2Migration) ([]byte, error) {
 // had it, the migration undone.
 func engine1Bytes(t *testing.T, path string) []byte {
 	t.Helper()
-	m, err := readEngine2Migration()
+	raw, err := os.ReadFile("../" + path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := os.ReadFile("../" + path)
+	return engine1Of(t, raw)
+}
+
+// engine1Of is raw as engine 1 had it, the migration undone; bytes the
+// migration did not make come back as they are.
+func engine1Of(t *testing.T, raw []byte) []byte {
+	t.Helper()
+	m, err := readEngine2Migration()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,6 +106,21 @@ func engine1Bytes(t *testing.T, path string) []byte {
 		t.Fatal(err)
 	}
 	return out
+}
+
+// migratedBytes is the file at path (from the repository's root) as the
+// migration left it: the file itself, or the kept copy of it a capture made
+// under engine 2 replaced.
+func migratedBytes(t *testing.T, path string) []byte {
+	t.Helper()
+	if row, ok := recaptures(t)[path]; ok && row.Major == 2 {
+		return keptBytes(t, path)
+	}
+	raw, err := os.ReadFile("../" + path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
 }
 
 func TestEveryProfileMigratedToEngine2UndoesToItsEngine1Bytes(t *testing.T) {
@@ -131,10 +153,7 @@ func TestEveryProfileMigratedToEngine2UndoesToItsEngine1Bytes(t *testing.T) {
 	}
 	for _, path := range got {
 		row := m.Profiles[path]
-		current, err := os.ReadFile("../" + path)
-		if err != nil {
-			t.Fatal(err)
-		}
+		current := migratedBytes(t, path)
 		if a13SHA(current) != row.After {
 			t.Fatalf("%s is not the bytes the migration made", path)
 		}
@@ -181,10 +200,13 @@ func TestAnEngine2MigrationThatIsNotOneIsRefused(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const path = "profile/data/chrome_157/macos.json"
+	const path = "profile/data/chrome_156/macos.json"
 	current, err := os.ReadFile("../" + path)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if a13SHA(current) != m.Profiles[path].After {
+		t.Fatalf("%s is not the bytes the migration made", path)
 	}
 	// Bytes no row made come back as they are.
 	other := append([]byte(nil), current...)
