@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/pcapng"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/pcapng"
 	fhttp "github.com/igor-lemon/fhttp"
 	"github.com/igor-lemon/quic-go-utls/http3"
 	utls "github.com/igor-lemon/utls"

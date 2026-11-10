@@ -83,7 +83,7 @@ export function resolveBinary(explicit?: string): string {
       `  The platform package ${platformPackage} is not installed. If this was an\n` +
       '  install with --no-optional, re-run without it. Otherwise this platform has\n' +
       '  no prebuilt binary yet — build one with Go 1.26.9+\n' +
-      '    go install github.com/Sec-CH-Lemon/tls-forge/v2/cmd/tls-forge@latest\n' +
+      '    go install github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge@latest\n' +
       '  or point at one you already have\n' +
       '    TLSFORGE_BIN=/path/to/tls-forge',
   );

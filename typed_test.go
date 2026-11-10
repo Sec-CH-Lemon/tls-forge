@@ -13,8 +13,8 @@ import (
 
 	tls_client "github.com/igor-lemon/tls-client"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/harness"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // asGiven is a copy of p saying that a request without a browser context goes

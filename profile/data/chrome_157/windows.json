@@ -1,6 +1,6 @@
 {
   "schema": 4,
-  "engine_major": 2,
+  "engine_major": 1,
   "behavior": {
     "cache.delta_seconds_limit": 4294967295,
     "cache.duplicate_freshness_policy": "first",
@@ -989,7 +989,7 @@
   },
   "name": "chrome_157_windows",
   "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
-  "client_hello": "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",
+  "client_hello": "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",
   "per_connection": {
     "shuffles_extensions": true,
     "ech_payload_lengths": [
@@ -1141,7 +1141,7 @@
     },
     {
       "name": "sec-ch-ua-full-version",
-      "value": "\"157.0.8103.51\""
+      "value": "\"157.0.8103.39\""
     },
     {
       "name": "sec-ch-ua-arch",
@@ -1165,7 +1165,7 @@
     },
     {
       "name": "sec-ch-ua-full-version-list",
-      "value": "\"Not-A.Brand\";v=\"99.0.0.0\", \"Google Chrome\";v=\"157.0.8103.51\", \"Chromium\";v=\"157.0.8103.51\""
+      "value": "\"Not-A.Brand\";v=\"99.0.0.0\", \"Google Chrome\";v=\"157.0.8103.39\", \"Chromium\";v=\"157.0.8103.39\""
     },
     {
       "name": "sec-ch-ua-form-factors",
@@ -1654,5 +1654,5 @@
       "unknown_ect": "unknown"
     }
   },
-  "notes": "captured 2026-11-10T22:24:29Z from Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36; policy basis: chrome_157_windows (unmeasured policies inherited)"
+  "notes": "captured 2026-11-07T00:14:32Z from Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36; policy basis: chrome_156_windows (unmeasured policies inherited)"
 }

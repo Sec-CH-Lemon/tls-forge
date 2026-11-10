@@ -3,7 +3,7 @@
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
 ```go linenums="0"
-import "github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+import "github.com/Sec-CH-Lemon/tls-forge/profile"
 ```
 
 Package profile reads and validates JSON for a selected browser build's network behaviour: TLS, HTTP/1.1, HTTP/2, supported HTTP/3 choices and request policy.

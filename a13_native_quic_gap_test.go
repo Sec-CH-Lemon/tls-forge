@@ -3,7 +3,7 @@ package tlsforge
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	tc "github.com/igor-lemon/tls-client"
 	"os"
 	"path/filepath"

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/capture"
 )
 
 // heard is a listen that keeps what it was asked and every listener it gave,

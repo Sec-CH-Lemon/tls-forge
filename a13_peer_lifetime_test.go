@@ -2,7 +2,7 @@ package tlsforge
 
 import (
 	"context"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	quic "github.com/igor-lemon/quic-go-utls"
 	tc "github.com/igor-lemon/tls-client"
 	"testing"

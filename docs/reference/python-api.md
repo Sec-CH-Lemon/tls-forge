@@ -206,7 +206,7 @@ print("browser_context" in hello.capabilities)
 ```
 
 ```text title="Response" linenums="0"
-3 2 2.0.0
+3 1 1.1.0
 True
 ```
 
@@ -444,7 +444,7 @@ print(client.hello())
 ```
 
 ```text title="Response" linenums="0"
-Hello(protocol=3, capabilities=('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), engine_major=2, version='2.0.0')
+Hello(protocol=3, capabilities=('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), engine_major=1, version='1.1.0')
 ```
 
 </div>

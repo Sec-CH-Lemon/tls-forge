@@ -38,7 +38,7 @@ func TestA12CloseNotifyVariantsChangeOnlyTheirDeclaredChoice(t *testing.T) {
 		if !reflect.DeepEqual(copy, source) {
 			t.Fatal("variant changed another browser field")
 		}
-		for _, other := range []int{0, 1} {
+		for _, other := range []int{0, 2} {
 			copy := variant.Clone()
 			copy.EngineMajor = Major(other)
 			if err := copy.Validate(); err == nil {

@@ -18,7 +18,7 @@ import (
 	"github.com/igor-lemon/quic-go-utls/qlogwriter"
 	tls "github.com/igor-lemon/utls"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // What a Chrome profile's QUIC client sends after its handshake, as Chrome

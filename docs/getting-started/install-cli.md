@@ -44,7 +44,7 @@ Review the third-party tap before granting trust. This installs the published fo
 With Go **1.27.3** or newer:
 
 ```bash title="Terminal"
-go install github.com/Sec-CH-Lemon/tls-forge/v2/cmd/tls-forge@latest
+go install github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge@latest
 ```
 
 Go writes the binary to `GOBIN` or `$(go env GOPATH)/bin`. `@latest` selects the latest published module version; use the source-build path for a particular development commit.

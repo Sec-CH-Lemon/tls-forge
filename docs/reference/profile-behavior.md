@@ -1,6 +1,6 @@
 # Profile behavior
 
-Every executable profile is a JSON document for one selected browser and engine major. The current development format is **schema 4** with `engine_major: 2`; see [compatibility](../guides/profiles.md) before running a custom file. A bundled profile is the safest starting point because required fields, ordering, and provenance are already present.
+Every executable profile is a JSON document for one selected browser and engine major. The current development format is **schema 4** with `engine_major: 1`; see [compatibility](../guides/profiles.md) before running a custom file. A bundled profile is the safest starting point because required fields, ordering, and provenance are already present.
 
 ## File layout
 

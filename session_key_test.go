@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // A ticket a server gave on one port is not offered on another port of its

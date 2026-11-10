@@ -15,7 +15,7 @@ import (
 	stdhttp "net/http"
 	"net/http/httptest"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	"github.com/igor-lemon/quic-go-utls/quicvarint"
 )
 

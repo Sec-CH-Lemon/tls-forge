@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/networkquality"
+	"github.com/Sec-CH-Lemon/tls-forge/networkquality"
 )
 
 // NetworkHintsPolicy makes literal network persona data distinct from an actual

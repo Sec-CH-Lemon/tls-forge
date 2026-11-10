@@ -23,8 +23,8 @@ import (
 	utls "github.com/igor-lemon/utls"
 	"golang.org/x/net/dns/dnsmessage"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/localhost"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/pcapng"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/localhost"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/pcapng"
 )
 
 // h3NamesAt is a DNS server over UDP that finds every name at 127.0.0.1, with

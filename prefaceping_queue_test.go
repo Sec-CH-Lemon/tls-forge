@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/conntap"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/conntap"
 )
 
 type pingInterleaveTap struct {

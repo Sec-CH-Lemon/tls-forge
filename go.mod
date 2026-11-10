@@ -1,4 +1,4 @@
-module github.com/Sec-CH-Lemon/tls-forge/v2
+module github.com/Sec-CH-Lemon/tls-forge
 
 go 1.27.3
 

@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/conntap"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/conntap"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	fhttp "github.com/igor-lemon/fhttp"
 	"github.com/igor-lemon/fhttp/http2"
 	utls "github.com/igor-lemon/utls"
@@ -909,11 +909,11 @@ func TestAProxyConnectionIsAdoptedOnlyAsItsProfileAllows(t *testing.T) {
 	u, _ := url.Parse("https://proxy.test:8443")
 	d := newConnectDialer(u, time.Second, nil, nil)
 	other := shippedProfile(t, "chrome_155_macos").Clone()
-	*other.EngineMajor = 1
+	*other.EngineMajor = 2
 	d.identity.profile = other
 	client, server := net.Pipe()
 	defer server.Close()
-	if _, err := d.adoptProxyH2(client); err == nil || !strings.Contains(err.Error(), "engine_major 1") {
+	if _, err := d.adoptProxyH2(client); err == nil || !strings.Contains(err.Error(), "engine_major 2") {
 		t.Errorf("another engine's profile: %v", err)
 	}
 	if _, err := client.Write([]byte("x")); err == nil {
@@ -921,7 +921,7 @@ func TestAProxyConnectionIsAdoptedOnlyAsItsProfileAllows(t *testing.T) {
 	}
 	tlsConn := utls.Client(server, &utls.Config{})
 	if _, err := d.ProxyHTTP2Protocol(tlsConn).RoundTrip(mustRequest(t, "http://www.example.com/")); err == nil ||
-		!strings.Contains(err.Error(), "engine_major 1") {
+		!strings.Contains(err.Error(), "engine_major 2") {
 		t.Errorf("the forwarding transport's HTTP/2: %v", err)
 	}
 	// A connection the preface cannot be written to.

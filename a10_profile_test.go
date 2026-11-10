@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 func TestA10MissingPoliciesCannotExecuteOrBeSilentlyMigrated(t *testing.T) {

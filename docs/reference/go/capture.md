@@ -3,7 +3,7 @@
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
 ```go linenums="0"
-import "github.com/Sec-CH-Lemon/tls-forge/v2/capture"
+import "github.com/Sec-CH-Lemon/tls-forge/capture"
 ```
 
 Package capture is the exchange format between a client that connects and the report describing what it sent.

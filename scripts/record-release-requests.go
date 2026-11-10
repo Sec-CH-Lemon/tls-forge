@@ -15,7 +15,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
 )
 
 var recordMeasure = harness.MeasureObserved

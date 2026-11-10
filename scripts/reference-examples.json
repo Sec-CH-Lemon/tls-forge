@@ -61,7 +61,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "3 2 2.0.0\nTrue",
+    "code": "3 1 1.1.0\nTrue",
     "plain": true
    }
   ],
@@ -95,7 +95,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "Hello(protocol=3, capabilities=('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), engine_major=2, version='2.0.0')",
+    "code": "Hello(protocol=3, capabilities=('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), engine_major=1, version='1.1.0')",
     "plain": true
    }
   ],
@@ -214,7 +214,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "3 2 2.0.0\ntrue",
+    "code": "3 1 1.1.0\ntrue",
     "plain": true
    }
   ],
@@ -380,7 +380,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "tls-forge v2.0.0",
+    "code": "tls-forge v1.1.0",
     "plain": true
    }
   ]
@@ -460,7 +460,7 @@
    {
     "title": "Response",
     "lang": "text",
-    "code": "2.0.0 2",
+    "code": "1.1.0 1",
     "plain": true
    }
   ]

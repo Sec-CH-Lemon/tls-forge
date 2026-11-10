@@ -23,8 +23,8 @@
 </div>
 
 <div class="tf-version-note">
-  <strong>Engine 2.0.0 · not yet released</strong>
-  <span>Latest published release: 1.0.1 (engine 1). Keep the binary, SDK, and profile on the same engine major. <a href="support/release-status/">Release status →</a></span>
+  <strong>Engine 1.1.0 · not yet released</strong>
+  <span>Latest published release: 1.0.1, engine 1 as well. Keep the binary, SDK, and profile on the same engine major. <a href="support/release-status/">Release status →</a></span>
 </div>
 
 ## Start building

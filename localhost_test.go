@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/localhost"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/localhost"
 )
 
 // atLocalhost puts server, made and not yet started, at 127.0.0.1 and at

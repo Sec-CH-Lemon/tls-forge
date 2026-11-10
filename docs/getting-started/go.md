@@ -1,9 +1,9 @@
 # Install for Go
 
-Go **1.27.3** or newer is required. Add the module path of engine 2, which ends in `/v2`:
+Go **1.27.3** or newer is required. Add the unsuffixed module path (engine 1 has no `/v1` suffix):
 
 ```bash title="Terminal"
-go get github.com/Sec-CH-Lemon/tls-forge/v2
+go get github.com/Sec-CH-Lemon/tls-forge
 ```
 
 ```go title="Go"
@@ -13,7 +13,7 @@ import (
     "fmt"
     "log"
 
-    tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+    tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 )
 
 func main() {
@@ -29,4 +29,4 @@ func main() {
 
 A browser is not needed to make requests. The Go package can also start a local echo server, measure a browser, compare captures, load profiles, and start a local proxy. Continue with the [Go guide](../integrations/go.md) and [generated API reference](../reference/go-api.md).
 
-Engine 2 is not published yet: until it is, use a checkout and a `replace` directive in your application. The latest published module is `github.com/Sec-CH-Lemon/tls-forge@v1.0.1`, engine 1, whose path has no suffix.
+The latest published module is `github.com/Sec-CH-Lemon/tls-forge@v1.0.1`. Engine 1.1.0 is not published yet: until it is, use a checkout and a `replace` directive in your application.

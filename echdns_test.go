@@ -32,7 +32,7 @@ import (
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/net/dns/dnsmessage"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // The ECH a direct connection offers from its server's HTTPS records, held to

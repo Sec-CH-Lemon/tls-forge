@@ -14,7 +14,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // A page reloaded as Ctrl+R reloads it, held to Chrome's:

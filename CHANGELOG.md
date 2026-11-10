@@ -11,24 +11,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
-### Engine 2.0.0 (not yet released)
+### Engine 1.1.0 (not yet released)
 
-- **Breaking:** the engine is 2.0.0, the major after the published 1.0.1:
-  the forks are now laid over bogdanfinn's latest releases, a change of the
-  engine's own code. The Go module path is `github.com/Sec-CH-Lemon/tls-forge/v2`
-  (1.0.1's stays unsuffixed); the Node.js and Python packages are 2.0.0 and
-  speak only to a 2.0.0 daemon; every executable profile must say
-  `engine_major: 2`, and engine 2 refuses an engine 1 profile before any
-  network I/O. `engine/version.json` says 2.0.0, unreleased, its anchor the
-  published 1.0.1.
-- The bundled profiles (151 to 157, three platforms each) and the three
-  `close_notify` examples are engine 1's, migrated by an explicit
-  `profile.Migrate`: `engine_major` and one line of notes alone changed, and
-  `profile/provenance/engine2-migration.json` holds each file's bytes before
-  and after, the migration undone to the bytes before by a test. The pinned
-  catalogue and the migration data say engine 2 too. A migration
-  establishes no browser equivalence: each profile is accepted again
-  against its browser where that browser can still be run.
+- The engine is 1.1.0, a minor after the published 1.0.1: the forks are now
+  laid over bogdanfinn's latest releases, a change of the engine's own code
+  under which every profile 1.0.1 shipped still loads and runs as it is, so
+  the major stays 1 (the major goes up only when the last release's profiles
+  can no longer run). The Go module path stays unsuffixed; the Node.js and
+  Python packages are 1.1.0; the bundled profiles are byte for byte 1.0.1's,
+  `engine_major: 1`. `engine/version.json` says 1.1.0, unreleased, an engine
+  change pending, its anchor the published 1.0.1.
 - The forks are required at their releases' patch series: utls over
   v1.8.2-barnius, fhttp over v0.7.3, websocket over v1.5.9-barnius,
   quic-go-utls over v1.0.13-utls, tls-client over v1.18.0
@@ -45,14 +37,6 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   writes every boolean flag of the help as `--flag[=true|false]`.
 - `Migrate` adds its note of QUIC candidate defaults only when it filled one
   in: a profile whose QUIC data is its own is not said to have taken them.
-- `chrome_157_macos`, `chrome_157_linux` and `chrome_157_windows` are
-  captured again, under engine 2, on Google Chrome Stable 157.0.8103.51
-  (macOS, Windows) and 157.0.8103.50 (Linux), headed, with the chrome_157
-  they replace as their policy basis. Against the first capture
-  (157.0.8103.39, Linux .38) only the build the client hints say and what
-  Chrome draws for each connection changed. The files replaced, and their
-  capture provenance, are kept by their hashes in
-  `profile/provenance/recaptured/`, each now saying its engine major.
 
 - The Node.js package's own `package.json` names no platform package: the
   release writes the main package's `optionalDependencies` itself

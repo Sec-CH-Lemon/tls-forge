@@ -2,7 +2,7 @@ module github.com/Sec-CH-Lemon/tls-forge/example/go
 
 go 1.27.3
 
-require github.com/Sec-CH-Lemon/tls-forge/v2 v2.0.0
+require github.com/Sec-CH-Lemon/tls-forge v1.1.0
 
 require (
 	github.com/andybalholm/brotli v1.3.0 // indirect
@@ -23,4 +23,4 @@ require (
 	golang.org/x/text v0.44.0 // indirect
 )
 
-replace github.com/Sec-CH-Lemon/tls-forge/v2 => ../..
+replace github.com/Sec-CH-Lemon/tls-forge => ../..

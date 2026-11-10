@@ -17,7 +17,7 @@ func TestChrome156RetainsNativeCaptureProvenance(t *testing.T) {
 	registry.SetDir(t.TempDir())
 	for _, platform := range []string{"macos", "linux", "windows"} {
 		raw := keptBytes(t, "profile/data/chrome_156/"+platform+".json")
-		got, err := Inspect(raw)
+		got, err := Load(raw)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -100,8 +100,7 @@ func TestChrome156RetainsNativeCaptureProvenance(t *testing.T) {
 
 // Chrome 156 was captured again on 2026-11-08, headed, on the last build of
 // 156 of each platform, the one the pinned installers are, with the
-// chrome_156 it replaced as its policy basis, which was the first capture of
-// Chrome 157's too.
+// chrome_156 it replaced as its policy basis, which was Chrome 157's too.
 func TestChrome156IsCapturedOnTheBuildItsInstallersArePinnedTo(t *testing.T) {
 	registry := NewRegistry()
 	registry.SetDir(t.TempDir())
@@ -116,12 +115,15 @@ func TestChrome156IsCapturedOnTheBuildItsInstallersArePinnedTo(t *testing.T) {
 		t.Fatal(err)
 	}
 	for platform, system := range map[string]string{"macos": "macOS", "linux": "Linux", "windows": "Windows"} {
-		basis := replacedChrome(t, "156", platform)
+		basis := replacedChrome156(t, platform)
 		provenance := capturedOn(t, registry, "156", platform, basis)
 		if pinned := installers.Platforms[system].Version; provenance.Browser.UAFullVersion != pinned {
 			t.Fatalf("%s was captured on %s, where its installer is %s", platform, provenance.Browser.UAFullVersion, pinned)
 		}
-		metadata := keptBytes(t, "profile/provenance/chrome_157/"+platform+".json")
+		metadata, err := os.ReadFile("provenance/chrome_157/" + platform + ".json")
+		if err != nil {
+			t.Fatal(err)
+		}
 		var newer CaptureProvenance
 		if err := json.Unmarshal(metadata, &newer); err != nil {
 			t.Fatal(err)

@@ -3,7 +3,7 @@
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
 ```go linenums="0"
-import "github.com/Sec-CH-Lemon/tls-forge/v2/cookie"
+import "github.com/Sec-CH-Lemon/tls-forge/cookie"
 ```
 
 Package cookie is the file a warmed session is kept in.

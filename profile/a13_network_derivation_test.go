@@ -116,7 +116,7 @@ func TestA13NetworkDerivationsPreserveAllEarlierFields(t *testing.T) {
 			if _, _, e := unwindA13NetworkDerivation(raw, row.BeforeSHA); e != nil {
 				t.Fatal(e)
 			}
-			p, e := Inspect(raw)
+			p, e := Load(raw)
 			if e != nil {
 				t.Fatal(e)
 			}

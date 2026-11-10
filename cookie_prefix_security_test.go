@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	tc "github.com/igor-lemon/tls-client"
 	"github.com/igor-lemon/utls/behavior"
 )

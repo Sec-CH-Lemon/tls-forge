@@ -153,7 +153,7 @@ other change: what each action's new commit changes is part of it.
 ## A dry run
 
 ```bash
-gh workflow run release.yml --ref development -f dry_run=true -f version=2.0.0
+gh workflow run release.yml --ref development -f dry_run=true -f version=1.1.0
 ```
 
 `dry_run` is on unless it is turned off. Off a tag it builds the engine's
@@ -230,5 +230,7 @@ has moved past it.
 Only after actual stable publication has been verified, record that version
 as `latest_released_version` with `release_status: released` and
 `pending_engine_change: false`. A failed run, draft or dry run is not that
-verification. The next engine change then reserves the next major; it does
-not reinterpret the unpublished internal snapshot labels as public releases.
+verification. The next release keeps that major unless the published
+profiles can no longer run on it as they are: only then is it
+`latest_released_major + 1`, once for the whole release. It does not
+reinterpret the unpublished internal snapshot labels as public releases.

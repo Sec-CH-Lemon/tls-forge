@@ -3,7 +3,7 @@
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
 ```go linenums="0"
-import "github.com/Sec-CH-Lemon/tls-forge/v2/proxy"
+import "github.com/Sec-CH-Lemon/tls-forge/proxy"
 ```
 
 Package proxy is an HTTP proxy that re-originates every request with a browser's TLS fingerprint.

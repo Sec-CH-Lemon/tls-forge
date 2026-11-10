@@ -9,7 +9,7 @@ import (
 	tc "github.com/igor-lemon/tls-client"
 	"github.com/quic-go/qpack"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // A Cookie goes over HTTP/3 a field a crumb, as quiche's

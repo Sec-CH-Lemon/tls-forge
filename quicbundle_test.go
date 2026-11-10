@@ -19,7 +19,7 @@ import (
 	"github.com/igor-lemon/quic-go-utls/quicvarint"
 	tls "github.com/igor-lemon/utls"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // How a Chrome profile's HTTP/3 client puts its writes in packets, as

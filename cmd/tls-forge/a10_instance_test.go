@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 	"net/http"
 	"net/http/httptest"
 	"os"

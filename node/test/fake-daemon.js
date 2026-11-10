@@ -208,8 +208,8 @@ const protocols = {
   '': (request) => {
     const capabilities = (process.env.TLSFORGE_TEST_CAPABILITIES ?? 'browser_context,engine_major,catalogue_json_v1,network_hints_estimator_v1,network_context_v1').split(',').filter(Boolean);
     const engine_major = process.env.TLSFORGE_TEST_ENGINE_MAJOR;
-    const identity = { protocol: 3, version: process.env.TLSFORGE_TEST_ENGINE_VERSION ?? '2.0.0', ...(capabilities.length ? { capabilities } : {}) };
-    if (engine_major !== 'missing') identity.engine_major = engine_major === undefined ? 2 : JSON.parse(engine_major);
+    const identity = { protocol: 3, version: process.env.TLSFORGE_TEST_ENGINE_VERSION ?? '1.1.0', ...(capabilities.length ? { capabilities } : {}) };
+    if (engine_major !== 'missing') identity.engine_major = engine_major === undefined ? 1 : JSON.parse(engine_major);
     write(blank(request, identity));
   },
   1: (request) => write(blank(request, { error: 'bad request: no url' })),
@@ -220,7 +220,7 @@ const protocols = {
   'bad-capabilities': (request) => write(blank(request, { protocol: 2, capabilities: [7] })),
   'no-capabilities': (request) => write(blank(request, { protocol: 2, capabilities: 'all' })),
   low: (request) => write(blank(request, { protocol: 1 })),
-  newer: (request) => write(blank(request, { protocol: 7, engine_major: 2, version: '2.0.0', capabilities: ['browser_context', 'teleport', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'] })),
+  newer: (request) => write(blank(request, { protocol: 7, engine_major: 1, version: '1.1.0', capabilities: ['browser_context', 'teleport', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'] })),
   silent: () => {},
   exit: () => process.exit(3),
 };

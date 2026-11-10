@@ -24,7 +24,7 @@ import (
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/net/dns/dnsmessage"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // HTTP/3 where a name's HTTPS record names h3, as Chrome 155 goes over it

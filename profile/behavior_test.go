@@ -14,7 +14,7 @@ import (
 )
 
 func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) {
-	old := &Profile{EngineMajor: Major(2), Name: "chrome_custom", Base: "chrome_133"}
+	old := &Profile{EngineMajor: Major(1), Name: "chrome_custom", Base: "chrome_133"}
 	prepared, err := old.Migrate("chrome_custom_current")
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +52,7 @@ func TestBehaviorIsExplicitAfterMigrationAndIndependentOfIdentity(t *testing.T) 
 	if again.Behavior.Int("tls.handshake_retries") != 0 {
 		t.Fatal("profile-only edit lost in round trip")
 	}
-	fresh := &Profile{EngineMajor: Major(2), Schema: 3, Name: "chrome", Base: "chrome_133", Behavior: map[string]json.RawMessage{}}
+	fresh := &Profile{EngineMajor: Major(1), Schema: 3, Name: "chrome", Base: "chrome_133", Behavior: map[string]json.RawMessage{}}
 	if fresh.Chromium() || fresh.ShufflesExtensions() {
 		t.Fatal("schema 3 inferred behavior from chrome name")
 	}
@@ -85,7 +85,7 @@ func TestBehaviorRejectsInvalidDataAndUnavailableCapabilities(t *testing.T) {
 		{`,"behavior":{"h1.missing_status":1000}`, "three digits"},
 		{`,"behavior":{"http.content_codings":["unimplemented-codec"]}`, "API is unavailable"},
 	} {
-		raw := `{"engine_major":2,"schema":3,"name":"neutral","base":"chrome_133"` + tc.body + `}`
+		raw := `{"engine_major":1,"schema":3,"name":"neutral","base":"chrome_133"` + tc.body + `}`
 		_, err := Load([]byte(raw))
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("%s: %v, want %q", raw, err, tc.want)
@@ -1011,12 +1011,12 @@ func TestARuntimeBehaviorIsTheProfilesOwnOrTheLegacyData(t *testing.T) {
 	// Before schema 3 a Chromium profile reads the frozen legacy data, which
 	// answers Negotiate on Windows alone; schema 3 says its own or has none.
 	for platform, negotiates := range map[string]bool{"windows": true, "macos": false, "linux": false} {
-		old := &Profile{EngineMajor: Major(2), Schema: 2, Name: "chrome_155_" + platform}
+		old := &Profile{EngineMajor: Major(1), Schema: 2, Name: "chrome_155_" + platform}
 		if got := old.RuntimeBehavior().Flag("http.negotiate_auth"); got != negotiates {
 			t.Errorf("%s: negotiates %v, want %v", platform, got, negotiates)
 		}
 	}
-	if (&Profile{EngineMajor: Major(2), Schema: 3, Name: "chrome_155_windows"}).RuntimeBehavior() != nil {
+	if (&Profile{EngineMajor: Major(1), Schema: 3, Name: "chrome_155_windows"}).RuntimeBehavior() != nil {
 		t.Error("a schema 3 profile without its own data has one")
 	}
 }
@@ -1051,7 +1051,7 @@ func TestAProfileWithoutAFieldThisEngineReadsIsRefused(t *testing.T) {
 		}
 	}
 	// Without its own behavior a schema 3 profile is neither worn nor saved.
-	bare := &Profile{EngineMajor: Major(2), Schema: 3, Name: "neutral", Base: "chrome_133"}
+	bare := &Profile{EngineMajor: Major(1), Schema: 3, Name: "neutral", Base: "chrome_133"}
 	if _, err := bare.ClientProfile(); err == nil || !strings.Contains(err.Error(), "requires an explicit behavior") {
 		t.Errorf("worn: %v", err)
 	}

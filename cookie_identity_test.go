@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 	fhttp "github.com/igor-lemon/fhttp"
 	"github.com/igor-lemon/fhttp/cookiejar"
 	"golang.org/x/net/dns/dnsmessage"

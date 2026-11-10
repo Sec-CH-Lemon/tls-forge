@@ -3,7 +3,7 @@
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
 ```go linenums="0"
-import tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+import tlsforge "github.com/Sec-CH-Lemon/tls-forge"
 ```
 
 Package tlsforge is an HTTP client whose TLS and HTTP/2 fingerprints are a real browser's.
@@ -469,7 +469,7 @@ fmt.Println(tlsforge.Version(), tlsforge.EngineMajor())
 ```
 
 ```text title="Response" linenums="0"
-2.0.0 2
+1.1.0 1
 ```
 
 </div>

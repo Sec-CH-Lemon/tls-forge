@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/fingerprint"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
 // Rendering the comparison as a diff.

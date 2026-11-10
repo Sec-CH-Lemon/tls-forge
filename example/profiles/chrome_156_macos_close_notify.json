@@ -1,6 +1,6 @@
 {
   "schema": 4,
-  "engine_major": 2,
+  "engine_major": 1,
   "behavior": {
     "cache.delta_seconds_limit": 4294967295,
     "cache.duplicate_freshness_policy": "first",
@@ -1656,5 +1656,5 @@
       "unknown_ect": "unknown"
     }
   },
-  "notes": "captured 2026-11-08T08:39:34Z from Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_156_macos (unmeasured policies inherited)\nA12 owner-selected explicit variant: tls.close_notify=true, made of profile/data/chrome_156/macos.json SHA-256 8bb2fcd645120b470790ba8586823ecbe4688d3b478740cf4b6b25f8a384d9a8. Closing differs from measured Chrome; this single policy does not establish full RFC compliance.\nExplicit engine migration to 2.0.0 (major 2) from profile \"chrome_156_macos_close_notify\"; capture provenance retained; browser acceptance must be rechecked."
+  "notes": "captured 2026-11-08T08:39:34Z from Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_156_macos (unmeasured policies inherited)\nA12 owner-selected explicit variant: tls.close_notify=true, made of profile/data/chrome_156/macos.json SHA-256 8bb2fcd645120b470790ba8586823ecbe4688d3b478740cf4b6b25f8a384d9a8. Closing differs from measured Chrome; this single policy does not establish full RFC compliance."
 }

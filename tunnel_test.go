@@ -668,9 +668,9 @@ func TestAProxyHandshakeOfAProfileThisEngineDoesNotRunIsNotMade(t *testing.T) {
 	u, _ := url.Parse(via.url())
 	d := newConnectDialer(u, time.Second, nil, nil)
 	other := shippedProfile(t, "chrome_155_macos").Clone()
-	*other.EngineMajor = 1
+	*other.EngineMajor = 2
 	d.identity.profile = other
-	if _, err := d.reach(context.Background(), "tcp"); err == nil || !strings.Contains(err.Error(), "engine_major 1") {
+	if _, err := d.reach(context.Background(), "tcp"); err == nil || !strings.Contains(err.Error(), "engine_major 2") {
 		t.Errorf("reach: %v", err)
 	}
 	if got := via.tunnels.Load(); got != 0 {

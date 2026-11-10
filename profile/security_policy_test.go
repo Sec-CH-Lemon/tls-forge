@@ -130,7 +130,7 @@ func mustSave(t *testing.T, p *Profile) []byte {
 // add, not Save's. One this engine runs saves what it runs with.
 func TestSavingAnOldArchiveAddsNoRuleOfThisEngine(t *testing.T) {
 	for _, name := range []string{"chrome_155_macos", "chrome_155_windows", "firefox_148"} {
-		for _, major := range []*int{nil, Major(0), Major(1)} {
+		for _, major := range []*int{nil, Major(0), Major(2)} {
 			said := "no major"
 			if major != nil {
 				said = fmt.Sprintf("major %d", *major)

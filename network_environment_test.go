@@ -2,7 +2,7 @@ package tlsforge
 
 import (
 	"encoding/json"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/networkquality"
+	"github.com/Sec-CH-Lemon/tls-forge/networkquality"
 	"os"
 	"strings"
 	"testing"

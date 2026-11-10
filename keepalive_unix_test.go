@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // probing is how the system probes conn while idle: whether it does, after

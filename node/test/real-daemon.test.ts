@@ -216,7 +216,7 @@ test('a proxy the real Go daemon turns down says why without its password', { sk
   // starts it: its answer to the init line and its last words, read here to
   // the end.
   const started = spawnSync(binary!, ['daemon', '--proxy-stdin'], {
-    input: JSON.stringify({ id: 1, engine_major: 2, control: 'init', proxy: 'http://alice:s3cret-never-shown@[bad' }) + '\n',
+    input: JSON.stringify({ id: 1, engine_major: 1, control: 'init', proxy: 'http://alice:s3cret-never-shown@[bad' }) + '\n',
     encoding: 'utf8',
   });
   assert.equal(started.status, 1, started.stderr);
@@ -252,7 +252,7 @@ test('the real Go daemon reads a request as long as the limit, and keeps its ses
     // navigation typed into the address bar, which posts nothing.
     const browserContext: BrowserContext = { kind: 'fetch', initiator: `${base}/` };
     const overhead = Buffer.byteLength(JSON.stringify({
-      url, body: '', method: 'POST', browser: browserContext, id: 3, engine_major: 2,
+      url, body: '', method: 'POST', browser: browserContext, id: 3, engine_major: 1,
     }) + '\n');
     const body = 'x'.repeat(MAX_REQUEST_BYTES - overhead);
     await client.post(url, body, { browserContext });
@@ -311,7 +311,7 @@ test('the real Go daemon applies a browser context, CORS and all', { skip: !bina
   try {
     const base = `http://127.0.0.1:${portOf(page.server)}`;
     const elsewhere = `http://127.0.0.1:${portOf(other.server)}`;
-    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 2, version: '2.0.0' });
+    assert.deepEqual(await client.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.1.0' });
     const from = `${base}/page`;
     const response = await client.get(`${base}/api`, { browserContext: { kind: 'fetch', initiator: from } });
     assert.equal(response.status, 200);

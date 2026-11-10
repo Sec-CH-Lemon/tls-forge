@@ -19,8 +19,8 @@ import (
 	"github.com/igor-lemon/quic-go-utls/http3"
 	utls "github.com/igor-lemon/utls"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/localhost"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/localhost"
 )
 
 // A request URL with a password fetch refuses is said without it, however it

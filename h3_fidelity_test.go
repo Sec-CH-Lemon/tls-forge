@@ -19,7 +19,7 @@ import (
 	tc "github.com/igor-lemon/tls-client"
 	tls "github.com/igor-lemon/utls"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/localhost"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/localhost"
 )
 
 // Both transports reach the same owned origin. The TCP listener makes a losing

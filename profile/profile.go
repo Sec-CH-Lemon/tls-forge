@@ -16,7 +16,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/engine"
+	"github.com/Sec-CH-Lemon/tls-forge/engine"
 	"github.com/igor-lemon/utls/behavior"
 	rand "math/rand/v2"
 	"slices"

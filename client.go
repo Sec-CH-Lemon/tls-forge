@@ -50,9 +50,9 @@ import (
 	tls_client "github.com/igor-lemon/tls-client"
 	"golang.org/x/net/publicsuffix"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/conntap"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/redact"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/conntap"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/profile"
 )
 
 // Client is an HTTP client wearing one browser's fingerprint.

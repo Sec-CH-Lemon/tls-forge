@@ -13,7 +13,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/v2/engine"
+	"github.com/Sec-CH-Lemon/tls-forge/engine"
 	"io"
 	"net"
 	"os"
@@ -24,12 +24,12 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
 )
 
 // version is stamped at build time:
 //
-//	go build -ldflags "-X main.version=v2.0.0"
+//	go build -ldflags "-X main.version=v1.1.0"
 //
 // Keep the variable linker-addressable. A computed initializer would silently
 // overwrite -X at startup and hide a misleading stamp instead of rejecting it.

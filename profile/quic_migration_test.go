@@ -13,7 +13,7 @@ func TestQUICMigrationRejectsInvalidPinnedData(t *testing.T) {
 	t.Cleanup(func() { quicMigrationData = original })
 	for _, tc := range []struct{ name, data, want string }{
 		{"syntax", `{`, "unexpected end of JSON input"},
-		{"major", strings.Replace(string(original), `"engine_major": 2`, `"engine_major": 1`, 1), "engine_major 1"},
+		{"major", strings.Replace(string(original), `"engine_major": 1`, `"engine_major": 2`, 1), "engine_major 2"},
 		{"cache source", strings.Replace(string(original), `"tcp-utls-psk"`, `"captured-ticket"`, 1), "cache migration source"},
 		{"generation", strings.ReplaceAll(string(original), `"fixed"`, `"unknown"`), "raw TLS generation order"},
 	} {

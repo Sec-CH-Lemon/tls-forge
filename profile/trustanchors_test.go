@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/v2/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 )
 
 func TestATrustAnchorListInByteOrderGoesOutAsCaptured(t *testing.T) {
@@ -90,7 +90,7 @@ func TestMalformedTrustAnchorPayloadsAreRejected(t *testing.T) {
 	// A captured hello's list is uTLS's to read, which refuses it as it
 	// reads the hello.
 	raw := withRawExtension(t, chromeHelloBytes(t), fingerprint.ExtTrustAnchors, nil)
-	if _, err := executableTLSFixture(t, &Profile{EngineMajor: Major(2), Name: "malformed", ClientHello: raw}).Spec(); err == nil ||
+	if _, err := executableTLSFixture(t, &Profile{EngineMajor: Major(1), Name: "malformed", ClientHello: raw}).Spec(); err == nil ||
 		!strings.Contains(err.Error(), `profile "malformed": tls: unable to read trust anchors extension data`) {
 		t.Errorf("profile error = %v", err)
 	}
