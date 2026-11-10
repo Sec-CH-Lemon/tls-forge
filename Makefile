@@ -114,6 +114,7 @@ workflows-check:
 	$(GO) test -race scripts/a8-h3-peer.go scripts/a8-h3-peer_test.go -count=1
 	python3 -m unittest discover -s scripts -p test_capture_artifacts.py
 	python3 -m unittest discover -s scripts -p test_chrome_archive.py
+	python3 -m unittest discover -s scripts -p test_fork_sync.py
 	node --test --experimental-test-coverage \
 		--test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 \
 		--test-coverage-include='scripts/check-actions.mjs' scripts/check-actions.test.mjs
