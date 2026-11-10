@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/harness"
 )
 
 func TestRecordingRefusesPartialOrUnfinishedEvidence(t *testing.T) {

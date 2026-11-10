@@ -71,6 +71,10 @@ func keptCopy(rows map[string]recapture, path string) ([]byte, error) {
 	}
 	if current, err := os.ReadFile("../" + path); err != nil {
 		return nil, err
+	} else if m, err := readEngine2Migration(); err != nil {
+		return nil, err
+	} else if current, err = undoEngine2(current, m); err != nil {
+		return nil, err
 	} else if bytes.Equal(current, raw) {
 		return nil, fmt.Errorf("%s is kept as it still is", path)
 	}
@@ -87,17 +91,14 @@ func keptBytes(t *testing.T, path string) []byte {
 }
 
 // chainBytes is what the layers of provenance before a capture end on: the
-// kept copy of a file the capture replaced, else the file itself.
+// kept copy of a file the capture replaced, else the file itself as engine 1
+// had it (the migration to engine 2 undone).
 func chainBytes(t *testing.T, path string) []byte {
 	t.Helper()
 	if _, ok := recaptures(t)[path]; ok {
 		return keptBytes(t, path)
 	}
-	raw, err := os.ReadFile("../" + path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return raw
+	return engine1Bytes(t, path)
 }
 
 func TestEveryFileACaptureReplacedIsKeptAsItWas(t *testing.T) {
@@ -128,10 +129,7 @@ func TestEveryFileACaptureReplacedIsKeptAsItWas(t *testing.T) {
 		if _, err := keptCopy(changed, path); err == nil {
 			t.Fatal("a copy of other bytes was taken for the one recorded")
 		}
-		current, err := os.ReadFile("../" + path)
-		if err != nil {
-			t.Fatal(err)
-		}
+		current := engine1Bytes(t, path)
 		dir := t.TempDir()
 		if err := os.WriteFile(filepath.Join(dir, "same"), current, 0o600); err != nil {
 			t.Fatal(err)
@@ -146,11 +144,11 @@ func TestEveryFileACaptureReplacedIsKeptAsItWas(t *testing.T) {
 		t.Fatal("a file never replaced has a kept copy")
 	}
 	for _, bad := range []string{
-		`{"schema":1,"engine_major":1,"files":[{"path":"x","kept_file":"provenance/recaptured/a.json.txt","sha256":"b","why":"y"}]}`,
-		`{"schema":1,"engine_major":1,"files":[{"path":"x","kept_file":"provenance/recaptured/a.json.txt","sha256":"a","why":""}]}`,
-		`{"schema":1,"engine_major":1,"files":[{"path":"x","kept_file":"provenance/recaptured/a.json.txt","sha256":"a","why":"y"},{"path":"x","kept_file":"provenance/recaptured/a.json.txt","sha256":"a","why":"y"}]}`,
+		`{"schema":1,"engine_major":2,"files":[{"path":"x","kept_file":"provenance/recaptured/a.json.txt","sha256":"b","why":"y"}]}`,
+		`{"schema":1,"engine_major":2,"files":[{"path":"x","kept_file":"provenance/recaptured/a.json.txt","sha256":"a","why":""}]}`,
+		`{"schema":1,"engine_major":2,"files":[{"path":"x","kept_file":"provenance/recaptured/a.json.txt","sha256":"a","why":"y"},{"path":"x","kept_file":"provenance/recaptured/a.json.txt","sha256":"a","why":"y"}]}`,
 		`{"schema":1,"engine_major":2,"files":[{"path":"x","kept_file":"provenance/recaptured/a.json.txt","sha256":"a","why":"y"}]}`,
-		`{"schema":1,"engine_major":1,"files":[]}`,
+		`{"schema":1,"engine_major":2,"files":[]}`,
 		`[]`,
 	} {
 		if _, err := recapturesIn([]byte(bad)); err == nil {

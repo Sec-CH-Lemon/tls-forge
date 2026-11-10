@@ -16,7 +16,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/engine"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/engine"
 	"github.com/igor-lemon/utls/behavior"
 	rand "math/rand/v2"
 	"slices"
@@ -24,7 +24,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
 	"github.com/igor-lemon/fhttp/http2"
 	"github.com/igor-lemon/fhttp/http2/hpack"
 	"github.com/igor-lemon/tls-client/profiles"
@@ -346,17 +345,15 @@ func (p *Profile) Spec() (tls.ClientHelloSpec, error) {
 				if lengths := p.echPayloadLengths(); len(lengths) > 0 {
 					extension.CandidatePayloadLens = slices.Clone(lengths)
 				}
+			case *tls.TrustAnchorsExtension:
+				// uTLS reads trust_anchors into the anchors' IDs, and
+				// refuses a malformed list as it reads the hello: the IDs
+				// go out in the order the profile says.
+				extension.TrustAnchorIDs = processTrustAnchors.ids(extension.TrustAnchorIDs,
+					p.RuntimeBehavior().Text("tls.trust_anchor_order"))
 			case *tls.GenericExtension:
-				if extension.Id != fingerprint.ExtTrustAnchors {
-					return tls.ClientHelloSpec{}, fmt.Errorf(
-						"profile %q: unsupported extension %d", p.Name, extension.Id)
-				}
-				payload, err := processTrustAnchors.payload(extension.Data, p.RuntimeBehavior().Text("tls.trust_anchor_order"))
-				if err != nil {
-					return tls.ClientHelloSpec{}, fmt.Errorf(
-						"profile %q: malformed trust_anchors: %w", p.Name, err)
-				}
-				extension.Data = payload
+				return tls.ClientHelloSpec{}, fmt.Errorf(
+					"profile %q: unsupported extension %d", p.Name, extension.Id)
 			}
 		}
 		if p.RuntimeBehavior().Flag("tls.resumption") {

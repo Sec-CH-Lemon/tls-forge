@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // helloServer answers each ClientHello with a TLS 1.3 ServerHello of these

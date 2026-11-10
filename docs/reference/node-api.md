@@ -535,7 +535,7 @@ console.log(hello.capabilities.includes("browser_context"));
 ```
 
 ```text title="Response" linenums="0"
-3 1 1.0.1
+3 2 2.0.0
 true
 ```
 

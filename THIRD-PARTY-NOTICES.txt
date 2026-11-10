@@ -11,7 +11,7 @@ changes; `go list` below is the source of truth, not this paragraph.
 
 
 --------------------------------------------------------------------------------
-github.com/andybalholm/brotli v1.2.7
+github.com/andybalholm/brotli v1.3.0
 --------------------------------------------------------------------------------
 
 Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors.
@@ -35,7 +35,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 --------------------------------------------------------------------------------
-github.com/andybalholm/cascadia v1.3.3
+github.com/andybalholm/cascadia v1.3.5
 --------------------------------------------------------------------------------
 
 Copyright (c) 2011 Andy Balholm. All rights reserved.
@@ -116,69 +116,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-github.com/cloudflare/circl v1.6.5
---------------------------------------------------------------------------------
-
-Copyright (c) 2019 Cloudflare. All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-   * Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-   * Redistributions in binary form must reproduce the above
-copyright notice, this list of conditions and the following disclaimer
-in the documentation and/or other materials provided with the
-distribution.
-   * Neither the name of Cloudflare nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-========================================================================
-
-Copyright (c) 2009 The Go Authors. All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
-
-   * Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-   * Redistributions in binary form must reproduce the above
-copyright notice, this list of conditions and the following disclaimer
-in the documentation and/or other materials provided with the
-distribution.
-   * Neither the name of Google Inc. nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
---------------------------------------------------------------------------------
-github.com/ebitengine/purego v0.10.2
+github.com/ebitengine/purego v0.11.3
 --------------------------------------------------------------------------------
 
                                  Apache License
@@ -384,7 +322,7 @@ github.com/ebitengine/purego v0.10.2
    limitations under the License.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/fhttp v0.6.10-0.20261108185233-87f7dcb80e8a
+github.com/igor-lemon/fhttp v0.6.10-0.20261110135914-5d69bd7c659e
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
@@ -416,7 +354,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261108185339-bdf1726e3bb4
+github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261110161003-0e5c462cad87
 --------------------------------------------------------------------------------
 
 MIT License
@@ -442,7 +380,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/tls-client v1.15.2-0.20261108185518-110cdf2d923c
+github.com/igor-lemon/tls-client v1.16.1-0.20261110161102-136613e8a44f
 --------------------------------------------------------------------------------
 
 Copyright (c) 2023, Bogdan Finn
@@ -455,10 +393,7 @@ modification, are permitted provided that the following conditions are met:
 2. Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
-3. All advertising materials mentioning features or use of this software
-   must display the following acknowledgement:
-   This product includes software developed by the <organization>.
-4. Neither the name of the <organization> nor the
+3. Neither the name of the copyright holder nor the
    names of its contributors may be used to endorse or promote products
    derived from this software without specific prior written permission.
 
@@ -473,7 +408,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------
-github.com/igor-lemon/utls v1.7.8-barnius.0.20261106190843-4b54ea578c9d
+github.com/igor-lemon/utls v1.7.8-barnius.0.20261110161215-9396ec9ebdf3
 --------------------------------------------------------------------------------
 
 Copyright (c) 2009 The Go Authors. All rights reserved.
@@ -505,7 +440,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/igor-lemon/websocket v1.5.6-barnius.0.20261108185305-c80e48bcc6b6
+github.com/igor-lemon/websocket v1.5.6-barnius.0.20261110135946-205060dc757d
 --------------------------------------------------------------------------------
 
 Copyright (c) 2013 The Gorilla WebSocket Authors. All rights reserved.
@@ -532,7 +467,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-github.com/klauspost/compress v1.20.2
+github.com/klauspost/compress v1.20.4
 --------------------------------------------------------------------------------
 
 Copyright (c) 2012 The Go Authors. All rights reserved.
@@ -976,7 +911,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-golang.org/x/sys v0.49.0
+golang.org/x/sys v0.50.0
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.
@@ -1008,7 +943,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
-golang.org/x/text v0.43.0
+golang.org/x/text v0.44.0
 --------------------------------------------------------------------------------
 
 Copyright 2009 The Go Authors.

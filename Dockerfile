@@ -14,7 +14,7 @@
 # for. Go cross-compiles, so an arm64 image can be produced on an amd64 runner
 # in seconds; letting the builder stage run under emulation instead would mean
 # running the entire Go toolchain through QEMU.
-FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine@sha256:27f2d3b83cfc5803c8078f8e730af0f7c431bf067afaec8f60a36fb763187cba AS build
+FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine@sha256:fa3d596898d9f126af7c01d14ee7597bab3f39cccf392ef36b69fe77cd681f18 AS build
 
 WORKDIR /src
 

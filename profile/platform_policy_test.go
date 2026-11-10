@@ -29,10 +29,7 @@ func TestPlatformPolicyInheritanceKeepsOSChoicesAndProvenance(t *testing.T) {
 		if err := json.Unmarshal(raw, &meta); err != nil {
 			t.Fatal(err)
 		}
-		data, err := os.ReadFile("data/chrome_155/" + platform + ".json")
-		if err != nil {
-			t.Fatal(err)
-		}
+		data := engine1Bytes(t, "profile/data/chrome_155/"+platform+".json")
 		assertA13Derivation(t, "profile/data/chrome_155/"+platform+".json", data, meta.ProfileSHA256)
 		if len(meta.Fields) != 38 {
 			t.Fatalf("shared policy count %d", len(meta.Fields))

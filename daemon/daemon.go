@@ -42,9 +42,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Sec-CH-Lemon/tls-forge"
-	"github.com/Sec-CH-Lemon/tls-forge/engine"
-	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/v2"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/engine"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/redact"
 )
 
 func sortedKeys(m map[string]string) []string {

@@ -358,7 +358,7 @@ func TestTheLimitIsCountedOnWhatABodyDecodesTo(t *testing.T) {
 	// A small body that decodes to an enormous one: what is kept stops at the
 	// limit, however little came over the wire.
 	const limit = 1 << 20
-	bomb := gzipped(t, make([]byte, 32<<20))
+	bomb := gzipped(t, make([]byte, 16<<20))
 	exact := gzipped(t, bytes.Repeat([]byte("a"), limit))
 	over := gzipped(t, bytes.Repeat([]byte("a"), limit+1))
 	server := startCoded(t, true, map[string]coded{

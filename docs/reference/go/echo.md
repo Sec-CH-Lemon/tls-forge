@@ -3,7 +3,7 @@
 Generated from current exported declarations and Go doc comments. See the [package index](../go-api.md).
 
 ```go linenums="0"
-import "github.com/Sec-CH-Lemon/tls-forge/echo"
+import "github.com/Sec-CH-Lemon/tls-forge/v2/echo"
 ```
 
 Package echo is a local HTTPS server that tells every client what it just sent.

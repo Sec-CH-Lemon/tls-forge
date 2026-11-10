@@ -1,6 +1,6 @@
 {
   "schema": 4,
-  "engine_major": 1,
+  "engine_major": 2,
   "behavior": {
     "cache.delta_seconds_limit": 4294967295,
     "cache.duplicate_freshness_policy": "first",
@@ -1654,5 +1654,5 @@
       "unknown_ect": "unknown"
     }
   },
-  "notes": "captured 2026-11-08T08:42:36Z from Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_156_windows (unmeasured policies inherited)\nA12 owner-selected explicit variant: tls.close_notify=true, made of profile/data/chrome_156/windows.json SHA-256 e630d0eb6e01126b6bdab2ae79727de9da2f52aa234bf44f8ef2399ca5393011. Closing differs from measured Chrome; this single policy does not establish full RFC compliance."
+  "notes": "captured 2026-11-08T08:42:36Z from Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36; policy basis: chrome_156_windows (unmeasured policies inherited)\nA12 owner-selected explicit variant: tls.close_notify=true, made of profile/data/chrome_156/windows.json SHA-256 e630d0eb6e01126b6bdab2ae79727de9da2f52aa234bf44f8ef2399ca5393011. Closing differs from measured Chrome; this single policy does not establish full RFC compliance.\nExplicit engine migration to 2.0.0 (major 2) from profile \"chrome_156_windows_close_notify\"; capture provenance retained; browser acceptance must be rechecked."
 }

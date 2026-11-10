@@ -3,7 +3,7 @@ package tlsforge
 import (
 	"errors"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/redact"
 	"github.com/igor-lemon/utls/behavior"
 	"math"
 	"net/netip"

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
 )
 
 // cp1251 is «Цена» in windows-1251, which as UTF-8 is not those letters at all.

@@ -2,7 +2,7 @@ package profile
 
 import (
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/engine"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/engine"
 	"github.com/igor-lemon/utls/behavior"
 	"slices"
 )

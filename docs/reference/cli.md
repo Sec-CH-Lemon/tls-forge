@@ -469,7 +469,7 @@ tls-forge version
 ```
 
 ```text title="Response" linenums="0"
-tls-forge v1.0.1
+tls-forge v2.0.0
 ```
 
 </div>

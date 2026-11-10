@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // An HTTP/1.1 answer whose chunked body ends its lines in LF alone is read as

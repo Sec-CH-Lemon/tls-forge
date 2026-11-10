@@ -11,7 +11,7 @@ import (
 	"github.com/igor-lemon/quic-go-utls/qlog"
 	"github.com/igor-lemon/quic-go-utls/quicvarint"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // How a Chrome profile's QUIC client acknowledges a long download, as Chrome

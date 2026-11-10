@@ -1,27 +1,27 @@
 {
   "schema": 1,
   "scope": "F09 stage2: all109 original obligations resolved with required positive witnesses; original records remain immutable in fork-obligations.json. No known-failure allowances or invocation exclusions. Full A11 root/native acceptance is tracked separately.",
-  "platform": "macOS27.0.1 arm64; pinned go1.26.10 from root go.mod; owned loopback peers; GOWORK=off; full modules retained and linked production versions compared.",
+  "platform": "macOS27.0.1 arm64; pinned go1.27.3 from root go.mod; owned loopback peers; GOWORK=off; full modules retained and linked production versions compared.",
   "forks": {
     "utls": {
       "module": "github.com/igor-lemon/utls",
       "repository": "https://github.com/igor-lemon/utls",
-      "commit": "4b54ea578c9d8f21ad0552b0cdc76db91ce3214e"
+      "commit": "9396ec9ebdf36c424b5d04e3104caf87d4b9b5be"
     },
     "fhttp": {
       "module": "github.com/igor-lemon/fhttp",
       "repository": "https://github.com/igor-lemon/fhttp",
-      "commit": "87f7dcb80e8a539aeb5a0b6ea3ba5597216c32c6"
+      "commit": "5d69bd7c659e4b1d926eabbde3e6db05e88ce4cd"
     },
     "tls-client": {
       "module": "github.com/igor-lemon/tls-client",
       "repository": "https://github.com/igor-lemon/tls-client",
-      "commit": "110cdf2d923c2bd9891e688000fe567e8a3dd4c1"
+      "commit": "136613e8a44f1d922df4b2714e3fc2f3b26535d1"
     },
     "quic-go-utls": {
       "module": "github.com/igor-lemon/quic-go-utls",
       "repository": "https://github.com/igor-lemon/quic-go-utls",
-      "commit": "bdf1726e3bb4b85f7da72dabc1fc1e7321825670"
+      "commit": "0e5c462cad87c0aa504ac6e0b9547a48f5589627"
     }
   },
   "known_failures": [],

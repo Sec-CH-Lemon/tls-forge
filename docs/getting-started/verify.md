@@ -7,7 +7,7 @@ tls-forge version
 tls-forge profiles
 ```
 
-Release 1.0.1 reports `v1.0.1`. `profiles` lists identities available to this executable. The `chrome` alias resolves to the newest bundled Chrome profile for the host platform; pin an exact profile name when a reproducible identity matters.
+Engine 2.0.0 reports `v2.0.0`; the latest release, 1.0.1, reports `v1.0.1`. `profiles` lists identities available to this executable. The `chrome` alias resolves to the newest bundled Chrome profile for the host platform; pin an exact profile name when a reproducible identity matters.
 
 ## Make one request
 

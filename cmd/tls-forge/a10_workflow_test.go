@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // Old measurements describe one browser across several requests. Select that

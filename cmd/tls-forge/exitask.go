@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
 )
 
 // Where a request came out, when its proxy did not say it as an address.

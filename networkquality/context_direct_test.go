@@ -7,7 +7,7 @@ import (
 )
 
 func TestDirectNetworkDecoderRejectsMalformedInputAtomically(t *testing.T) {
-	for _, raw := range []string{string([]byte{255}), "", `{`, `{"type":`, `{"type":"wifi" "id":"a"}`, `{"type":"wifi","id":"a","generation":1,"signal":null`, `{"type":"wifi","id":"a","generation":1,"signal":null} {}`} {
+	for _, raw := range []string{string([]byte{255}), "", `{`, `{"type":`, `{"type":"wifi" "id":"a"}`, `{"type":"wifi","id":"a","generation":1,"signal":null`, `{"type":"wifi","id":"a","generation":1,"signal":null]`, `{"type":"wifi","id":"a","generation":1,"signal":null} {}`} {
 		c := Context{Type: "wifi", ID: "unchanged", Generation: 3}
 		before := c.Clone()
 		if err := c.UnmarshalJSON([]byte(raw)); err == nil {

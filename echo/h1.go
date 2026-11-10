@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
 )
 
 // HTTP/1.1, hand-parsed for the same reason as HTTP/2: net/http keeps headers

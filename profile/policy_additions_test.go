@@ -81,7 +81,7 @@ func unwindPolicyAdditions(raw []byte) ([]byte, error) {
 }
 
 func undoPolicyAddition(raw []byte, layer policyAddition, before string) ([]byte, error) {
-	p, err := Load(raw)
+	p, err := Inspect(raw)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func TestPolicyAdditionsPreserveEveryEarlierLayer(t *testing.T) {
 
 		// A field the layers do not name, changed with the hashes made to
 		// match, is not hidden.
-		p, err := Load(raw)
+		p, err := Inspect(raw)
 		if err != nil {
 			t.Fatal(err)
 		}

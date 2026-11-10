@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 type a6Wire struct {

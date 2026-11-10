@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 func TestA12MachineHintsValidateTheirWireValues(t *testing.T) {

@@ -28,7 +28,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 
-	"github.com/Sec-CH-Lemon/tls-forge/internal/localhost"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/localhost"
 )
 
 // Entry is a request as the bytes said it.

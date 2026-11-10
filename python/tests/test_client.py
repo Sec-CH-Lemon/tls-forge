@@ -272,7 +272,7 @@ def test_a_transport_started_again_is_told_its_proxy_again_first(client):
         c.get("https://ok/b")
     after = c.get("https://ok/c").json()
     assert after["pid"] != first["pid"] and after["proxy"] == "http://alice:s3cret@proxy.test:8080"
-    assert c.hello() == tlsforge.Hello(3, ('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), 1, "1.0.1")
+    assert c.hello() == tlsforge.Hello(3, ('browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'), 2, "2.0.0")
 
 
 def test_a_transport_that_refuses_its_arguments_without_a_proxy_says_only_that(client, monkeypatch):
@@ -561,7 +561,7 @@ def _sized(size: int, request_id: int, char: str = "x") -> tuple[str, str]:
     repeated: ASCII a byte each, anything else six, escaped."""
     url = "https://ok/sized"
     encoded = lambda body: (  # noqa: E731 - read in two places just below
-        json.dumps({"id": request_id, "engine_major": 1, "method": "POST", "url": url, "body": body}, separators=(",", ":")) + "\n"
+        json.dumps({"id": request_id, "engine_major": 2, "method": "POST", "url": url, "body": body}, separators=(",", ":")) + "\n"
     )
     overhead = len(encoded(""))
     each = len(encoded(char)) - overhead

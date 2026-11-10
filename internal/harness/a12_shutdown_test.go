@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // This owned TLS peer authenticates records with its negotiated application

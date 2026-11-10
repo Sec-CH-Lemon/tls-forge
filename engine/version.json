@@ -1,6 +1,6 @@
 {
-  "version": "1.0.1",
+  "version": "2.0.0",
   "latest_released_version": "1.0.1",
-  "release_status": "released",
-  "pending_engine_change": false
+  "release_status": "unreleased",
+  "pending_engine_change": true
 }

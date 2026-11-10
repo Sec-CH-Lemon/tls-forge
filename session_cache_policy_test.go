@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // shippedChrome names the 21 Chrome profiles tls-forge ships.

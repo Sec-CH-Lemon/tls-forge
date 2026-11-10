@@ -11,7 +11,7 @@ import (
 	quic "github.com/igor-lemon/quic-go-utls"
 	"github.com/igor-lemon/quic-go-utls/qlog"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // How long a Chrome profile's QUIC client waits before it acknowledges a

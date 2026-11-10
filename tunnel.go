@@ -21,8 +21,8 @@ import (
 	"github.com/igor-lemon/utls/behavior"
 	"golang.org/x/net/proxy"
 
-	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // Through an HTTP proxy, a request is a tunnel. The client asks the proxy to

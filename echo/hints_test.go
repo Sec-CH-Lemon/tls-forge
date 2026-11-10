@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 func TestTheCapturePageAsksForEveryClientHintAServerAsksFor(t *testing.T) {

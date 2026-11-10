@@ -2,7 +2,7 @@ package tlsforge
 
 import (
 	"encoding/json"
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 	"os"
 	"reflect"
 	"slices"

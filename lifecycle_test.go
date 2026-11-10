@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/internal/conntap"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/conntap"
 )
 
 // lifecycleServer is a TLS server of h2 or HTTP/1.1 alone that says when each

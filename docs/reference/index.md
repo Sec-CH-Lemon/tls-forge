@@ -8,7 +8,7 @@
   </div>
   <div class="tf-api-panel">
     <span class="tf-api-panel__label">CURRENT SOURCE</span>
-    <code>1.0.1 · engine 1 · schema 4</code>
+    <code>2.0.0 · engine 2 · schema 4</code>
     <p>Unreleased on <code>development</code>. Use a matching binary, SDK, and executable profile.</p>
   </div>
 </div>

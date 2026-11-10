@@ -87,11 +87,15 @@ func TestChromeRetriesAProtocolFailureBeforeSendingHTTP(t *testing.T) {
 			for i := int32(0); i < bad && i < 2; i++ {
 				select {
 				case a := <-ln.alerts:
-					if a[0] != 21 || a[5] != 2 || a[6] != 10 {
-						t.Fatalf("wrong fatal unexpected_message: %x", a)
+					// decode_error, as BoringSSL says of a ServerHello it
+					// cannot read (ssl_parse_server_hello), and as uTLS
+					// says since it took crypto/tls's rule (before:
+					// unexpected_message, 10): Chrome retries either.
+					if a[0] != 21 || a[5] != 2 || a[6] != 50 {
+						t.Fatalf("wrong fatal decode_error: %x", a)
 					}
 				case <-time.After(time.Second):
-					t.Fatal("no actual unexpected_message alert")
+					t.Fatal("no actual decode_error alert")
 				}
 			}
 		})

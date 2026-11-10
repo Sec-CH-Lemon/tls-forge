@@ -16,7 +16,7 @@ import (
 
 	utls "github.com/igor-lemon/utls"
 
-	"github.com/Sec-CH-Lemon/tls-forge/internal/redact"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/redact"
 )
 
 // A pool belongs to one proxy and top-level site. Origin credential modes

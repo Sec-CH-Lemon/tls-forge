@@ -85,11 +85,11 @@ func undoHintBuildDerivation(raw []byte, row hintBuildDerivation) ([]byte, error
 	if a13SHA(before) != row.BeforeSHA {
 		return nil, fmt.Errorf("hint-build before bytes differ")
 	}
-	old, err := Load(before)
+	old, err := Inspect(before)
 	if err != nil {
 		return nil, err
 	}
-	current, err := Load(raw)
+	current, err := Inspect(raw)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func TestReleaseHintBuildsPreserveEveryEarlierProvenanceLayer(t *testing.T) {
 		if err != nil || a13SHA(before) != network[path].AfterSHA {
 			t.Fatal("historical layers changed", path, err)
 		}
-		current, err := Load(raw)
+		current, err := Inspect(raw)
 		if err != nil {
 			t.Fatal(err)
 		}

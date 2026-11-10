@@ -1,5 +1,5 @@
 {
-  "engine_major": 1,
+  "engine_major": 2,
   "provenance": "Explicit migration candidate defaults: source export uTLS8bfa7fe / QUIC0c35ebb0, not a browser capture; reacceptance required",
   "independent": {
     "behavior": {

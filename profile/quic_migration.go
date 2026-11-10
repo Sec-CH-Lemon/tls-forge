@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/engine"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/engine"
 	tls "github.com/igor-lemon/utls"
 	"github.com/igor-lemon/utls/behavior"
 )
@@ -62,6 +62,13 @@ func (p *Profile) migrateQUICData(sourceChromium bool) error {
 	if m.CacheSource != "tcp-utls-psk" {
 		return fmt.Errorf("unsupported QUIC cache migration source %q", m.CacheSource)
 	}
+	// What the profile said before: the note below is for a profile the
+	// candidate defaults filled in, not one whose QUIC data is its own.
+	said := func() string {
+		data, _ := json.Marshal([]any{p.Behavior, p.PerConnection, p.QUICTLSSpec})
+		return string(data)
+	}
+	before := said()
 	if len(p.ClientHello) > 0 && p.TLSSpec == nil && p.PerConnection == nil {
 		generation := m.RawTCP.Generic
 		// This is explicit migration of an archived legacy format, not execution.
@@ -131,6 +138,8 @@ func (p *Profile) migrateQUICData(sourceChromium bool) error {
 			p.QUICTLSSpec = m.Independent.Cached.clone()
 		}
 	}
-	p.Notes += "\nQUIC migration candidate: " + m.Provenance
+	if said() != before {
+		p.Notes += "\nQUIC migration candidate: " + m.Provenance
+	}
 	return nil
 }

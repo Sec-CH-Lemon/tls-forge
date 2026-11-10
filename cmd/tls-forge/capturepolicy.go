@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Sec-CH-Lemon/tls-forge/capture"
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 func capturePolicyBasis(measured *capture.Capture, explicit string) (*profile.Profile, error) {

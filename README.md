@@ -25,8 +25,9 @@ only inside that request.
 **Documentation:** installation, guides, integrations and generated API and CLI
 references are in [`docs/`](docs/index.md) and at <https://tls-forge.com/docs/>.
 
-**Release status:** this README describes release **1.0.1**, which the
-release binaries, Homebrew, npm, PyPI and Docker install. See
+**Release status:** this README describes engine **2.0.0**, not yet
+released. The latest release, which the release binaries, Homebrew, npm, PyPI
+and Docker install, is 1.0.1 (Go module path without `/v2`). See
 [release status](docs/support/release-status.md).
 
 ## What is a TLS fingerprint?
@@ -104,10 +105,10 @@ granting it.
 
 ### Go install
 
-With Go 1.26.10 or newer:
+With Go 1.27.3 or newer:
 
 ```bash
-go install github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge@latest
+go install github.com/Sec-CH-Lemon/tls-forge/v2/cmd/tls-forge@latest
 ```
 
 The binary is written to `$(go env GOPATH)/bin` unless `GOBIN` is set.
@@ -135,7 +136,7 @@ image, which contains no browser.
 
 ## Build from source
 
-Requirements: Go 1.26.10 or newer, and Git and Make for the standard build.
+Requirements: Go 1.27.3 or newer, and Git and Make for the standard build.
 
 ```bash
 git clone https://github.com/Sec-CH-Lemon/tls-forge.git
@@ -152,7 +153,7 @@ toolchain:
 
 ```bash
 CGO_ENABLED=0 go build -trimpath \
-  -ldflags "-s -w -X main.version=v1.0.1" \
+  -ldflags "-s -w -X main.version=v2.0.0" \
   -o tls-forge ./cmd/tls-forge
 
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
@@ -372,7 +373,7 @@ lifecycle rule and failure.
 ### Go
 
 ```bash
-go get github.com/Sec-CH-Lemon/tls-forge
+go get github.com/Sec-CH-Lemon/tls-forge/v2
 ```
 
 ```go
@@ -382,7 +383,7 @@ import (
 	"fmt"
 	"log"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
 )
 
 func main() {

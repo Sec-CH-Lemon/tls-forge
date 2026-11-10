@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/networkquality"
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/networkquality"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 	fhttp "github.com/igor-lemon/fhttp"
 	tc "github.com/igor-lemon/tls-client"
 )

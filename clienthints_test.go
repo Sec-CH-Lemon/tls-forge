@@ -8,7 +8,7 @@ import (
 
 	fhttp "github.com/igor-lemon/fhttp"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 func TestTheHintsAnAcceptCHNames(t *testing.T) {

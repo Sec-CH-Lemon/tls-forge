@@ -1,26 +1,27 @@
 # TLS Forge for Go
 
-## Engine/profile compatibility (1.0.1)
+## Engine/profile compatibility (2.0.0)
 
-The compiled engine version is **1.0.1**, independently of the browser build and
+The compiled engine version is **2.0.0**, independently of the browser build and
 profile format **schema 4**. Every executable profile must declare the exact,
-non-negative integer `engine_major: 1`. Engines reject profiles from both older
+non-negative integer `engine_major: 2`. Engines reject profiles from both older
 and newer majors, including files with no declaration. Schema, filename, browser
 name, User-Agent and catalogue fallback cannot supply compatibility implicitly.
 The check runs before request-related DNS, proxy, TCP, TLS or QUIC I/O.
 
 ```json
-{"schema": 4, "engine_major": 1, "name": "my-browser"}
+{"schema": 4, "engine_major": 2, "name": "my-browser"}
 ```
 
 This illustrates metadata only; a complete profile still needs captured TLS/HTTP
 data and the explicit `behavior` object. Browser values and selections stay in
 JSON. Major selection is anchored to the latest published stable release:
 `latest_released_major + 1` for an engine change, once for the whole next release.
-This is release **1.0.1**, engine major 1, after 0.2.2 (1.0.0's release reached
-PyPI alone); the next engine change targets 2.0.0. Existing primitives can be configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
+This is engine **2.0.0**, not yet released: the latest release is 1.0.1, engine
+major 1, and 2.0.0 is the major after it, taken once for the whole next release
+(its own engine changes: the forks laid over bogdanfinn's latest releases). Existing primitives can be configured by JSON without an engine bump. Versioned CLI, daemon and SDK identity
 must agree; `engine/version.json` is the compiled authority. Release builds refuse
-a different version stamp. Go v1 uses the unsuffixed module path; `/v2` starts with major2. The release anchor and pending status are recorded in `engine/version.json`.
+a different version stamp. Major 2's Go module path is `github.com/Sec-CH-Lemon/tls-forge/v2`; 1.0.1's is unsuffixed. The release anchor and pending status are recorded in `engine/version.json`.
 
 `profile.Load` is the execution loader. `profile.Inspect` reads an archive offline
 without declaring it compatible. `Save` and `Clone` preserve the original
@@ -46,7 +47,7 @@ report the compiled identity. Client constructors, transport adapters, the
 registry and `Fresh` enforce it; client/profile clones own their major value.
 
 Daemon protocol **3** reports `engine_major` and `version` on `hello`. Every
-request and proxy `init` line must carry `engine_major: 1`; missing or mismatched
+request and proxy `init` line must carry `engine_major: 2`; missing or mismatched
 metadata is rejected before client execution. Offline `hello` can omit the field.
 Node/Python validate the actual daemon identity before every first request,
 including plain requests, and revalidate a replacement process. An old executable
@@ -65,16 +66,16 @@ echo, profile, capture, cookie, daemon and fingerprint packages.
 
 ## Requirements and installation
 
-Go 1.26.10 or newer is required.
+Go 1.27.3 or newer is required.
 
 ```bash
-go get github.com/Sec-CH-Lemon/tls-forge
+go get github.com/Sec-CH-Lemon/tls-forge/v2
 ```
 
 The import name is `tlsforge`, without the hyphen:
 
 ```go
-import tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+import tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
 ```
 
 No browser is needed to make requests. A Chromium-based browser is needed only
@@ -89,7 +90,7 @@ import (
 	"fmt"
 	"log"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
 )
 
 func main() {
@@ -1391,9 +1392,9 @@ firewall or authenticated tunnel.
 Use `go doc` for the exported data structures in these lower-level packages:
 
 ```bash
-go doc github.com/Sec-CH-Lemon/tls-forge
-go doc github.com/Sec-CH-Lemon/tls-forge/fingerprint
-go doc github.com/Sec-CH-Lemon/tls-forge/profile
+go doc github.com/Sec-CH-Lemon/tls-forge/v2
+go doc github.com/Sec-CH-Lemon/tls-forge/v2/fingerprint
+go doc github.com/Sec-CH-Lemon/tls-forge/v2/profile
 ```
 
 ## Development

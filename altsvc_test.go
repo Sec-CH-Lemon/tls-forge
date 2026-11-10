@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 func TestARequestGoesOverHTTP3ToTheAlternativeItsOriginAdvertisedAsChrome(t *testing.T) {

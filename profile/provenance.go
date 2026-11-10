@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
 )
 
 // FieldOrigin describes provenance, not executable policy or a browser verdict.

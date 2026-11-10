@@ -345,7 +345,7 @@ test('a transport started again is told its proxy again, first', async (t) => {
     const after = JSON.parse((await c.get('https://ok/c')).body);
     assert.notEqual(after.pid, first.pid);
     assert.equal(after.proxy, 'http://alice:s3cret@proxy.test:8080');
-    assert.deepEqual(await c.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 1, version: '1.0.1' });
+    assert.deepEqual(await c.hello(), { protocol: 3, capabilities: ['browser_context', 'engine_major', 'catalogue_json_v1', 'network_hints_estimator_v1', 'network_context_v1'], engine_major: 2, version: '2.0.0' });
   } finally {
     c.close();
   }
@@ -574,11 +574,11 @@ test('a transport that dies while nobody asks it anything tells the next request
 // repeated: ASCII is a byte each, "я" two.
 function sized(size: number, id: number, char = 'x') {
   const url = 'https://ok/sized';
-  const overhead = Buffer.byteLength(JSON.stringify({ url, body: '', method: 'POST', id, engine_major: 1 }) + '\n');
+  const overhead = Buffer.byteLength(JSON.stringify({ url, body: '', method: 'POST', id, engine_major: 2 }) + '\n');
   const each = Buffer.byteLength(char);
   const count = Math.floor((size - overhead) / each);
   const body = char.repeat(count) + 'x'.repeat(size - overhead - count * each);
-  assert.equal(Buffer.byteLength(JSON.stringify({ url, body, method: 'POST', id, engine_major: 1 }) + '\n'), size);
+  assert.equal(Buffer.byteLength(JSON.stringify({ url, body, method: 'POST', id, engine_major: 2 }) + '\n'), size);
   return { url, body };
 }
 

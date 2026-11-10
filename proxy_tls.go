@@ -8,7 +8,7 @@ import (
 	"net"
 	"net/url"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 	utls "github.com/igor-lemon/utls"
 )
 

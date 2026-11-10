@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 
-	"github.com/Sec-CH-Lemon/tls-forge/fingerprint"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/fingerprint"
 )
 
 // A minimal HTTP/2 server, written by hand for one reason: net/http does not

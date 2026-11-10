@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 	"golang.org/x/net/dns/dnsmessage"
 )
 

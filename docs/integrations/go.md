@@ -3,7 +3,7 @@
 The native package supplies `Client`, `Request`, `Response`, client options and measurement APIs. Subpackages provide profiles, captures, cookie files, fingerprint parsing, the echo server, daemon protocol and local proxy. The [generated Go API reference](../reference/go-api.md) lists exported declarations from each package.
 
 ```go title="Go"
-import tlsforge "github.com/Sec-CH-Lemon/tls-forge"
+import tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
 
 client, err := tlsforge.New(
     tlsforge.WithProfile("chrome"),

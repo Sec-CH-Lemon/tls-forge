@@ -17,7 +17,7 @@ func TestChrome156RetainsNativeCaptureProvenance(t *testing.T) {
 	registry.SetDir(t.TempDir())
 	for _, platform := range []string{"macos", "linux", "windows"} {
 		raw := keptBytes(t, "profile/data/chrome_156/"+platform+".json")
-		got, err := Load(raw)
+		got, err := Inspect(raw)
 		if err != nil {
 			t.Fatal(err)
 		}

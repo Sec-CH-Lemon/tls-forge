@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // agentServer answers each request with the User-Agent it came with, which is
@@ -178,7 +178,7 @@ func TestARunDrawsFromTheProfilesKeptHereThatItCanWear(t *testing.T) {
 	// newest Chrome sends it as an XHR of its own page: drawn only when the
 	// requests do not depend on that.
 	keptAs(t, dir, "mine")
-	keptAs(t, dir, "older", `"engine_major": 1`, `"engine_major": 0`)
+	keptAs(t, dir, "older", `"engine_major": 2`, `"engine_major": 0`)
 	keptAs(t, dir, "plain", `"headers.without_context": "typed-navigation"`, `"headers.without_context": "as-given"`)
 	var names []string
 	for _, p := range wearable() {

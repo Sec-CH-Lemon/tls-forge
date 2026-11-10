@@ -15,7 +15,7 @@ import (
 
 	"golang.org/x/net/dns/dnsmessage"
 
-	"github.com/Sec-CH-Lemon/tls-forge/internal/conntap"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/conntap"
 )
 
 // seenConn is a connection as a tap sees it: what went over it, each way.

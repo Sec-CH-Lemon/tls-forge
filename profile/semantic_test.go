@@ -221,7 +221,7 @@ func TestRegistryAndCatalogueCannotBypassSemantics(t *testing.T) {
 		`"http2":{"settings":[{"id":5,"value":1}],"pseudo_header_order":[":method",":authority",":scheme",":path"]}`,
 		`"http2":{"settings":null,"settings":[]}`,
 	} {
-		catalogueTemplate = []byte(`{"entries":{"chrome_133":"x"},"templates":{"x":{"engine_major":1,"name":"template","base":"chrome_133",` + body + `}}}`)
+		catalogueTemplate = []byte(`{"entries":{"chrome_133":"x"},"templates":{"x":{"engine_major":2,"name":"template","base":"chrome_133",` + body + `}}}`)
 		if _, err := NewRegistry().Get("chrome_133"); err == nil {
 			t.Fatal("catalogue bypass", body)
 		}
@@ -270,7 +270,7 @@ func TestOtherSemanticRepresentationBoundaries(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	p = capabilityFixture(t, &Profile{EngineMajor: Major(1), Name: "explicit-legacy", Base: "chrome_133"})
+	p = capabilityFixture(t, &Profile{EngineMajor: Major(2), Name: "explicit-legacy", Base: "chrome_133"})
 	p.HTTP2.ConnectionFlow = 1
 	if err := p.Validate(); err == nil || !strings.Contains(err.Error(), "bare catalogue") {
 		t.Fatal(err)

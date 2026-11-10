@@ -198,7 +198,11 @@ jobs:
           # `config verify` before looking at a single line of Go. Pinning the
           # tool as well keeps a new lint release from turning this job red on a
           # change that had nothing to do with it.
-          version: v2.13.2
+          version: v2.15.0
+          # Built from source by the Go go.mod names: a binary built by an older
+          # Go refuses a module of a newer one, and v2.13.2's x/tools could not
+          # read Go 1.27's export data at all (2026-11-10).
+          install-mode: goinstall
       - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
       - run: actionlint
       # Every action pinned to the commit of a release: a tag or a branch moves,

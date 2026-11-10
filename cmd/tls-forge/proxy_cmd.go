@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
-	"github.com/Sec-CH-Lemon/tls-forge/proxy"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/proxy"
 )
 
 func runProxy(ctx context.Context, args []string, out, errOut *printer) error {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Sec-CH-Lemon/tls-forge/internal/harness"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/internal/harness"
 )
 
 // page is the page the requests a browser sent here came from.

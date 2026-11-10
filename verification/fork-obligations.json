@@ -10308,7 +10308,7 @@
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_1"
+          "test": "TestChromeTrustAnchorsOnTheWire/Chrome_152/run_1"
         }
       ],
       "evidence": {
@@ -10329,7 +10329,28 @@
         ],
         "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
         "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
-      }
+      },
+      "renamed_checks": [
+        {
+          "at": "2026-11-10",
+          "fork_commit": "136613e8a44f1d922df4b2714e3fc2f3b26535d1",
+          "from": [
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedJA4PublishedExample"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_1"
+            }
+          ],
+          "why": "bogdanfinn's tls-client v1.18.0 moved the trust anchor tests to tests/chrome_trust_anchors_test.go as TestChromeTrustAnchors* over Chrome_152_PSK alone; the fork's 136613e8a44f runs those on the wire and against a server over Chrome_152 and Chrome_152_PSK again, each its own subtest, so every witness keeps its profile and run (2026-11-10)."
+        }
+      ]
     },
     {
       "id": "F09-102",
@@ -10384,7 +10405,7 @@
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_2"
+          "test": "TestChromeTrustAnchorsOnTheWire/Chrome_152/run_2"
         }
       ],
       "evidence": {
@@ -10405,7 +10426,28 @@
         ],
         "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
         "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
-      }
+      },
+      "renamed_checks": [
+        {
+          "at": "2026-11-10",
+          "fork_commit": "136613e8a44f1d922df4b2714e3fc2f3b26535d1",
+          "from": [
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedJA4PublishedExample"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_2"
+            }
+          ],
+          "why": "bogdanfinn's tls-client v1.18.0 moved the trust anchor tests to tests/chrome_trust_anchors_test.go as TestChromeTrustAnchors* over Chrome_152_PSK alone; the fork's 136613e8a44f runs those on the wire and against a server over Chrome_152 and Chrome_152_PSK again, each its own subtest, so every witness keeps its profile and run (2026-11-10)."
+        }
+      ]
     },
     {
       "id": "F09-103",
@@ -10460,7 +10502,7 @@
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1"
+          "test": "TestChromeTrustAnchorsOnTheWire/Chrome_152_PSK/run_1"
         }
       ],
       "evidence": {
@@ -10481,7 +10523,28 @@
         ],
         "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
         "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
-      }
+      },
+      "renamed_checks": [
+        {
+          "at": "2026-11-10",
+          "fork_commit": "136613e8a44f1d922df4b2714e3fc2f3b26535d1",
+          "from": [
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedJA4PublishedExample"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1"
+            }
+          ],
+          "why": "bogdanfinn's tls-client v1.18.0 moved the trust anchor tests to tests/chrome_trust_anchors_test.go as TestChromeTrustAnchors* over Chrome_152_PSK alone; the fork's 136613e8a44f runs those on the wire and against a server over Chrome_152 and Chrome_152_PSK again, each its own subtest, so every witness keeps its profile and run (2026-11-10)."
+        }
+      ]
     },
     {
       "id": "F09-104",
@@ -10536,7 +10599,7 @@
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2"
+          "test": "TestChromeTrustAnchorsOnTheWire/Chrome_152_PSK/run_2"
         }
       ],
       "evidence": {
@@ -10557,7 +10620,28 @@
         ],
         "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
         "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
-      }
+      },
+      "renamed_checks": [
+        {
+          "at": "2026-11-10",
+          "fork_commit": "136613e8a44f1d922df4b2714e3fc2f3b26535d1",
+          "from": [
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedJA4PublishedExample"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2"
+            }
+          ],
+          "why": "bogdanfinn's tls-client v1.18.0 moved the trust anchor tests to tests/chrome_trust_anchors_test.go as TestChromeTrustAnchors* over Chrome_152_PSK alone; the fork's 136613e8a44f runs those on the wire and against a server over Chrome_152 and Chrome_152_PSK again, each its own subtest, so every witness keeps its profile and run (2026-11-10)."
+        }
+      ]
     },
     {
       "id": "F09-105",
@@ -10612,23 +10696,23 @@
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsOnTheWire"
+          "test": "TestChromeTrustAnchorsOnTheWire"
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_1"
+          "test": "TestChromeTrustAnchorsOnTheWire/Chrome_152/run_1"
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_2"
+          "test": "TestChromeTrustAnchorsOnTheWire/Chrome_152/run_2"
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1"
+          "test": "TestChromeTrustAnchorsOnTheWire/Chrome_152_PSK/run_1"
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2"
+          "test": "TestChromeTrustAnchorsOnTheWire/Chrome_152_PSK/run_2"
         }
       ],
       "evidence": {
@@ -10649,7 +10733,44 @@
         ],
         "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
         "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
-      }
+      },
+      "renamed_checks": [
+        {
+          "at": "2026-11-10",
+          "fork_commit": "136613e8a44f1d922df4b2714e3fc2f3b26535d1",
+          "from": [
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedJA4PublishedExample"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsOnTheWire"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_1"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsOnTheWire/Chrome_152/run_2"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_1"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsOnTheWire/Chrome_152_PSK/run_2"
+            }
+          ],
+          "why": "bogdanfinn's tls-client v1.18.0 moved the trust anchor tests to tests/chrome_trust_anchors_test.go as TestChromeTrustAnchors* over Chrome_152_PSK alone; the fork's 136613e8a44f runs those on the wire and against a server over Chrome_152 and Chrome_152_PSK again, each its own subtest, so every witness keeps its profile and run (2026-11-10)."
+        }
+      ]
     },
     {
       "id": "F09-106",
@@ -10704,7 +10825,7 @@
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152"
+          "test": "TestChromeTrustAnchorsAreAcceptedByAServer/Chrome_152"
         }
       ],
       "evidence": {
@@ -10725,7 +10846,28 @@
         ],
         "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
         "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
-      }
+      },
+      "renamed_checks": [
+        {
+          "at": "2026-11-10",
+          "fork_commit": "136613e8a44f1d922df4b2714e3fc2f3b26535d1",
+          "from": [
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedJA4PublishedExample"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152"
+            }
+          ],
+          "why": "bogdanfinn's tls-client v1.18.0 moved the trust anchor tests to tests/chrome_trust_anchors_test.go as TestChromeTrustAnchors* over Chrome_152_PSK alone; the fork's 136613e8a44f runs those on the wire and against a server over Chrome_152 and Chrome_152_PSK again, each its own subtest, so every witness keeps its profile and run (2026-11-10)."
+        }
+      ]
     },
     {
       "id": "F09-107",
@@ -10780,7 +10922,7 @@
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK"
+          "test": "TestChromeTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK"
         }
       ],
       "evidence": {
@@ -10801,7 +10943,28 @@
         ],
         "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
         "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
-      }
+      },
+      "renamed_checks": [
+        {
+          "at": "2026-11-10",
+          "fork_commit": "136613e8a44f1d922df4b2714e3fc2f3b26535d1",
+          "from": [
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedJA4PublishedExample"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK"
+            }
+          ],
+          "why": "bogdanfinn's tls-client v1.18.0 moved the trust anchor tests to tests/chrome_trust_anchors_test.go as TestChromeTrustAnchors* over Chrome_152_PSK alone; the fork's 136613e8a44f runs those on the wire and against a server over Chrome_152 and Chrome_152_PSK again, each its own subtest, so every witness keeps its profile and run (2026-11-10)."
+        }
+      ]
     },
     {
       "id": "F09-108",
@@ -10856,15 +11019,15 @@
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsAreAcceptedByAServer"
+          "test": "TestChromeTrustAnchorsAreAcceptedByAServer"
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152"
+          "test": "TestChromeTrustAnchorsAreAcceptedByAServer/Chrome_152"
         },
         {
           "package": "github.com/igor-lemon/tls-client/tests",
-          "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK"
+          "test": "TestChromeTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK"
         }
       ],
       "evidence": {
@@ -10885,7 +11048,36 @@
         ],
         "source_commit": "b08bfdbd5c88f6fc0ea5134b4313018188008bf0",
         "source_sha256": "2ba7970fa75cd0012e5f6714e395f9115fa50a5dc19f9cfe1521ec051ef2cd30"
-      }
+      },
+      "renamed_checks": [
+        {
+          "at": "2026-11-10",
+          "fork_commit": "136613e8a44f1d922df4b2714e3fc2f3b26535d1",
+          "from": [
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedFingerprintKnownAnswerAndNegativeControls"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestOwnedJA4PublishedExample"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsAreAcceptedByAServer"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152"
+            },
+            {
+              "package": "github.com/igor-lemon/tls-client/tests",
+              "test": "TestTrustAnchorsAreAcceptedByAServer/Chrome_152_PSK"
+            }
+          ],
+          "why": "bogdanfinn's tls-client v1.18.0 moved the trust anchor tests to tests/chrome_trust_anchors_test.go as TestChromeTrustAnchors* over Chrome_152_PSK alone; the fork's 136613e8a44f runs those on the wire and against a server over Chrome_152 and Chrome_152_PSK again, each its own subtest, so every witness keeps its profile and run (2026-11-10)."
+        }
+      ]
     },
     {
       "id": "F09-109",
@@ -11140,6 +11332,60 @@
           "quic-ack-gap-wire-after.log",
           "ack-classifier-negative-permitted.log"
         ]
+      }
+    },
+    {
+      "id": "F09-117",
+      "test": "TestRealResumption",
+      "status": "resolved",
+      "obligation": "Session resumption against a real server's tickets without a public endpoint: upstream's v1.8.2-barnius test dialed yahoo.com, which the loopback-only gate refuses.",
+      "fix_commit": "9396ec9ebdf36c424b5d04e3104caf87d4b9b5be",
+      "cause": "External yahoo.com fixture replaced by an owned verified loopback TLS peer, TLS 1.2 and 1.3: a first connection does not resume, the second with the session cache does, one without the cache does not; production unchanged.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/utls",
+          "test": "TestRealResumption"
+        },
+        {
+          "package": "github.com/igor-lemon/utls",
+          "test": "TestRealResumption/TLS_1.2"
+        },
+        {
+          "package": "github.com/igor-lemon/utls",
+          "test": "TestRealResumption/TLS_1.3"
+        }
+      ],
+      "evidence": {
+        "before": "f09-20261110-before/utls-standalone",
+        "after": [
+          "f09-20261110-after/utls-standalone",
+          "f09-20261110-after/utls-production",
+          "utls-resumption-no-cache-negative.log"
+        ],
+        "private_root": "net-fp-server/captures/tls-forge-forks-gate-20261110"
+      }
+    },
+    {
+      "id": "F09-118",
+      "test": "TestHandshakeWithPacketLoss",
+      "status": "resolved",
+      "obligation": "The self integration reads the negotiated group from uTLS: the adapter of 6fd372c1 read a private field uTLS no longer has once it took crypto/tls's public ConnectionState.CurveID, and panicked, so the package's witnesses never ran.",
+      "fix_commit": "0e5c462cad87c0aa504ac6e0b9547a48f5589627",
+      "cause": "The adapter reads the public ConnectionState.CurveID again, as upstream quic-go does; the X25519MLKEM768 and P-384 assertions are unchanged, and a zero group fails them.",
+      "checks": [
+        {
+          "package": "github.com/igor-lemon/quic-go-utls/integrationtests/self",
+          "test": "TestHandshakeWithPacketLoss"
+        }
+      ],
+      "evidence": {
+        "before": "f09-20261110-before/quic-go-utls-standalone",
+        "after": [
+          "f09-20261110-after/quic-go-utls-standalone",
+          "f09-20261110-after/quic-go-utls-production",
+          "quic-curve-zero-negative.log"
+        ],
+        "private_root": "net-fp-server/captures/tls-forge-forks-gate-20261110"
       }
     }
   ]

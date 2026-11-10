@@ -153,7 +153,7 @@ other change: what each action's new commit changes is part of it.
 ## A dry run
 
 ```bash
-gh workflow run release.yml --ref development -f dry_run=true -f version=1.0.1
+gh workflow run release.yml --ref development -f dry_run=true -f version=2.0.0
 ```
 
 `dry_run` is on unless it is turned off. Off a tag it builds the engine's

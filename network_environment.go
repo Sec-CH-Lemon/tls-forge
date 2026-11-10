@@ -3,7 +3,7 @@ package tlsforge
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/Sec-CH-Lemon/tls-forge/networkquality"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/networkquality"
 	"net"
 	"slices"
 	"strconv"

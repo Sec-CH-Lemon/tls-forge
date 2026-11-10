@@ -23,31 +23,56 @@ var processTrustAnchors = newTrustAnchorPayloads(rand.Shuffle)
 
 type trustAnchorPayloads struct {
 	mu      sync.Mutex
-	bySet   map[string][]byte
+	bySet   map[string][][]byte
 	shuffle func(int, func(int, int))
 }
 
 func newTrustAnchorPayloads(shuffle func(int, func(int, int))) *trustAnchorPayloads {
-	return &trustAnchorPayloads{bySet: make(map[string][]byte), shuffle: shuffle}
+	return &trustAnchorPayloads{bySet: make(map[string][][]byte), shuffle: shuffle}
 }
 
+// payload is the extension's data a capture had, its anchors in the order
+// the mode says ("legacy-auto" when none is given).
 func (c *trustAnchorPayloads) payload(captured []byte, modes ...string) ([]byte, error) {
-	mode := "legacy-auto"
-	if len(modes) > 0 {
-		mode = modes[0]
-	}
 	records, err := splitTrustAnchors(captured)
 	if err != nil {
 		return nil, err
 	}
+	return joinTrustAnchors(c.order(records, modes...)), nil
+}
+
+// ids is payload for uTLS's TrustAnchorsExtension, which reads the anchors
+// of a captured hello into their IDs, without the length each leads with on
+// the wire (and refuses a malformed list as it reads it).
+func (c *trustAnchorPayloads) ids(ids [][]byte, modes ...string) [][]byte {
+	records := make([][]byte, len(ids))
+	for i, id := range ids {
+		records[i] = append([]byte{byte(len(id))}, id...)
+	}
+	ordered := c.order(records, modes...)
+	out := make([][]byte, len(ordered))
+	for i, record := range ordered {
+		out[i] = record[1:]
+	}
+	return out
+}
+
+// order puts records, each an ID after its length, in the order the mode
+// says: as captured, sorted by their IDs' bytes, or, for "legacy-auto", as
+// captured when the capture had them so and else in one order drawn for
+// their set.
+func (c *trustAnchorPayloads) order(records [][]byte, modes ...string) [][]byte {
+	mode := "legacy-auto"
+	if len(modes) > 0 {
+		mode = modes[0]
+	}
 	if mode == "captured" || (mode == "legacy-auto" && inByteOrder(records)) {
 		// The browser sorts them, so they went out so every time.
-		return append([]byte(nil), captured...), nil
+		return records
 	}
-
 	if mode == "sorted" {
 		slices.SortFunc(records, func(a, b []byte) int { return bytes.Compare(a[1:], b[1:]) })
-		return joinTrustAnchors(records), nil
+		return records
 	}
 	// Each record includes its uint8 length, so their concatenation is an
 	// unambiguous cache key. Sorting makes two captures of the same set share the
@@ -57,14 +82,20 @@ func (c *trustAnchorPayloads) payload(captured []byte, modes ...string) ([]byte,
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if payload, ok := c.bySet[key]; ok {
-		return append([]byte(nil), payload...), nil
+	if drawn, ok := c.bySet[key]; ok {
+		return cloneRecords(drawn)
 	}
-
 	c.shuffle(len(records), func(i, j int) { records[i], records[j] = records[j], records[i] })
-	payload := joinTrustAnchors(records)
-	c.bySet[key] = payload
-	return append([]byte(nil), payload...), nil
+	c.bySet[key] = cloneRecords(records)
+	return records
+}
+
+func cloneRecords(records [][]byte) [][]byte {
+	out := make([][]byte, len(records))
+	for i, record := range records {
+		out[i] = append([]byte(nil), record...)
+	}
+	return out
 }
 
 // inByteOrder reports records whose IDs are sorted by their bytes. Chromium

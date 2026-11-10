@@ -15,7 +15,7 @@ import (
 	tls "github.com/igor-lemon/utls"
 	"github.com/quic-go/qpack"
 
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 // bidiPeer is an HTTP/3 server that answers one request, then, once open is

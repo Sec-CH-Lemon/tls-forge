@@ -6,15 +6,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/Sec-CH-Lemon/tls-forge/capture"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/capture"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	tlsforge "github.com/Sec-CH-Lemon/tls-forge"
-	"github.com/Sec-CH-Lemon/tls-forge/profile"
+	tlsforge "github.com/Sec-CH-Lemon/tls-forge/v2"
+	"github.com/Sec-CH-Lemon/tls-forge/v2/profile"
 )
 
 func TestCapturePolicyAndProvenanceReachSavedProfile(t *testing.T) {

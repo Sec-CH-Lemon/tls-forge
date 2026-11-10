@@ -42,7 +42,8 @@ func capturedOn(t *testing.T, registry *Registry, version, platform string, basi
 	if err := json.Unmarshal(metadata, &provenance); err != nil {
 		t.Fatal(err)
 	}
-	sum := sha256.Sum256(raw)
+	// The capture's provenance is of the bytes it made, engine 1's.
+	sum := sha256.Sum256(engine1Bytes(t, "profile/data/chrome_"+version+"/"+platform+".json"))
 	if provenance.ProfileSHA256 != hex.EncodeToString(sum[:]) || provenance.BrowserMode != "headed" ||
 		provenance.BasisName != basis.Name {
 		t.Fatalf("%s: the profile is not the one its provenance says, or not of its basis", got.Name)
@@ -71,7 +72,7 @@ func capturedOn(t *testing.T, registry *Registry, version, platform string, basi
 // until it was captured again (2026-11-08), from its kept copy.
 func replacedChrome156(t *testing.T, platform string) *Profile {
 	t.Helper()
-	p, err := Load(keptBytes(t, "profile/data/chrome_156/"+platform+".json"))
+	p, err := Inspect(keptBytes(t, "profile/data/chrome_156/"+platform+".json"))
 	if err != nil {
 		t.Fatal(err)
 	}
