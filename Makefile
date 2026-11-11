@@ -104,7 +104,9 @@ generated-check:
 	scripts/check-generated.sh
 
 # A gate as well: every action a workflow uses is pinned to the commit of a
-# release, with the release named beside it, as Dependabot keeps it.
+# release, with the release named beside it, as Dependabot keeps it; and the
+# script that lays the forks' patches over the author's releases
+# (scripts/fork_sync.py) is held to every line and branch by its tests.
 workflows-check:
 	$(GO) test -race scripts/record-release-requests.go scripts/record-release-requests_test.go -count=1
 	$(PYTHON) -m unittest discover -s scripts -p test_go_root_shard.py
@@ -114,7 +116,13 @@ workflows-check:
 	$(GO) test -race scripts/a8-h3-peer.go scripts/a8-h3-peer_test.go -count=1
 	python3 -m unittest discover -s scripts -p test_capture_artifacts.py
 	python3 -m unittest discover -s scripts -p test_chrome_archive.py
-	python3 -m unittest discover -s scripts -p test_fork_sync.py
+	@test -d $(VENV) || $(PYTHON) -m venv $(VENV)
+	@$(VENV)/bin/pip install -q -e 'python[test]'
+	@data=$$(mktemp) && \
+		PYTHONDONTWRITEBYTECODE=1 $(VENV)/bin/python -m coverage run --branch --data-file="$$data" \
+			--include=scripts/fork_sync.py -m unittest discover -s scripts -p test_fork_sync.py && \
+		$(VENV)/bin/python -m coverage report --data-file="$$data" --fail-under=100 --show-missing; \
+		status=$$?; rm -f "$$data"; exit $$status
 	node --test --experimental-test-coverage \
 		--test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 \
 		--test-coverage-include='scripts/check-actions.mjs' scripts/check-actions.test.mjs

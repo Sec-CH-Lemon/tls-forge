@@ -36,6 +36,16 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   govulncheck finds reachable; brotli 1.3.0, compress 1.20.4, cascadia 1.3.5,
   purego 0.11.3, x/sys 0.50.0, x/text 0.44.0. pflag stays at 1.0.10: 1.1.0
   writes every boolean flag of the help as `--flag[=true|false]`.
+- `scripts/fork_sync.py review FORK --since OLD` says where the forks'
+  patches meet what the author changed since the release they were over:
+  the author's fresh lines each patch rewrites or writes beside, and the
+  lines of each of the author's commits the branch lacks or has again.
+  `make workflows-check` holds the script to every line and branch of its
+  tests. Its go.mod merge puts a module a patch adds into the require block
+  of its kind, its `// indirect` kept, and drops a block left empty (a
+  patch laid over again had left `require (\n)`); `finish` counts the old
+  series as `series` reads it, not the branch's whole history through an
+  earlier finish's merge.
 - `Migrate` adds its note of QUIC candidate defaults only when it filled one
   in: a profile whose QUIC data is its own is not said to have taken them.
 - `chrome_157_macos`, `chrome_157_linux` and `chrome_157_windows` are

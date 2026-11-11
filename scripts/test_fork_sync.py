@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import os
 import re
 import shutil
@@ -387,6 +388,50 @@ class GoModTests(unittest.TestCase):
         self.assertIn("\ngo 1.22.1\n", got)
         # the replace of the module dropped is not a requirement: kept
         self.assertIn("replace (\n\tc.example/c v1.0.0 => ../c\n)\n", got)
+
+    def test_a_module_theirs_adds_goes_into_the_block_of_its_kind(self):
+        ours = ("module m\n\ngo 1.21\n\nrequire (\n\ta.example/a v1.0.0\n\tz.example/z v1.0.0\n)\n\n"
+                "require (\n\tc.example/c v1.0.0 // indirect\n\tg.example/g v1.0.0 // indirect\n)\n\n"
+                "// replace a.example/a => ../a\n")
+        base = ours.replace("\tg.example/g v1.0.0 // indirect\n", "")
+        theirs = base.replace("\ta.example/a v1.0.0\n",
+                              "\ta.example/a v1.0.0\n\tm.example/m v0.1.0\n").replace(
+            "\tc.example/c v1.0.0 // indirect\n",
+            "\tb.example/b v0.2.0 // indirect\n\tb.example/b2 v0.2.0 // indirect\n"
+            "\tc.example/c v1.0.0 // indirect\n\tq.example/q v0.3.0 // indirect\n")
+        got = fork_sync.merge_gomod(base, ours, theirs)
+        self.assertEqual(got, ours.replace(
+            "\ta.example/a v1.0.0\n", "\ta.example/a v1.0.0\n\tm.example/m v0.1.0\n").replace(
+            "\tc.example/c v1.0.0 // indirect\n\tg.example/g v1.0.0 // indirect\n",
+            "\tb.example/b v0.2.0 // indirect\n\tb.example/b2 v0.2.0 // indirect\n"
+            "\tc.example/c v1.0.0 // indirect\n\tg.example/g v1.0.0 // indirect\n"
+            "\tq.example/q v0.3.0 // indirect\n"))
+
+    def test_a_module_with_no_block_of_its_kind_goes_into_the_first(self):
+        # the single line before the block, a block of mixed kinds
+        ours = ("module m\n\nrequire s.example/s v1.0.0\n\nrequire (\n\ta.example/a v1.0.0\n"
+                "\tb.example/b v1.0.0 // indirect\n)\n")
+        theirs = ours.replace("\tb.example/b v1.0.0 // indirect\n",
+                              "\tb.example/b v1.0.0 // indirect\n\tc.example/c v1.0.0 // indirect\n")
+        self.assertEqual(fork_sync.merge_gomod(ours, ours, theirs), theirs)
+        # a block of mixed kinds is of neither: a direct one goes to the direct block
+        ours += "\nrequire (\n\tz.example/z v1.0.0\n)\n"
+        theirs = ours.replace("\tz.example/z v1.0.0\n", "\tm.example/m v1.0.0\n\tz.example/z v1.0.0\n")
+        self.assertEqual(fork_sync.merge_gomod(ours, ours, theirs), theirs)
+
+    def test_a_module_with_no_block_at_all_goes_into_a_block_of_its_own(self):
+        ours = "module m\n\ngo 1.21\n\nrequire a.example/a v1.0.0\n"
+        theirs = ours + "\nrequire (\n\tb.example/b v1.0.0 // indirect\n)\n"
+        self.assertEqual(fork_sync.merge_gomod(ours, ours, theirs), theirs)
+
+    def test_a_block_left_with_nothing_goes(self):
+        base = go_mod("m", "1.21", "a.example/a v1.0.0") + \
+            "\nrequire (\n\tb.example/b v1.0.0 // indirect\n)\n\n// end\n"
+        theirs = go_mod("m", "1.21", "a.example/a v1.0.0") + "\n// end\n"
+        self.assertEqual(fork_sync.merge_gomod(base, base, theirs), theirs)
+        # one taken away where another comes: the one that comes stays
+        swap = base.replace("b.example/b v1.0.0", "c.example/c v1.0.0")
+        self.assertEqual(fork_sync.merge_gomod(base, base, swap), swap)
 
     def test_go_is_the_higher_as_go_orders_its_versions(self):
         mod = "module m\n\ngo {}\n\nrequire a.example/a v1.0.0\n".format
@@ -808,6 +853,24 @@ class AfterStartTests(Repos):
         self.assertEqual(code, 0, out + err)
         self.assertIn("5 of 5 build", out)
 
+    def test_a_patch_after_an_earlier_finish_keeps_the_old_history_out(self):
+        f = self.started()
+        self.assertEqual(run("finish", "--work", f.work, "-m", "Patches laid over v2")[0], 0)
+        git(f.fork, "fetch", "-q", f.work, "HEAD")
+        git(f.fork, "merge", "-q", "--ff-only", "FETCH_HEAD")
+        commit(f.fork, "After", {"after.txt": "after\n"})
+        again = os.path.join(self.root, "again")
+        code, out, err = run("start", f.fork, "v2", "--work", again)
+        self.assertEqual(code, 0, out + err)
+        code, out, err = run("finish", "--work", again, "-m", "Patches laid over v2 again")
+        self.assertEqual(code, 0, out + err)
+        # the patches as they were, none of the branch's earlier history gone
+        counts = dict(re.findall(r"(were|changed|gone|new) (\d+)", out))
+        self.assertEqual((counts["were"], counts["changed"], counts["gone"], counts["new"]),
+                         ("5", "0", "0", "0"), out)
+        self.assertIn("the tree is the old head's", out)
+        self.assertEqual(git(again, "replace", "-l"), "")
+
     def test_a_patch_range_diff_pairs_as_changed_is_counted_so(self):
         f = self.fixture(conflict=True)
         self.assertEqual(f.start()[0], 1)
@@ -1060,6 +1123,131 @@ class AfterStartTests(Repos):
             self.assertEqual(run("check", "--work", f.work, "--build", "true")[0], 0)
         self.assertEqual(len(made), 1)
         self.assertFalse(os.path.exists(made[0]))
+
+
+class ReviewTests(Repos):
+    """review against a release of two the author made in four commits, and a
+    branch laid over the second whose patches rewrite, write beside, bring
+    back and take away what the author did."""
+
+    A = textwrap.dedent("""\
+        package x
+
+        import "github.com/bogdanfinn/utls"
+
+        func A() int { return 1 }
+        func B() int { return 1 }
+        func C() int { return 1 }
+        // said twice
+        // said twice
+        // removed by the author
+        // removed by the author, again in the fork
+        """)
+
+    def make(self):
+        up = os.path.join(self.root, "up")
+        os.makedirs(up)
+        git(up, "init", "-q", "-b", "main")
+        commit(up, "v1", {"a.go": self.A, "gone.go": "package x\n\nvar Gone = 1\n",
+                          "go.sum": "a h1:x\n", "with space.txt": "first\n",
+                          "q.sql": "-- comment one\nselect 1;\n",
+                          "old space.txt": "gone with its spaces\n"})
+        git(up, "tag", "v1")
+        # one of two lines alike goes; U and V name a fork the anchor renames
+        a = self.A.replace("A() int { return 1 }", "A() int { return 2 }").replace(
+            "// said twice\n// said twice\n", "// said twice\n").replace(
+            "// removed by the author\n// removed by the author, again in the fork\n",
+            'var U = "github.com/bogdanfinn/utls/u"\n'
+            'var V = "github.com/bogdanfinn/utls/v"\n'
+            "func D() int { return 4 }\n)});\n")
+        self.u1 = commit(up, "Change A, add D", {
+            "a.go": a, "go.sum": "a h1:y\n", "with space.txt": "first\nsecond line here\n",
+            "naïve.txt": "a name past ASCII\n"})
+        self.u2 = commit(up, "Later", {"later.go": "package x\n\nvar Later = 1\n",
+                                       "a.go": a + "func E() int { return 5 }\n"},
+                         remove=["gone.go", "old space.txt"])
+        self.u3 = commit(up, "SQL", {"a.go": a, "q.sql": "++ plus line\nselect 1;\n"})
+        self.u4 = commit(up, "Sums alone", {"go.sum": "a h1:z\n", "b.txt": "{  }\n"})
+        git(up, "tag", "v2")
+        git(up, "checkout", "-q", "-b", "tls-forge")
+        commit(up, ANCHOR + " github.com/igor-lemon/x",
+               {"a.go": fork_sync.rename_text(read(up, "a.go"))})
+        self.p1 = commit(up, "Keep A", {"a.go": read(up, "a.go").replace(
+            "A() int { return 2 }", "A() int { return 1 }").replace(
+            "utls/u\"", "utls/ours\"")})
+        self.p2 = commit(up, "Beside D", {"a.go": read(up, "a.go").replace(
+            "func D() int { return 4 }\n", "func D() int { return 4 }\n// ours\n")})
+        self.p3 = commit(up, "Bring a comment back", {
+            "a.go": read(up, "a.go") + "// removed by the author, again in the fork\n"})
+        self.p4 = commit(up, "No later", {"own.go": "package x\n"}, remove=["later.go"])
+        self.p5 = commit(up, "Change B", {"a.go": read(up, "a.go").replace(
+            "B() int { return 1 }", "B() int { return 22 }")})
+        git(up, "checkout", "-q", "-b", "side", "v2")
+        commit(up, "side", {"side.txt": "side\n"})
+        git(up, "checkout", "-q", "tls-forge")
+        git(up, "merge", "-q", "-s", "ours", "--no-ff", "-m", "Merge side", "side")
+        return up
+
+    def test_review_says_where_the_patches_meet_the_authors_changes(self):
+        up = self.make()
+        code, out, err = run("review", up, "--since", "v1")
+        self.assertEqual(code, 0, err)
+        r = json.loads(out)
+        short = lambda c: c[:9]
+        self.assertEqual(r["since"], short(git(up, "rev-parse", "v1")))
+        self.assertEqual(r["onto"], short(git(up, "rev-parse", "v2")))
+        patches = {p["subject"]: p["upstream"] for p in r["patches"]}
+        # Change B rewrites a line of v1's: none of the author's fresh ones
+        self.assertEqual(sorted(patches), ["Beside D", "Bring a comment back",
+                                           "Keep A", "No later"])
+        # U's line, though the anchor renamed it last, is the author's
+        self.assertEqual(patches["Keep A"], {short(self.u1): {
+            "subject": "Change A, add D", "files": {"a.go": {"rewritten": 2, "beside": 0}}}})
+        beside = patches["Beside D"][short(self.u1)]["files"]["a.go"]
+        self.assertEqual(beside, {"rewritten": 0, "beside": 2})
+        # an insertion at the end has only the line before it
+        self.assertEqual(patches["Bring a comment back"][short(self.u1)]["files"],
+                         {"a.go": {"rewritten": 0, "beside": 1}})
+        self.assertEqual(patches["No later"], {short(self.u2): {
+            "subject": "Later", "files": {"later.go": {"rewritten": 3, "beside": 0}}}})
+        upstream = {u["subject"]: u for u in r["upstream"]}
+        # Sums alone: go.sum and a slight line, nothing to say
+        self.assertEqual(sorted(upstream), ["Change A, add D", "Later", "SQL"])
+        u1 = upstream["Change A, add D"]["files"]
+        self.assertEqual(u1["a.go"]["lost"], ["func A() int { return 2 }",
+                                             'var U = "github.com/igor-lemon/utls/u"'])
+        # Keep A brought v1's line back, and a patch one of the comments
+        self.assertEqual(u1["a.go"]["returned"],
+                         ["func A() int { return 1 }",
+                          "// removed by the author, again in the fork"])
+        # V kept, renamed on both sides; a line said twice still said once
+        self.assertEqual((u1["a.go"]["added"], u1["a.go"]["kept"],
+                          u1["a.go"]["removed"], u1["a.go"]["back"]), (4, 2, 3, 2))
+        self.assertNotIn("go.sum", u1)
+        self.assertEqual(u1["with space.txt"]["kept"], 1)
+        self.assertEqual(u1["naïve.txt"], {"added": 1, "kept": 1, "removed": 0, "back": 0,
+                                          "lost": [], "returned": []})
+        u2 = upstream["Later"]["files"]
+        # what Later added and SQL took away again is none of the head's business
+        self.assertNotIn("a.go", u2)
+        self.assertEqual(u2["later.go"]["lost"], ["package x", "var Later = 1"])
+        self.assertEqual(u2["gone.go"]["removed"], 2)
+        self.assertEqual(u2["old space.txt"]["removed"], 1)
+        u3 = upstream["SQL"]["files"]["q.sql"]
+        self.assertEqual((u3["added"], u3["kept"], u3["removed"], u3["back"]), (1, 1, 1, 0))
+        self.assertEqual(upstream["SQL"]["added"], 1)
+
+    def test_review_of_a_branch_without_an_anchor_is_refused(self):
+        up = self.make()
+        code, _, err = run("review", up, "--since", "v1", "--head", "v2")
+        self.assertEqual(code, 1)
+        self.assertIn("no commit «Rename the module…»", err)
+
+    def test_slight_lines_are_told_apart(self):
+        for line, slight in (("}", True), ("{  }", True), (")});", True), ("//", True),
+                             ("/*", True), ("x++", True), ("x++;", False),
+                             ("x := 1", False), ("return x", False)):
+            self.assertEqual(fork_sync.trivial(line), slight, line)
 
 
 class SpacesTests(Repos):

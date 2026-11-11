@@ -32,6 +32,14 @@ fork's checkout, which it never changes:
                   `git range-diff` of the old series and the new, and the
                   command that moves the fork's branch.
   series FORK     the anchor and the patches of the fork's branch.
+  review FORK     --since OLD: where the patches meet what the author changed
+                  since the release they were over (JSON): the author's fresh
+                  lines each patch rewrites or writes beside, and, for each of
+                  the author's commits, the lines it added the head lacks
+                  (`lost`) and the lines it removed the head has again
+                  (`returned`), the modules renamed. Whatever is lost or
+                  returned is a patch's to answer for: the same fix the author
+                  made goes, the fork's own reason stays, said in LEMON.md.
 
 With --oracle REV (a tree the series must end at: converting a branch that
 merged a release), start resolves every conflict toward REV's files itself,
@@ -42,6 +50,7 @@ import argparse
 import collections
 import contextlib
 import difflib
+import json
 import os
 import re
 import shlex
@@ -188,12 +197,6 @@ def repin(text, pins):
     return "".join(lines)
 
 
-def unrequire(text, modules):
-    """text without its requirements of modules."""
-    return "".join(line for line, m in require_lines(text)
-                   if not (m and m.group(2) in modules))
-
-
 GOVERSION = re.compile(r"^(\d+)(?:\.(\d+))?(?:\.(\d+)|(alpha|beta|rc)(\d+))?$")
 
 
@@ -227,6 +230,40 @@ def higher(a, b):
     return a if semver_key(a) >= semver_key(b) else b
 
 
+def place(text, removed, new):
+    """text without the requirements of removed, and each line of new
+    (module -> its require line) in a require block of its kind, `//
+    indirect` or not, where its module sorts: the first block of that kind,
+    else the first block, else a block of its own at the end. A block left
+    with nothing in it goes (2026-11-11: a module a patch added in a block of
+    its own, and a later patch took away, left `require (\\n)`)."""
+    lines = list(require_lines(text))
+    blocks, start = [], None
+    for i, (line, _) in enumerate(lines):
+        if line.strip().startswith("require ("):
+            start = i
+        elif start is not None and line.strip() == ")":
+            reqs = [m for _, m in lines[start + 1:i] if m]
+            kinds = {"// indirect" in m.group(5) for m in reqs}
+            blocks.append((start, i, kinds.pop() if len(kinds) == 1 else None))
+            start = None
+    before, alone = collections.defaultdict(list), []
+    for mod, line in sorted(new.items()):
+        fits = [b for b in blocks if b[2] == ("// indirect" in line)] or blocks
+        if not fits:
+            alone.append(line)
+            continue
+        start, end, _ = fits[0]
+        at = next((j for j in range(start + 1, end)
+                   if lines[j][1] and lines[j][1].group(2) > mod), end)
+        before[at].append(line)
+    text = "".join("".join(before[i]) + ("" if m and m.group(2) in removed else line)
+                   for i, (line, m) in enumerate(lines))
+    if alone:
+        text = text.rstrip("\n") + "\n\nrequire (\n" + "".join(alone) + ")\n"
+    return re.sub(r"\n?^require \(\n\)\n", "", text, flags=re.M)
+
+
 def merge_gomod(base, ours, theirs):
     """ours with theirs's changes since base laid over it, module by module:
     a version both changed is the higher; go is the higher too."""
@@ -237,13 +274,9 @@ def merge_gomod(base, ours, theirs):
             continue
         pins[mod] = higher(o[mod], v) if mod in o else v
     text = repin(ours, {m: v for m, v in pins.items() if m in o})
-    added = [m for m in pins if m not in o]
-    removed = [m for m in b if m not in t and o.get(m) == b[m]]
-    if removed:
-        text = unrequire(text, removed)
-    if added:
-        text = text.rstrip("\n") + "\n\nrequire (\n" + "".join(
-            f"\t{m} {pins[m]}\n" for m in added) + ")\n"
+    comments = {m.group(2): m.group(5) for _, m in require_lines(theirs) if m}
+    text = place(text, {m for m in b if m not in t and o.get(m) == b[m]},
+                 {m: f"\t{m} {pins[m]}{comments[m]}\n" for m in pins if m not in o})
     gos = [re.search(r"^go (\S+)$", x, re.M) for x in (ours, theirs)]
     if all(gos):
         go = max((g.group(1) for g in gos), key=go_version_key)
@@ -604,9 +637,10 @@ def hunks_between(work, a, b, path):
     return out
 
 
-def blame_lines(work, rev, path):
+def blame_lines(work, rev, path, ignore=()):
     out = {}
-    for l in git(work, "blame", "--porcelain", rev, "--", path).splitlines():
+    skip = [x for r in ignore for x in ("--ignore-rev", r)]
+    for l in git(work, "blame", "--porcelain", *skip, rev, "--", path).splitlines():
         m = re.match(r"^([0-9a-f]{40}) \d+ (\d+)", l)
         if m:
             out[int(m.group(2))] = m.group(1)
@@ -839,6 +873,123 @@ def check(a):
     sys.exit(1 if bad else 0)
 
 
+def trivial(line):
+    """A line too slight to tell one change from another: a brace, a comma,
+    an empty comment."""
+    return len(line) < 4 or re.fullmatch(r"[\s{}()\[\],;]*|//\s*|/\*|\*/|\*",
+                                         line) is not None
+
+
+def counted(repo, rev, path, cache):
+    """path's lines at rev, renamed as the anchor renames them and trimmed,
+    counted; none where rev has no such file."""
+    if (rev, path) not in cache:
+        shown = subprocess.run(["git", "-C", repo, "show", f"{rev}:{path}"],
+                               capture_output=True, text=True).stdout
+        cache[rev, path] = collections.Counter(
+            rename_text(l).strip() for l in shown.splitlines())
+    return cache[rev, path]
+
+
+def changed_lines(repo, c):
+    """(path, sign, line) of every line c adds or removes against its first
+    parent, renamed and trimmed; a file it removes is its old path's."""
+    # git quotes a name past ASCII unless told not to, and ends one with a
+    # space in a tab
+    diff = subprocess.run(["git", "-C", repo, "-c", "core.quotePath=false",
+                           "diff", "-U0", "--no-renames", "--no-color", c + "^", c],
+                          capture_output=True, text=True, check=True).stdout
+    old = path = None
+    header = False
+    for l in diff.split("\n"):
+        if l.startswith("diff --git "):
+            header = True
+        elif header and l.startswith("--- "):
+            old = l[6:].rstrip("\t")
+        elif header and l.startswith("+++ "):
+            path = old if l == "+++ /dev/null" else l[6:].rstrip("\t")
+        elif l.startswith("@@"):
+            header = False
+        elif l[:1] in ("+", "-"):
+            yield path, l[0], rename_text(l[1:]).strip()
+
+
+def overlap(repo, fresh, anchor, c):
+    """Of the lines patch c rewrites (an insertion: the lines on either side),
+    those the author's fresh commits wrote last, by commit and file:
+    [rewritten, beside], the anchor's rename passed over."""
+    per = collections.defaultdict(lambda: collections.defaultdict(lambda: [0, 0]))
+    paths = git(repo, "diff", "--name-only", "-z", "--no-renames",
+                "--diff-filter=MD", c + "^", c).split("\0")
+    for path in filter(None, paths):
+        blamed = blame_lines(repo, c + "^", path, ignore=[anchor])
+        for start, n, _ in hunks_between(repo, c + "^", c, path):
+            lines = [(0, x) for x in range(start, start + n)] or \
+                [(1, x) for x in (start, start + 1) if x in blamed]
+            for kind, x in lines:
+                if blamed[x] in fresh:
+                    per[blamed[x]][path][kind] += 1
+    return per
+
+
+def survival(repo, onto, tip, u, cache):
+    """What author's commit u added that onto still has and tip lacks, and
+    what it removed that onto still lacks and tip has again, file by file."""
+    files = collections.defaultdict(lambda: {"added": 0, "kept": 0, "removed": 0,
+                                             "back": 0, "lost": [], "returned": []})
+    for path, sign, text in changed_lines(repo, u):
+        if trivial(text) or path.endswith("go.sum"):
+            continue
+        f = files[path]
+        if sign == "+" and counted(repo, onto, path, cache)[text]:
+            f["added"] += 1
+            if counted(repo, tip, path, cache)[text]:
+                f["kept"] += 1
+            else:
+                f["lost"].append(text)
+        elif sign == "-" and not counted(repo, onto, path, cache)[text]:
+            f["removed"] += 1
+            if counted(repo, tip, path, cache)[text]:
+                f["back"] += 1
+                f["returned"].append(text)
+    return {p: f for p, f in files.items() if f["added"] or f["removed"]}
+
+
+def review(a):
+    """Where the fork's patches meet what the author changed since --since:
+    the author's fresh lines each patch rewrites, and the lines of each of the
+    author's commits the branch's head lacks or has again."""
+    anchor, patches = series(a.fork, a.head)
+    onto = git(a.fork, "rev-parse", anchor + "^")
+    tip = git(a.fork, "rev-parse", a.head)
+    since = git(a.fork, "rev-parse", a.since + "^{commit}")
+    fresh = set(git(a.fork, "rev-list", f"{since}..{onto}").split())
+    subject = lambda c: subject_of(a.fork, c)
+    report = {"since": since[:9], "onto": onto[:9], "anchor": anchor[:9],
+              "patches": [], "upstream": []}
+    for c in patches:
+        per = overlap(a.fork, fresh, anchor, c)
+        if per:
+            report["patches"].append({
+                "patch": c[:9], "subject": subject(c),
+                "upstream": {u[:9]: {"subject": subject(u),
+                                     "files": {p: {"rewritten": v[0], "beside": v[1]}
+                                               for p, v in sorted(fs.items())}}
+                             for u, fs in per.items()}})
+    cache = {}
+    for u in git(a.fork, "rev-list", "--reverse", "--no-merges",
+                 f"{since}..{onto}").split():
+        files = survival(a.fork, onto, tip, u, cache)
+        if files:
+            report["upstream"].append({
+                "commit": u[:9], "subject": subject(u),
+                **{k: sum(f[k] for f in files.values())
+                   for k in ("added", "kept", "removed", "back")},
+                "files": dict(sorted(files.items()))})
+    json.dump(report, sys.stdout, indent=1, ensure_ascii=False)
+    print()
+
+
 def make_anchor(a):
     fork_dir = a.fork
     head = git(fork_dir, "rev-parse", a.head)
@@ -1045,9 +1196,24 @@ def finish(a):
     tip = git(a.work, "rev-parse", "HEAD")
     git(a.work, "merge", "-q", "-s", "ours", "--no-ff", "-m", a.message, head)
     old_anchor, old = series(a.work, head)
-    rd = git(a.work, "range-diff", "--no-color", "--no-dual-color",
-             f"{old_anchor}..{old[-1]}" if old else old_anchor,
-             f"{state(a.work, 'anchor')}..{tip}", check=False)
+    # The old series as series() reads it: a merge in it (a patch made after
+    # an earlier finish) would bring in, through its second parent, every
+    # commit of the branch's history, which range-diff then said were gone
+    # (83 of fhttp's on 2026-11-11), and itself. In this clone, for the
+    # while, a patch whose parent is not the patch before it is grafted
+    # onto that one.
+    grafts = [c for p, c in zip([old_anchor] + old, old)
+              if git(a.work, "rev-parse", c + "^1") != p]
+    for p, c in zip([old_anchor] + old, old):
+        if c in grafts:
+            git(a.work, "replace", "--graft", c, p)
+    try:
+        rd = git(a.work, "range-diff", "--no-color", "--no-dual-color",
+                 f"{old_anchor}..{old[-1]}" if old else old_anchor,
+                 f"{state(a.work, 'anchor')}..{tip}", check=False)
+    finally:
+        for c in grafts:
+            git(a.work, "replace", "-d", c)
     with open(os.path.join(a.work, ".git", STATE + "-range-diff"), "w") as f:
         f.write(rd)
     kinds = {}
@@ -1097,6 +1263,11 @@ def main():
     fi = sub.add_parser("finish")
     fi.add_argument("-m", "--message", required=True)
     fi.set_defaults(func=finish)
+    rv = sub.add_parser("review")
+    rv.add_argument("fork", help="the fork's checkout, or a WORK laid over a release")
+    rv.add_argument("--since", required=True, help="the release the patches were over before")
+    rv.add_argument("--head", default="tls-forge")
+    rv.set_defaults(func=review)
     se = sub.add_parser("series")
     se.add_argument("fork")
     se.add_argument("--head", default="tls-forge")
