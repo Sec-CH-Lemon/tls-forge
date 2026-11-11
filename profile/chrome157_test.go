@@ -76,7 +76,7 @@ func heldToItsCapture(t *testing.T, got *Profile, raw, metadata []byte, version 
 
 // replacedChrome is the chrome_<version> of a platform that the shipped one
 // replaced when it was captured again, from its kept copy: chrome_156 on
-// 2026-11-08, chrome_157 twice on 2026-11-11 (macOS and Windows; Linux once).
+// 2026-11-08, chrome_157 twice on 2026-11-11.
 func replacedChrome(t *testing.T, version, platform string) *Profile {
 	t.Helper()
 	p, err := Inspect(lastKeptBytes(t, "profile/data/chrome_"+version+"/"+platform+".json"))
@@ -109,12 +109,12 @@ func TestTheFirstCaptureOfChrome157IsKeptWithItsProvenance(t *testing.T) {
 	}
 }
 
-// Chrome 157 of macOS and Windows was captured a second time on 2026-11-11
-// (capture.yml run 42925089143: 157.0.8103.51), with the first as its policy
-// basis, and replaced the same day, when Google served 157.0.8103.79: it is
-// kept with its provenance, though no release shipped it.
+// Chrome 157 was captured a second time on 2026-11-11 (capture.yml run
+// 42925089143: 157.0.8103.51, Linux .50), with the first as its policy basis,
+// and replaced the same day, when Google served 157.0.8103.79 (Linux .78): it
+// is kept with its provenance, though no release shipped it.
 func TestTheSecondCaptureOfChrome157IsKeptWithItsProvenance(t *testing.T) {
-	for _, platform := range []string{"macos", "windows"} {
+	for _, platform := range []string{"macos", "linux", "windows"} {
 		raw := lastKeptBytes(t, "profile/data/chrome_157/"+platform+".json")
 		got, err := Inspect(raw)
 		if err != nil {
@@ -125,7 +125,8 @@ func TestTheSecondCaptureOfChrome157IsKeptWithItsProvenance(t *testing.T) {
 			t.Fatal(err)
 		}
 		metadata := lastKeptBytes(t, "profile/provenance/chrome_157/"+platform+".json")
-		if provenance := heldToItsCapture(t, got, raw, metadata, "157", basis); provenance.Browser.UAFullVersion != "157.0.8103.51" {
+		want := map[string]string{"macos": "157.0.8103.51", "linux": "157.0.8103.50", "windows": "157.0.8103.51"}[platform]
+		if provenance := heldToItsCapture(t, got, raw, metadata, "157", basis); provenance.Browser.UAFullVersion != want {
 			t.Fatalf("the second chrome_157 of %s was captured on %s", platform, provenance.Browser.UAFullVersion)
 		}
 	}
@@ -133,8 +134,8 @@ func TestTheSecondCaptureOfChrome157IsKeptWithItsProvenance(t *testing.T) {
 
 // Chrome 157 was captured again on Google Chrome Stable of each platform,
 // headed, on engine 1.1.0, with the chrome_157 it replaced as its policy
-// basis: Linux on 157.0.8103.50 (capture.yml run 42925089143, 2026-11-11),
-// macOS and Windows on 157.0.8103.79 (run 43106368074, the same day).
+// basis: macOS and Windows on 157.0.8103.79 (capture.yml run 43106368074,
+// 2026-11-11), Linux on 157.0.8103.78 (run 43112460069, the same day).
 func TestChrome157IsTheDefaultAndKeepsItsCaptureProvenance(t *testing.T) {
 	previous := hostPlatform
 	t.Cleanup(func() { hostPlatform = previous })
@@ -150,7 +151,7 @@ func TestChrome157IsTheDefaultAndKeepsItsCaptureProvenance(t *testing.T) {
 			t.Fatalf("the default on %s is %s", platform, got.Name)
 		}
 		provenance := capturedOn(t, registry, "157", platform, replacedChrome(t, "157", platform))
-		if want := map[string]string{"macos": "157.0.8103.79", "linux": "157.0.8103.50", "windows": "157.0.8103.79"}[platform]; provenance.Browser.UAFullVersion != want {
+		if want := map[string]string{"macos": "157.0.8103.79", "linux": "157.0.8103.78", "windows": "157.0.8103.79"}[platform]; provenance.Browser.UAFullVersion != want {
 			t.Fatalf("chrome_157 of %s was captured on %s", platform, provenance.Browser.UAFullVersion)
 		}
 	}

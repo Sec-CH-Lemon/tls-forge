@@ -115,6 +115,18 @@
    "kept_file": "provenance/recaptured/99ffe07ca10c9ea6c6a007af84b3006432532dda173c4cba218071be254f6eca.json.txt",
    "sha256": "99ffe07ca10c9ea6c6a007af84b3006432532dda173c4cba218071be254f6eca",
    "why": "the 2026-11-11 recapture's provenance of the bytes replaced; the recapture's provenance replaces it (capture.yml run 43106368074 at 3b9a8ebc96d1320a1ca64c26103b4689f26522e4: Google Chrome 157.0.8103.79 headed, policy basis chrome_157_windows (these bytes))"
+  },
+  {
+   "path": "profile/data/chrome_157/linux.json",
+   "kept_file": "provenance/recaptured/226ca48787a7c4becacdae067d1cb57cb1fff6c317e583cf14568b4c7e6393bd.json.txt",
+   "sha256": "226ca48787a7c4becacdae067d1cb57cb1fff6c317e583cf14568b4c7e6393bd",
+   "why": "recaptured: capture.yml run 43112460069 at 861defe3f15c314b91a053ed0a6211b1d18c21c0: Google Chrome 157.0.8103.78 headed, policy basis chrome_157_linux (these bytes)"
+  },
+  {
+   "path": "profile/provenance/chrome_157/linux.json",
+   "kept_file": "provenance/recaptured/0430122c2cfffd6048be6c427224d68af325db10604249cb861860926cfa48de.json.txt",
+   "sha256": "0430122c2cfffd6048be6c427224d68af325db10604249cb861860926cfa48de",
+   "why": "the 2026-11-11 recapture's provenance of the bytes replaced; the recapture's provenance replaces it (capture.yml run 43112460069 at 861defe3f15c314b91a053ed0a6211b1d18c21c0: Google Chrome 157.0.8103.78 headed, policy basis chrome_157_linux (these bytes))"
   }
  ]
 }

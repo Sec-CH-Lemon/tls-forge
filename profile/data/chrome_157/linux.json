@@ -989,7 +989,7 @@
   },
   "name": "chrome_157_linux",
   "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
-  "client_hello": "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",
+  "client_hello": "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",
   "per_connection": {
     "shuffles_extensions": true,
     "ech_payload_lengths": [
@@ -1141,7 +1141,7 @@
     },
     {
       "name": "sec-ch-ua-full-version",
-      "value": "\"157.0.8103.50\""
+      "value": "\"157.0.8103.78\""
     },
     {
       "name": "sec-ch-ua-arch",
@@ -1165,7 +1165,7 @@
     },
     {
       "name": "sec-ch-ua-full-version-list",
-      "value": "\"Not-A.Brand\";v=\"99.0.0.0\", \"Google Chrome\";v=\"157.0.8103.50\", \"Chromium\";v=\"157.0.8103.50\""
+      "value": "\"Not-A.Brand\";v=\"99.0.0.0\", \"Google Chrome\";v=\"157.0.8103.78\", \"Chromium\";v=\"157.0.8103.78\""
     },
     {
       "name": "sec-ch-ua-form-factors",
@@ -1654,5 +1654,5 @@
       "unknown_ect": "unknown"
     }
   },
-  "notes": "captured 2026-11-10T23:39:49Z from Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36; policy basis: chrome_157_linux (unmeasured policies inherited)"
+  "notes": "captured 2026-11-11T22:32:15Z from Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36; policy basis: chrome_157_linux (unmeasured policies inherited)"
 }
