@@ -69,6 +69,10 @@ on:
         description: Capture nothing; hold the shipped profile of the browser's major to it, as the release's pinned gate does
         type: boolean
         default: false
+      net-log:
+        description: With gate, every launch of the browser writes a net log, kept only in the encrypted evidence
+        type: boolean
+        default: false
   # Callable, so the drift check can measure without a second copy of all this.
   # Artifacts belong to the run rather than to the workflow, so whatever calls
   # this can download what it produced.
@@ -112,6 +116,10 @@ on:
         default: false
       gate:
         description: Capture nothing; hold the shipped profile of the browser's major to it
+        type: boolean
+        default: false
+      net-log:
+        description: With gate, every launch of the browser writes a net log, kept only in the encrypted evidence
         type: boolean
         default: false
     outputs:
@@ -521,6 +529,7 @@ jobs:
         env:
           CHROME: ${{ steps.chrome.outputs.path }}
           VERSION: ${{ steps.browser.outputs.version }}
+          NET_LOG: ${{ inputs.net-log }}
         run: |
           major=$(echo "$VERSION" | tr -dc '0-9.' | cut -d. -f1)
           case "$RUNNER_OS" in
@@ -531,7 +540,19 @@ jobs:
           requests=testdata/chrome155-requests.json
           [ "$platform" != windows ] || requests=testdata/chrome156-windows-requests.json
           mkdir -p gate
-          gate=(go run ./internal/pinned --browser "$CHROME" --profile "chrome_$major" --commit "$GITHUB_SHA"
+          browser=$CHROME
+          if [ "$NET_LOG" = true ]; then
+            # Each launch writes a net log of its own (why a page came as a
+            # reload, say), kept only in the encrypted evidence.
+            [ -n "$EVIDENCE_CERTIFICATE" ] || { echo "a net log needs a public evidence certificate"; exit 1; }
+            mkdir -p net-log
+            browser=$RUNNER_TEMP/chrome-net-log.sh
+            # shellcheck disable=SC2016 # $$, $RANDOM and "$@" are the wrapper's
+            printf '#!/bin/bash\nexec "%s" --log-net-log="%s/$$-$RANDOM.json" --net-log-capture-mode=Default "$@"\n' \
+              "$CHROME" "$PWD/net-log" > "$browser"
+            chmod +x "$browser"
+          fi
+          gate=(go run ./internal/pinned --browser "$browser" --profile "chrome_$major" --commit "$GITHUB_SHA"
             --requests "$requests" --out "gate/chrome_${major}_$platform.json")
           if [ "$RUNNER_OS" != macOS ]; then gate+=("$FLAGS"); fi
           if [ "$RUNNER_OS" = Linux ]; then
@@ -658,13 +679,14 @@ jobs:
           files = [p for pattern in ['capture-raw.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt', 'h3-producer.log'] for p in pathlib.Path('.').glob(pattern)]
           files += [p for p in pathlib.Path('private-h3').rglob('*') if p.is_file()]
           files += [p for p in pathlib.Path('fixture-browser').rglob('*') if p.is_file()]
+          files += [p for p in pathlib.Path('net-log').rglob('*') if p.is_file()]
           record = {'source': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(), 'platform': platform.platform(), 'machine': platform.machine(), 'raw_sha256': {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
           pathlib.Path('evidence-manifest.json').write_text(json.dumps(record, indent=2)+'\n')
           PY
           python3 - <<'PY'
           import pathlib, tarfile
           with tarfile.open('private-evidence.tar.gz', 'w:gz') as archive:
-              for pattern in ['capture-raw.json', 'evidence-manifest.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt', 'h3-producer.log', 'private-h3', 'fixture-browser']:
+              for pattern in ['capture-raw.json', 'evidence-manifest.json', 'fixture-*.txt', 'fixture-*.log', 'shipped.txt', 'h3-producer.log', 'private-h3', 'fixture-browser', 'net-log']:
                   for path in pathlib.Path('.').glob(pattern):
                       archive.add(path, arcname=str(path))
           PY
