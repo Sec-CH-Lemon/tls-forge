@@ -105,7 +105,7 @@ granting it.
 
 ### Go install
 
-With Go 1.27.3 or newer:
+With Go 1.27.4 or newer:
 
 ```bash
 go install github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge@latest
@@ -136,7 +136,7 @@ image, which contains no browser.
 
 ## Build from source
 
-Requirements: Go 1.27.3 or newer, and Git and Make for the standard build.
+Requirements: Go 1.27.4 or newer, and Git and Make for the standard build.
 
 ```bash
 git clone https://github.com/Sec-CH-Lemon/tls-forge.git

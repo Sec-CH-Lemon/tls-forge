@@ -31,8 +31,9 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   is read, in uTLS's words. A ServerHello that cannot be read is answered
   with decode_error (50), as BoringSSL answers it, where it was
   unexpected_message (10); Chrome's retry before HTTP takes either.
-- Go 1.27.3 (go.mod, the Docker build stage `golang:1.27.3-alpine`, and CI,
-  which reads go.mod); brotli 1.3.0, compress 1.20.4, cascadia 1.3.5,
+- Go 1.27.4 (go.mod, the Docker build stage `golang:1.27.4-alpine`, and CI,
+  which reads go.mod): 1.27.3's net/http has GO-2026-6859, which
+  govulncheck finds reachable; brotli 1.3.0, compress 1.20.4, cascadia 1.3.5,
   purego 0.11.3, x/sys 0.50.0, x/text 0.44.0. pflag stays at 1.0.10: 1.1.0
   writes every boolean flag of the help as `--flag[=true|false]`.
 - `Migrate` adds its note of QUIC candidate defaults only when it filled one

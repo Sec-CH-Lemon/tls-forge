@@ -41,7 +41,7 @@ Review the third-party tap before granting trust. This installs the published fo
 
 ## Go install
 
-With Go **1.27.3** or newer:
+With Go **1.27.4** or newer:
 
 ```bash title="Terminal"
 go install github.com/Sec-CH-Lemon/tls-forge/cmd/tls-forge@latest

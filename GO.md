@@ -70,7 +70,7 @@ echo, profile, capture, cookie, daemon and fingerprint packages.
 
 ## Requirements and installation
 
-Go 1.27.3 or newer is required.
+Go 1.27.4 or newer is required.
 
 ```bash
 go get github.com/Sec-CH-Lemon/tls-forge

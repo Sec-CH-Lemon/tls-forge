@@ -1,6 +1,6 @@
 # Install for Go
 
-Go **1.27.3** or newer is required. Add the unsuffixed module path (engine 1 has no `/v1` suffix):
+Go **1.27.4** or newer is required. Add the unsuffixed module path (engine 1 has no `/v1` suffix):
 
 ```bash title="Terminal"
 go get github.com/Sec-CH-Lemon/tls-forge
