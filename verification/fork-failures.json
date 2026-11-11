@@ -21,7 +21,7 @@
     "quic-go-utls": {
       "module": "github.com/igor-lemon/quic-go-utls",
       "repository": "https://github.com/igor-lemon/quic-go-utls",
-      "commit": "93561c872bf37440caac360df3d0e50eca0826a5"
+      "commit": "aa81c593c4aa9d7ac86835fdd03de11303829b93"
     }
   },
   "known_failures": [],
