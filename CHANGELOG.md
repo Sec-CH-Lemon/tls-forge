@@ -91,7 +91,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   off the count once a write's report comes: the four it sent were too few
   once (forks run 43056854151). Every fake daemon, the native one too, can
   refuse its arguments after its input closed, so that the Node.js tests
-  run that case on Windows (CI run 43056849061).
+  run that case on Windows (CI run 43056849061). The test of a request sent
+  again after a 408 waits, a second at most, for the server to read the end
+  of the connection the client closed before it records the request on the
+  next: its two goroutines had said them in either order (release dry run
+  43075850203); a client that keeps the first connection open still fails it.
 
 - Fix: the Node.js and Python packages say that a tls-forge refused its
   arguments (exit code 2, an older one that does not know `--proxy-stdin`

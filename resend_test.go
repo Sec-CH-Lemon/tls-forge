@@ -33,6 +33,26 @@ type resendSite struct {
 	asked chan string
 	mu    sync.Mutex
 	acts  map[string][]string
+	// ending is closed once the connection that answered a 408 has read the
+	// client's end.
+	ending chan struct{}
+}
+
+// afterEnd waits, a second at most, for the connection that answered a 408
+// to read the client's end. The client closes that connection before it
+// dials the next, but the server's goroutines would say the two in either
+// order (release dry run 43075850203: "c2#0" before "c1 EOF").
+func (s *resendSite) afterEnd() {
+	s.mu.Lock()
+	ending := s.ending
+	s.mu.Unlock()
+	if ending == nil {
+		return
+	}
+	select {
+	case <-ending:
+	case <-time.After(time.Second):
+	}
 }
 
 func newResendSite(t *testing.T, h2 bool, acts map[string][]string) *resendSite {
@@ -97,6 +117,9 @@ func (s *resendSite) serveH1(n int, conn *tls.Conn) {
 			return
 		}
 		body, _ := io.ReadAll(req.Body)
+		if seq == 0 {
+			s.afterEnd()
+		}
 		s.say(n, seq, req.Method, req.URL.Path, body)
 		switch act := s.act(req.URL.Path); {
 		case act == "close", act == "reset":
@@ -107,10 +130,15 @@ func (s *resendSite) serveH1(n int, conn *tls.Conn) {
 			hangUp(conn, false)
 			return
 		case act == "408":
+			ended := make(chan struct{})
+			s.mu.Lock()
+			s.ending = ended
+			s.mu.Unlock()
 			io.WriteString(conn, "HTTP/1.1 408 Request Timeout\r\nConnection: close\r\nContent-Length: 3\r\n\r\n408")
 			conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 			io.Copy(io.Discard, conn)
 			s.asked <- fmt.Sprintf("c%d EOF", n)
+			close(ended)
 			return
 		case act == "401":
 			io.WriteString(conn, "HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"r\"\r\nContent-Length: 0\r\n\r\n")
