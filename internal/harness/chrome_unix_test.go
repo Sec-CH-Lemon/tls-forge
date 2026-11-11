@@ -93,6 +93,7 @@ func TestChromeIsRunAsTheFixturesWereMeasuredAndEndedWhole(t *testing.T) {
 		t.Errorf("run with %q,\nwant %q", args, want)
 	}
 	if !slices.Contains(args, "--headless=new") || !slices.Contains(args, "--user-data-dir="+dir) || !slices.Contains(args, "--lang=en-US") ||
+		!slices.Contains(args, "--disable-features=CertVerificationNetworkTime") ||
 		slices.ContainsFunc(args, func(a string) bool { return strings.HasPrefix(a, "--ignore-certificate-errors-spki-list") }) {
 		t.Errorf("run with %q", args)
 	}

@@ -287,7 +287,7 @@ sleep 10
 		t.Fatal("the fake browser was never launched")
 	}
 	for _, want := range []string{"--user-data-dir=", "--ignore-certificate-errors", "--headless=new",
-		"--custom-flag", "https://localhost:1234/"} {
+		"--disable-features=ChromeWhatsNewUI,CertVerificationNetworkTime\n", "--custom-flag", "https://localhost:1234/"} {
 		if !strings.Contains(recorded, want) {
 			t.Errorf("launch arguments do not include %q:\n%s", want, recorded)
 		}

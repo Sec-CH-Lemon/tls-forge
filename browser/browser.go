@@ -197,8 +197,15 @@ func (b *Browser) Open(ctx context.Context, url string, opts Options) (close fun
 		"--no-default-browser-check",
 		"--disable-background-networking",
 		// The What's New page Chrome opens after an update, in a tab of its
-		// own: a page of Google's loading beside the one being measured.
-		"--disable-features=ChromeWhatsNewUI",
+		// own: a page of Google's loading beside the one being measured. And
+		// the network time Chrome fetches as it starts, which it gives its
+		// certificate verifier: a verifier told something new abandons the
+		// HTTP/2 streams of the moment, the page being measured among them
+		// (ERR_CERT_VERIFIER_CHANGED), and Chrome's error page asks for it
+		// again as a reload (net logs of release dry run 43078238051's
+		// Linux runner, 2026-11-11: about 150 ms after launch, in 638 launches
+		// of 646).
+		"--disable-features=ChromeWhatsNewUI,CertVerificationNetworkTime",
 	}
 	if opts.Headless {
 		args = append(args, "--headless=new", "--disable-gpu")

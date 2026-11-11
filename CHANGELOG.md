@@ -106,6 +106,15 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   stream came, not as its handshake completed, so that the client says the
   close as the stream's HTTP/3 error (forks run 43079062878; none of 600
   runs under load).
+  On Linux runners Chrome gave its certificate verifier the network time
+  it fetches as it starts, about 150 ms after launch, and the verifier,
+  told something new, abandoned the HTTP/2 streams of the moment: the
+  bench's first page failed with ERR_CERT_VERIFIER_CHANGED and came again
+  as its error page's reload (net logs of capture run 43089160295: 638
+  launches of 646, 6 pages failed). The bench's Chrome, and the one
+  `capture` and `compare` launch, run with
+  `--disable-features=CertVerificationNetworkTime`. `capture.yml` takes
+  `net-log` to keep a net log of each launch in the encrypted evidence.
 
 - Fix: the Node.js and Python packages say that a tls-forge refused its
   arguments (exit code 2, an older one that does not know `--proxy-stdin`

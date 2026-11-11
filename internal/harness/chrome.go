@@ -78,6 +78,12 @@ func flags(dir, trusted, rules string) []string {
 		"--disable-component-update",
 		"--disable-sync",
 		"--disable-default-apps",
+		// No network time for the certificate verifier: told it, the verifier
+		// abandons the HTTP/2 streams of the moment, about 150 ms after
+		// launch, and a page being asked for fails and comes again as its
+		// error page's reload (net logs of the Linux runner, release dry run
+		// 43078238051, 2026-11-11).
+		"--disable-features=CertVerificationNetworkTime",
 		"--lang=en-US",
 		"--accept-lang=en-US",
 	}
