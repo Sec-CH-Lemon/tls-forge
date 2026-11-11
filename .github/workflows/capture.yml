@@ -214,19 +214,42 @@ jobs:
       # browser, quietly.
       #
       # dl.google.com always has the current stable, which is the whole point.
+      #
+      # On macOS the browser is a copy of its own under RUNNER_TEMP, and
+      # nothing can write to it. The image's Google Chrome in /Applications
+      # was updated while it was in use, by Google's updater as it seems. Run
+      # 42927449883 (2026-11-11, image macos-26-arm64 20261102.0473.1, whose
+      # Chrome is 156.0.8078.80) copied the pinned 156.0.8078.80 over it;
+      # `--version` said 156.0.8078.80 and the comparison matched, and 18 s
+      # later the bench's first browser sent Chrome 157's brands
+      # (157.0.8103.39, and .40 when the job ran again), in 220 of 228
+      # scenarios. On 2026-11-08 the same copy on the same image passed
+      # (Google rolls an update out to some of its clients at a time, which
+      # would explain it; not checked). No process, root's included, writes,
+      # renames or removes a file flagged `uchg` without taking the flag off
+      # first, and Chrome runs from such a copy (tried with 157.0.8103.50
+      # here, 2026-11-11). The last step holds the copy to the version it was
+      # installed with. The image is attached as .github/actions/google-chrome
+      # attaches it: hdiutil, else diskutil.
       - name: install Google Chrome (macOS)
+        id: mac-chrome
         if: runner.os == 'macOS'
         env:
           ARCHIVE: ${{ steps.archive.outputs.path }}
         run: |
           if [ -z "$ARCHIVE" ]; then
-            ARCHIVE=/tmp/chrome.dmg
+            ARCHIVE="$RUNNER_TEMP/chrome.dmg"
             curl --fail -sL -o "$ARCHIVE" \
               https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg
           fi
-          hdiutil attach -nobrowse -quiet "$ARCHIVE"
-          sudo cp -R "/Volumes/Google Chrome/Google Chrome.app" /Applications/
-          hdiutil detach -quiet "/Volumes/Google Chrome"
+          attached=$(hdiutil attach -nobrowse -readonly "$ARCHIVE" ||
+            diskutil image attach --mountOptions nobrowse --readOnly "$ARCHIVE")
+          mount=$(printf '%s\n' "$attached" | awk -F '\t' '/\/Volumes\// {print $NF}' | tail -n 1)
+          app="$RUNNER_TEMP/Google Chrome.app"
+          ditto "$mount/Google Chrome.app" "$app"
+          hdiutil detach "$mount" || diskutil eject "$mount"
+          chflags -R uchg "$app"
+          echo "version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")" >> "$GITHUB_OUTPUT"
 
       - name: install Google Chrome (Linux)
         if: runner.os == 'Linux'
@@ -263,7 +286,7 @@ jobs:
         shell: bash
         run: |
           case "$RUNNER_OS" in
-            macOS)   path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ;;
+            macOS)   path="$RUNNER_TEMP/Google Chrome.app/Contents/MacOS/Google Chrome" ;;
             Linux)   path="/opt/google/chrome/chrome" ;;
             Windows) path="C:/Program Files/Google/Chrome/Application/chrome.exe" ;;
           esac
@@ -653,3 +676,21 @@ jobs:
           name: capture-private-${{ runner.os }}
           path: private-evidence.cms
           if-no-files-found: error
+
+      # The browser every step measured is the one the run installed: a copy
+      # some program changed under it fails the run, whatever else passed.
+      # The flag comes off where macOS lets it, so that the runner can remove
+      # RUNNER_TEMP: once a bundle has run, it lets no process without App
+      # Management change it, flags included (tried here, 2026-11-11: every
+      # one of 1343 files and directories refused). The composite action's
+      # Chrome is left in RUNNER_TEMP so too, and its jobs pass.
+      - name: Chrome as it was installed (macOS)
+        if: always() && steps.mac-chrome.outputs.version != ''
+        env:
+          INSTALLED: ${{ steps.mac-chrome.outputs.version }}
+        run: |
+          app="$RUNNER_TEMP/Google Chrome.app"
+          now=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
+          chflags -R nouchg "$app" 2>/dev/null || echo "the copy stays locked: macOS lets this process change no bundle that has run"
+          [ "$now" = "$INSTALLED" ] || { echo "Google Chrome $INSTALLED became $now during the run"; exit 1; }
+          echo "Google Chrome $now throughout"
