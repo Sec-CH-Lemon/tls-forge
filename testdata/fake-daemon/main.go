@@ -76,6 +76,15 @@ func main() {
 		_, _ = fmt.Fprintln(os.Stderr, "tlsforge: bad usage: unknown flag: --proxy-stdin")
 		os.Exit(2)
 	}
+	// "late" refuses as one did on a loaded runner (2026-11-09): its input
+	// closed first and its exit a moment after, so that a line longer than a
+	// pipe holds finds the pipe gone (EPIPE) before the client is told the
+	// process exited.
+	if os.Getenv("TLSFORGE_TEST_REFUSE") == "late" && proxyStdin {
+		_ = os.Stdin.Close()
+		time.Sleep(100 * time.Millisecond)
+		os.Exit(2)
+	}
 
 	if proxyStdin && os.Getenv("TLSFORGE_TEST_INIT") == "deaf" {
 		inits["deaf"](request{})

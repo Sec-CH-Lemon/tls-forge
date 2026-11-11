@@ -27,6 +27,14 @@ if (refuse === 'always' || (refuse === 'proxy-stdin' && proxyStdin)) {
   process.stderr.write('tlsforge: bad usage: unknown flag: --proxy-stdin\n');
   process.exit(2);
 }
+// "late" refuses as one did on a loaded runner (2026-11-09): its input closed
+// first and its exit a moment after, so that a line longer than a pipe holds
+// finds the pipe gone (EPIPE) before the client is told the process exited.
+if (refuse === 'late' && proxyStdin) {
+  closeSync(0);
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+  process.exit(2);
+}
 
 // What the init line is answered with, by TLSFORGE_TEST_INIT, for a fake
 // started with --proxy-stdin, which reads it first: without an error when it
