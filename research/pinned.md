@@ -99,6 +99,19 @@ is stored and before anything is published ([RELEASING.md](../RELEASING.md)):
 A result kept in the draft is not measured again when the release is run
 again; a gate that failed is, with the Google Chrome Google serves then.
 
+The bench's Chrome, and the one the comparison launches, run with
+`--disable-features=CertVerificationNetworkTime`. As it starts, Chrome fetches
+the network time and gives it to its certificate verifier, and a verifier told
+something new abandons the HTTP/2 streams of the moment. On the Linux runner
+that came about 150 ms after launch, while the bench's first page was being
+asked for: the page failed with `ERR_CERT_VERIFIER_CHANGED` and came again as
+its error page's reload, `cache-control: max-age=0` first (net logs of
+capture.yml run 43089160295, 2026-11-11: a change in 638 launches of 646, six
+pages failed). The bench ran such a page again, three times at most, and the
+gate failed when it came so each time. `capture.yml` with `gate` and
+`net-log` keeps a net log of each launch, encrypted to the evidence
+certificate, to see why a page came as it did.
+
 Run against Google Chrome 155.0.8059.80 on macOS, headless, the comparison
 found the user agent alone, `HeadlessChrome`, which Chrome with a window does
 not send: `:path` goes into HPACK as Chrome writes it, through tls-forge's fork
