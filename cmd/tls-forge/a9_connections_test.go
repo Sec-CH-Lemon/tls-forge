@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"maps"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -23,11 +24,16 @@ func TestA9CLIConnectionOwnership(t *testing.T) {
 					var mu sync.Mutex
 					accepted, closed, requests := 0, 0, 0
 					peers := map[string]int{}
+					rows := map[string]map[string]bool{}
 					firstWave := make(chan struct{})
 					site := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 						mu.Lock()
 						requests++
 						peers[r.RemoteAddr]++
+						if rows[r.RemoteAddr] == nil {
+							rows[r.RemoteAddr] = map[string]bool{}
+						}
+						rows[r.RemoteAddr][r.URL.Path] = true
 						if workers == "4" && requests == 4 {
 							close(firstWave)
 						}
@@ -103,8 +109,27 @@ func TestA9CLIConnectionOwnership(t *testing.T) {
 							t.Errorf("fresh: accepted=%d, want 8", accepted)
 						}
 					case "entry":
-						if len(peers) != 4 || accepted < 4 || accepted > 8 {
-							t.Errorf("entry: accepted=%d serving_peers=%d, want four private row pools (including any unused cold dials)", accepted, len(peers))
+						// Each row has a pool of its own: no connection serves
+						// two rows. A row's repeat may begin while its first
+						// request is still being read, and then goes on a second
+						// connection of the row's (release dry run 43043220532,
+						// macOS: 2,2,2,1,1), so a row has one or two.
+						served := map[string]int{}
+						for peer, paths := range rows {
+							if len(paths) != 1 {
+								t.Errorf("entry: %s served rows %v, want one", peer, slices.Sorted(maps.Keys(paths)))
+							}
+							for path := range paths {
+								served[path]++
+							}
+						}
+						if len(served) != 4 || len(peers) < 4 || len(peers) > 8 || accepted < 4 || accepted > 8 {
+							t.Errorf("entry: accepted=%d serving_peers=%d rows=%v, want four private row pools (including any unused cold dials)", accepted, len(peers), served)
+						}
+						for path, n := range served {
+							if n > 2 {
+								t.Errorf("entry: %s on %d connections, want one or two", path, n)
+							}
 						}
 					}
 					t.Logf("requests=%d accepted=%d closed=%d peer_request_counts=%v", requests, accepted, closed, peers)
