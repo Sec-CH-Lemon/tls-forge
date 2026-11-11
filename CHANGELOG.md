@@ -96,6 +96,10 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   of the connection the client closed before it records the request on the
   next: its two goroutines had said them in either order (release dry run
   43075850203); a client that keeps the first connection open still fails it.
+  The fork gate runs quic-go-utls's tests with `TIMESCALE_FACTOR=3`, as
+  quic-go's own CI runs its integration tests: unscaled, the 12.5 ms margin
+  of `TestGracefulShutdownLongLivedRequest`, a QUIC handshake in it, failed
+  on a macOS runner (forks run 43075844587) and 4 of 50 runs under load.
 
 - Fix: the Node.js and Python packages say that a tls-forge refused its
   arguments (exit code 2, an older one that does not know `--proxy-stdin`

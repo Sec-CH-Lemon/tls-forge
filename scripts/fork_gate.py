@@ -185,6 +185,13 @@ def main():
             del env[key]
     env["GODEBUG"] = env.get("GODEBUG", "") + ",netdns=go"
     env["GOTOOLCHAIN"] = "go" + re.search(r"(?m)^go (\S+)", (args.root / "go.mod").read_text()).group(1)
+    if args.fork == "quic-go-utls":
+        # quic-go times its tests for its own CI, whose integration tests run
+        # with TIMESCALE_FACTOR=3 (and its unit tests with 10). Unscaled,
+        # TestGracefulShutdownLongLivedRequest's 12.5 ms margin, a QUIC
+        # handshake in it, failed on a macOS runner (forks run 43075844587)
+        # and 4 of 50 runs here under load; scaled by 3, none of 250.
+        env["TIMESCALE_FACTOR"] = "3"
     if sys.platform != "darwin" or not shutil.which("sandbox-exec"):
         raise RuntimeError("this measured gate requires the macOS loopback-only sandbox")
     policy = '(version 1)(allow default)(deny network-outbound)(allow network-outbound (remote ip "localhost:*"))'
