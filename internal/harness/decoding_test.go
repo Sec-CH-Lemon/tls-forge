@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/encoding/japanese"
@@ -203,6 +204,51 @@ func TestAPageThatFailedToDumpOnceIsAskedOnceMore(t *testing.T) {
 	never := &broken{works: 1}
 	if _, err := MeasureDecoding(ctx, never, []DecodingCase{{Name: "a"}}, nil); err == nil || never.asked != 1 {
 		t.Errorf("an ended context: %v, asked %d", err, never.asked)
+	}
+}
+
+// hanging is a browser whose first dumps never end by themselves: they wait
+// for their context.
+type hanging struct {
+	fake
+	// hangs is how many dumps hang; asked, the number of dumps asked for.
+	hangs, asked int
+}
+
+func (h *hanging) DumpDOM(ctx context.Context, page string) ([]byte, error) {
+	h.asked++
+	if h.asked <= h.hangs {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
+	return []byte("<html><body><pre>a</pre></body></html>"), nil
+}
+
+func TestADumpThatHangsEndsAtItsOwnLimitAndIsAskedOnceMore(t *testing.T) {
+	// Chrome on a macOS runner hung dumping a page until the gate's time was
+	// out: a dump ends at dumpWithin and is asked again, as a failed one is.
+	old := dumpWithin
+	dumpWithin = 50 * time.Millisecond
+	t.Cleanup(func() { dumpWithin = old })
+	once := &hanging{hangs: 1}
+	began := time.Now()
+	got, err := MeasureDecoding(context.Background(), once, []DecodingCase{{Name: "a", Word: []byte("a")}}, nil)
+	if err != nil || once.asked != 2 || got[0].Text == nil || *got[0].Text != "a" {
+		t.Errorf("measured %+v, %v, asked %d", got, err, once.asked)
+	}
+	if took := time.Since(began); took < dumpWithin || took > 10*time.Second {
+		t.Errorf("a hung dump ended after %v, not at %v", took, dumpWithin)
+	}
+	twice := &hanging{hangs: 2}
+	if _, err := MeasureDecoding(context.Background(), twice, []DecodingCase{{Name: "a"}}, nil); !errors.Is(err, context.DeadlineExceeded) || twice.asked != 2 {
+		t.Errorf("twice: %v, asked %d", err, twice.asked)
+	}
+	// The measurement's own end is not a dump's: it is not asked again.
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	ended := &hanging{hangs: 1}
+	if _, err := MeasureDecoding(ctx, ended, []DecodingCase{{Name: "a"}}, nil); !errors.Is(err, context.DeadlineExceeded) || ended.asked != 1 {
+		t.Errorf("the measurement's end: %v, asked %d", err, ended.asked)
 	}
 }
 

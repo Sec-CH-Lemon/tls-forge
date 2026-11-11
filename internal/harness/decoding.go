@@ -104,6 +104,19 @@ func LoadDecoding(path string) (*DecodingFixture, error) { return load[DecodingF
 // Write writes the fixture to path as it is kept.
 func (f *DecodingFixture) Write(path string) error { return writeJSON(path, f) }
 
+// dumpWithin is how long the dump of one page may take. Chrome dumps one in
+// a second or two; on a macOS runner a dump hung, saying nothing, until the
+// gate's 45 minutes were out (release dry run 43056860061, 2026-11-11,
+// h-meta-content-upper, the 53rd page of the pass).
+var dumpWithin = time.Minute
+
+// dump is b's dump of page, within dumpWithin.
+func dump(ctx context.Context, b Browser, page string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, dumpWithin)
+	defer cancel()
+	return b.DumpDOM(ctx, page)
+}
+
 // MeasureDecoding is what b makes of each case's page, served over plain
 // HTTP with its Content-Type: the cases as the fixture would hold them.
 func MeasureDecoding(ctx context.Context, b Browser, cases []DecodingCase, progress io.Writer) ([]DecodingCase, error) {
@@ -134,16 +147,17 @@ func MeasureDecoding(ctx context.Context, b Browser, cases []DecodingCase, progr
 	out := make([]DecodingCase, 0, len(cases))
 	for _, c := range cases {
 		page := "http://" + ln.Addr().String() + "/" + c.Name
-		dump, err := b.DumpDOM(ctx, page)
+		dumped, err := dump(ctx, b, page)
 		if err != nil && ctx.Err() == nil {
 			// Once more: Chrome on a macOS runner exited 2 dumping one page,
-			// once in two passes of the same check (2026-10-20).
-			dump, err = b.DumpDOM(ctx, page)
+			// once in two passes of the same check (2026-10-20), and hung
+			// dumping another (2026-11-11).
+			dumped, err = dump(ctx, b, page)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("harness: %s: %w", c.Name, err)
 		}
-		c.Encoding, c.Text, c.Shows = extract(dump, c.Word)
+		c.Encoding, c.Text, c.Shows = extract(dumped, c.Word)
 		out = append(out, c)
 		if progress != nil {
 			_, _ = fmt.Fprintf(progress, "decoding %s\n", c.Name)
