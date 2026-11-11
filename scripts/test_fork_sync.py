@@ -730,7 +730,14 @@ class StartTests(Repos):
         f = self.fixture()
         self.assertEqual(f.start()[0], 0)
         first = fork_sync.state(f.work, "anchor")
-        code, out, err = f.start()
+        # An anchor made again differs from the first by its committer's date
+        # alone, which git keeps in whole seconds: two starts within one
+        # second made the same commit, and this test failed (one run in ten
+        # here, and release.yml's dry run 43038559597). The second start is
+        # dated another day.
+        with mock.patch.dict(os.environ,
+                             {"GIT_COMMITTER_DATE": "2001-02-03T04:05:06Z"}):
+            code, out, err = f.start()
         self.assertEqual(code, 0, out + err)
         self.assertNotEqual(fork_sync.state(f.work, "anchor"), first)
         self.assertEqual(f.subjects(), [ANCHOR, "Add C", "Change A", "Tidy", "Tidy"])
