@@ -1,9 +1,9 @@
 {
   "provenance_schema": 1,
-  "profile_sha256": "b179f3e36ee4833cf1086c395337d74de8ebb132855fa9016ab99202111450a6",
-  "capture_canonical_sha256": "7b077ad5dad900ecde54900ef005fc0b6f96581c901178fa53c1c10a6ef7f65a",
+  "profile_sha256": "761870d837c1682b8e0f3dbf0b715a454001748154925a713f1abd0370e4ebaf",
+  "capture_canonical_sha256": "f1028bed12bad9ba5845f43765ecf42c7009663c02333da4fbb082cc505a09c4",
   "basis_name": "chrome_157_windows",
-  "basis_sha256": "cf676ecef19021586d904a698347dffd25ea7ebad7748f5778ce8c21b90488a2",
+  "basis_sha256": "c2cb5728a1418c4479c35fbef470e8c3f3f6d03ef98073b4d304ae4ed3fce051",
   "browser": {
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
     "languages": [
@@ -33,17 +33,17 @@
       },
       {
         "brand": "Google Chrome",
-        "version": "157.0.8103.51"
+        "version": "157.0.8103.79"
       },
       {
         "brand": "Chromium",
-        "version": "157.0.8103.51"
+        "version": "157.0.8103.79"
       }
     ],
     "architecture": "x86",
     "bitness": "64",
     "platform_version": "19.0.0",
-    "ua_full_version": "157.0.8103.51",
+    "ua_full_version": "157.0.8103.79",
     "form_factors": [
       "Desktop"
     ],
