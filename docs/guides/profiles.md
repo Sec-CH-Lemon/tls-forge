@@ -24,7 +24,7 @@ Profiles that cannot send the run's requests as the newest Chrome sends them are
 
 ## Engine gate
 
-This source is **engine 1.1.0** (not yet released; the latest release is 1.0.1), profile **schema 4**, daemon protocol **3**. Every executable profile needs a top-level integer `engine_major: 1`. The engine rejects older, newer, missing or invalid majors **before request-related network I/O**. A schema number, filename, User-Agent or browser alias does not imply compatibility. SDKs also check the daemon engine major.
+This source is **release 1.1.0** (after 1.0.1), profile **schema 4**, daemon protocol **3**. Every executable profile needs a top-level integer `engine_major: 1`. The engine rejects older, newer, missing or invalid majors **before request-related network I/O**. A schema number, filename, User-Agent or browser alias does not imply compatibility. SDKs also check the daemon engine major.
 
 ```json title="JSON"
 {

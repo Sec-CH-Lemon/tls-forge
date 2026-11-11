@@ -25,9 +25,8 @@ only inside that request.
 **Documentation:** installation, guides, integrations and generated API and CLI
 references are in [`docs/`](docs/index.md) and at <https://tls-forge.com/docs/>.
 
-**Release status:** this README describes engine **1.1.0**, not yet
-released. The latest release, which the release binaries, Homebrew, npm, PyPI
-and Docker install, is 1.0.1. See
+**Release status:** this README describes release **1.1.0**, which the
+release binaries, Homebrew, npm, PyPI and Docker install. See
 [release status](docs/support/release-status.md).
 
 ## What is a TLS fingerprint?

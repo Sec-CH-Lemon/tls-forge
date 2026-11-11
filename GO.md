@@ -17,10 +17,10 @@ This illustrates metadata only; a complete profile still needs captured TLS/HTTP
 data and the explicit `behavior` object. Browser values and selections stay in
 JSON. The engine major goes up only when the profiles the latest published
 stable release ran can no longer run as they are; it is then
-`latest_released_major + 1`, once for the whole next release. This is engine
-**1.1.0**, not yet released: the latest release is 1.0.1, and its forks are now
-laid over bogdanfinn's latest releases, a change of the engine's own code that
-every 1.0.1 profile still runs under unchanged, so the major stays 1. Existing
+`latest_released_major + 1`, once for the whole next release. This is release
+**1.1.0**, after 1.0.1: its forks are laid over bogdanfinn's latest releases,
+a change of the engine's own code that every 1.0.1 profile still runs under
+unchanged, so the major stays 1. Existing
 primitives can be configured by JSON without an engine bump. Versioned CLI,
 daemon and SDK identity must agree; `engine/version.json` is the compiled
 authority. Release builds refuse a different version stamp. Go v1 uses the

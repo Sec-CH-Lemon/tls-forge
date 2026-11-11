@@ -11,7 +11,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
-### Engine 1.1.0 (not yet released)
+## [1.1.0] - 2026-11-11
+
+Engine 1.1.0: the forks laid over bogdanfinn's latest releases, the
+author's code wherever ours did the same, every profile 1.0.1 shipped
+running unchanged, on Go 1.27.4.
 
 - The engine is 1.1.0, a minor after the published 1.0.1: the forks are now
   laid over bogdanfinn's latest releases, a change of the engine's own code
