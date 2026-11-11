@@ -9,7 +9,7 @@ require (
 	github.com/bdandy/go-errors v1.2.2 // indirect
 	github.com/bdandy/go-socks4 v1.2.3 // indirect
 	github.com/ebitengine/purego v0.11.3 // indirect
-	github.com/igor-lemon/fhttp v0.6.10-0.20261111153518-df863b5b1da8 // indirect
+	github.com/igor-lemon/fhttp v0.6.10-0.20261111174232-cc68121eb59e // indirect
 	github.com/igor-lemon/quic-go-utls v1.0.10-utls.0.20261111154716-93561c872bf3 // indirect
 	github.com/igor-lemon/tls-client v1.16.1-0.20261111154937-b070ff4aedf0 // indirect
 	github.com/igor-lemon/utls v1.7.8-barnius.0.20261110161215-9396ec9ebdf3 // indirect

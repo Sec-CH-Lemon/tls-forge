@@ -24,7 +24,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - The forks are required at their releases' patch series: utls over
   v1.8.2-barnius, fhttp over v0.7.3, websocket over v1.5.9-barnius,
   quic-go-utls over v1.0.13-utls, tls-client over v1.18.0
-  (utls 9396ec9, fhttp df863b5, websocket 786a102, quic-go-utls 93561c8,
+  (utls 9396ec9, fhttp cc68121, websocket 786a102, quic-go-utls 93561c8,
   tls-client b070ff4). Where the author fixed what a patch had fixed, the
   author's code is taken and the patch keeps only what the author's lacks:
   fhttp's `unwrapNopCloser` and the `slices.Clone` of `PseudoHeaderOrder` in
@@ -81,6 +81,17 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
   the drain the whole grace the engine allows. A UDP socket and a TCP
   listener on one port are asked of each protocol by turns
   (`localhost.UDPAndTCP`), as Windows keeps ranges of ports from each.
+
+- What CI found of the 1.1.0 candidate (2026-11-11). The pinned gate's bench
+  gives each page's dump a minute and asks a hung one again, as it asks one
+  that failed: on a macOS runner Chrome 157.0.8103.51 hung dumping a page,
+  saying nothing, until the gate's 45 minutes were out (release dry run
+  43056860061). fhttp's test of an overfull control queue sends as many
+  PINGs past the limit as the server's write buffer holds ACKs, which come
+  off the count once a write's report comes: the four it sent were too few
+  once (forks run 43056854151). Every fake daemon, the native one too, can
+  refuse its arguments after its input closed, so that the Node.js tests
+  run that case on Windows (CI run 43056849061).
 
 - Fix: the Node.js and Python packages say that a tls-forge refused its
   arguments (exit code 2, an older one that does not know `--proxy-stdin`
