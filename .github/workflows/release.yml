@@ -496,6 +496,11 @@ jobs:
             "${gate[@]}"
           fi
 
+      # The profile was held to the Google Chrome the job installed, or no
+      # result is kept: on macOS a copy some program changed fails it here.
+      - uses: ./.github/actions/google-chrome-unchanged
+        if: always() && env.CHROME_APP != ''
+
       - name: keep the result beside the set
         if: steps.held.outputs.held == 'false' && needs.set.outputs.dry_run == 'false'
         shell: bash

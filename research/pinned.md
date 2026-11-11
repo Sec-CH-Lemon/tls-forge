@@ -83,10 +83,15 @@ is stored and before anything is published ([RELEASING.md](../RELEASING.md)):
    (`windows-2025`).
 2. `.github/actions/google-chrome` installs Google Chrome Stable from Google on
    the runner: the universal disk image on macOS, the `google-chrome-stable`
-   package on Linux, the enterprise installer on Windows.
+   package on Linux, the enterprise installer on Windows. On macOS it is a
+   copy of its own under `RUNNER_TEMP`, flagged `uchg`, which nothing can
+   change while the check runs: on 2026-11-11 the image's Google Chrome in
+   /Applications was updated to another major under capture.yml's gate.
 3. The check runs with `--commit` and `--set`, with `--no-sandbox` on Linux
    and Windows and under `xvfb-run` on Linux, and its result is kept in the
-   tag's draft as `pinned-<platform>-<arch>.json`.
+   tag's draft as `pinned-<platform>-<arch>.json`, but on macOS only when
+   `.github/actions/google-chrome-unchanged` finds the copy the version it was
+   installed with.
 4. Each publishing job verifies the set with every gate result
    (`release-set.mjs gated`): each passed, for this commit and this set. A
    result for another commit or another set counts for nothing.

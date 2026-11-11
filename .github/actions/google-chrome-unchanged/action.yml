@@ -1,0 +1,27 @@
+name: Google Chrome as it was installed
+description: >-
+  Fails the job when the copy of Google Chrome that
+  .github/actions/google-chrome made on macOS (CHROME_APP) is not the version
+  it was installed with (CHROME_BUNDLE_VERSION), and takes the copy's flag off
+  where macOS lets it. The job's last step, `if: always() && env.CHROME_APP !=
+  ''`: a copy some program changed under the job fails it, whatever else
+  passed.
+
+# Once a bundle has run, macOS (App Management) lets no process without that
+# permission change it, flags included: tried on a Mac on 2026-11-11, every
+# one of 1343 files and directories refused. A hosted runner's process may
+# (capture.yml run 42991017728 took the flag off its own such copy), so that
+# the runner can empty RUNNER_TEMP; where it may not, the copy stays.
+runs:
+  using: composite
+  steps:
+    - name: Chrome as it was installed (macOS)
+      shell: bash
+      run: |
+        now=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$CHROME_APP/Contents/Info.plist") ||
+          now="no version that can be read"
+        chflags -R nouchg "$CHROME_APP" 2>/dev/null ||
+          echo "the copy stays locked: macOS lets this process change no bundle that has run"
+        [ "$now" = "$CHROME_BUNDLE_VERSION" ] ||
+          { echo "$CHROME_APP was $CHROME_BUNDLE_VERSION and is $now"; exit 1; }
+        echo "$CHROME_VERSION throughout"

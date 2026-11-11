@@ -1,7 +1,9 @@
 name: Google Chrome from Google
 description: >-
   Installs Google Chrome of a channel from Google, not the runner image's, and
-  says where it is (CHROME) and what it says it is (CHROME_VERSION).
+  says where it is (CHROME) and what it says it is (CHROME_VERSION); on macOS
+  a copy nothing can change, and that copy (CHROME_APP) and its version
+  (CHROME_BUNDLE_VERSION).
 
 # From Google, not the image's, whose Chrome is whatever build the image was
 # made with, and only Stable. The behaviour job of drift.yml and the pinned gate
@@ -15,10 +17,18 @@ inputs:
 runs:
   using: composite
   steps:
-    # hdiutil attaches the image on macOS 14 and 15; on macOS 27 it says no
+    # hdiutil attaches the image on macOS 14 and 15; on macOS 27 it said no
     # mountable file system, and diskutil image attach, which an older macOS
-    # does not have, does it (tried 2026-10-19). Either mounts it under
+    # does not have, did it (tried 2026-10-19; on 2026-11-11 hdiutil attached
+    # it on macOS 27.0, saying it is deprecated). Either mounts it under
     # /Volumes.
+    #
+    # The copy is flagged `uchg`, so that no process, root's included,
+    # writes, renames or removes anything in it while the job measures it:
+    # capture.yml's gate of 2026-11-11 (run 42927449883) found the image's
+    # Google Chrome in /Applications updated to another major mid-run, by
+    # Google's updater as it seems. CHROME_APP and CHROME_BUNDLE_VERSION are
+    # for .github/actions/google-chrome-unchanged, the job's last step.
     - name: install Google Chrome (macOS)
       if: runner.os == 'macOS'
       shell: bash
@@ -36,10 +46,17 @@ runs:
         attached=$(hdiutil attach -nobrowse -readonly "$RUNNER_TEMP/chrome.dmg" ||
           diskutil image attach --mountOptions nobrowse --readOnly "$RUNNER_TEMP/chrome.dmg")
         mount=$(printf '%s\n' "$attached" | awk -F '\t' '/\/Volumes\// {print $NF}' | tail -n 1)
-        ditto "$mount/$app.app" "$RUNNER_TEMP/$app.app"
+        bundle="$RUNNER_TEMP/$app.app"
+        ditto "$mount/$app.app" "$bundle"
         hdiutil detach "$mount" || diskutil eject "$mount"
-        binary="$RUNNER_TEMP/$app.app/Contents/MacOS/$app"
-        { echo "CHROME=$binary"; echo "CHROME_VERSION=$("$binary" --version)"; } >> "$GITHUB_ENV"
+        chflags -R uchg "$bundle"
+        binary="$bundle/Contents/MacOS/$app"
+        {
+          echo "CHROME=$binary"
+          echo "CHROME_VERSION=$("$binary" --version)"
+          echo "CHROME_APP=$bundle"
+          echo "CHROME_BUNDLE_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$bundle/Contents/Info.plist")"
+        } >> "$GITHUB_ENV"
 
     - name: install Google Chrome (Linux)
       if: runner.os == 'Linux'

@@ -337,6 +337,11 @@ jobs:
             measure-*.log
           if-no-files-found: ignore
 
+      # What was measured is the Google Chrome the job installed, or nothing
+      # is filed: on macOS a copy some program changed fails the job here.
+      - uses: ./.github/actions/google-chrome-unchanged
+        if: always() && env.CHROME_APP != ''
+
       - name: file it
         if: >-
           steps.check.outputs.verdict == 'differs' &&
