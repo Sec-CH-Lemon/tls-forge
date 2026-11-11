@@ -24,8 +24,11 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 - The forks are required at their releases' patch series: utls over
   v1.8.2-barnius, fhttp over v0.7.3, websocket over v1.5.9-barnius,
   quic-go-utls over v1.0.13-utls, tls-client over v1.18.0
-  (utls 9396ec9, fhttp 5d69bd7, websocket 205060d, quic-go-utls 0e5c462,
-  tls-client 136613e). uTLS now reads `trust_anchors` itself
+  (utls 9396ec9, fhttp df863b5, websocket 786a102, quic-go-utls 93561c8,
+  tls-client b070ff4). Where the author fixed what a patch had fixed, the
+  author's code is taken and the patch keeps only what the author's lacks:
+  fhttp's `unwrapNopCloser` and the `slices.Clone` of `PseudoHeaderOrder` in
+  `Transport.Clone` are the author's again (2026-11-11). uTLS now reads `trust_anchors` itself
   (`TrustAnchorsExtension`): its IDs go out in the order the profile says,
   as the payload did, and a malformed list is refused as the captured hello
   is read, in uTLS's words. A ServerHello that cannot be read is answered
