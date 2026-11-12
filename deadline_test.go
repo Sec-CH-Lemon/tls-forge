@@ -154,9 +154,12 @@ func TestAHandshakeThatHangsEndsWithItsRequestsDeadline(t *testing.T) {
 					client.CloseIdleConnections()
 				}
 				before := runtime.NumGoroutine()
+				// timed from before the caller's context, whose deadline
+				// counts from when it is made (Windows' clock once saw the
+				// request end 3.5 µs short of a start taken after it)
+				start := time.Now()
 				ctx, cancel := by.ctx()
 				defer cancel()
-				start := time.Now()
 				err := endedWithin(t, doing(client, &Request{URL: server.URL + "/", Context: ctx}), 5*time.Second)
 				took := time.Since(start)
 				if !errors.Is(err, context.DeadlineExceeded) || !isTimeout(err) {

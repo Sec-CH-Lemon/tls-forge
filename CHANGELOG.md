@@ -126,7 +126,10 @@ running unchanged, on Go 1.27.4.
   five seconds (release run 43132015220 on macOS; 372 of 2000 dual-stack
   sockets were given a port 3000 sockets at 127.0.0.1 held, none of 2000 of
   IPv4). Chrome's profiles dial from a connected socket of their own, as
-  they did.
+  they did. The test of a hung handshake times a request from before the
+  caller's context is made, whose deadline counts from then: on Windows
+  the request ended 3.5 µs short of a start taken after it (CI run
+  43139030151).
   On Linux runners Chrome gave its certificate verifier the network time
   it fetches as it starts, about 150 ms after launch, and the verifier,
   told something new, abandoned the HTTP/2 streams of the moment: the
