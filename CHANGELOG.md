@@ -11,7 +11,7 @@ means. Pin the exact name — `WithProfile("chrome_151")` — when that matters.
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-11-11
+## [1.1.0] - 2026-11-12
 
 Engine 1.1.0: the forks laid over bogdanfinn's latest releases, the
 author's code wherever ours did the same, every profile 1.0.1 shipped
