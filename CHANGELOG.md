@@ -28,7 +28,7 @@ running unchanged, on Go 1.27.4.
 - The forks are required at their releases' patch series: utls over
   v1.8.2-barnius, fhttp over v0.7.3, websocket over v1.5.9-barnius,
   quic-go-utls over v1.0.13-utls, tls-client over v1.18.0
-  (utls 9396ec9, fhttp cc68121, websocket 786a102, quic-go-utls aa81c59,
+  (utls 9396ec9, fhttp cc68121, websocket 786a102, quic-go-utls a1c91e7,
   tls-client b070ff4). Where the author fixed what a patch had fixed, the
   author's code is taken and the patch keeps only what the author's lacks:
   fhttp's `unwrapNopCloser` and the `slices.Clone` of `PseudoHeaderOrder` in
@@ -112,7 +112,11 @@ running unchanged, on Go 1.27.4.
   10 ms), and the test's server closes a later connection once its request
   stream came, not as its handshake completed, so that the client says the
   close as the stream's HTTP/3 error (forks run 43079062878; none of 600
-  runs under load).
+  runs under load). Its tests of write bundles count the STREAM frames each
+  packet sent first: a probe that sends them again, when the server's ACK
+  comes later than the client's PTO, is no packet of the bundle's (forks
+  run 43126056598 on main; 19 of 200 runs failed so under load, none of
+  100 after, nor 400 of the file's other tests).
   On Linux runners Chrome gave its certificate verifier the network time
   it fetches as it starts, about 150 ms after launch, and the verifier,
   told something new, abandoned the HTTP/2 streams of the moment: the
