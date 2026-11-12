@@ -24,7 +24,7 @@
 
 <div class="tf-version-note">
   <strong>Release 1.1.0 · engine 1</strong>
-  <span>The release binaries, Homebrew, npm, PyPI and Docker install 1.1.0. Keep the binary, SDK, and profile on the same engine major. <a href="support/release-status/">Release status →</a></span>
+  <span>Latest published release: 1.1.0. The release binaries, Homebrew, npm, PyPI and Docker install it. Keep the binary, SDK, and profile on the same engine major. <a href="support/release-status/">Release status →</a></span>
 </div>
 
 ## Start building

@@ -24,7 +24,7 @@ Profiles that cannot send the run's requests as the newest Chrome sends them are
 
 ## Engine gate
 
-This source is **release 1.1.0** (after 1.0.1), profile **schema 4**, daemon protocol **3**. Every executable profile needs a top-level integer `engine_major: 1`. The engine rejects older, newer, missing or invalid majors **before request-related network I/O**. A schema number, filename, User-Agent or browser alias does not imply compatibility. SDKs also check the daemon engine major.
+Release 1.1.0 is **engine 1.1.0**, profile **schema 4**, daemon protocol **3**. Every executable profile needs a top-level integer `engine_major: 1`. The engine rejects older, newer, missing or invalid majors **before request-related network I/O**. A schema number, filename, User-Agent or browser alias does not imply compatibility. SDKs also check the daemon engine major.
 
 ```json title="JSON"
 {
@@ -42,4 +42,4 @@ This is metadata only, **not** a complete executable profile. The [profile behav
 
 Shipped Chrome profiles cover multiple builds and platforms, but a current Chrome witness does not freshly validate every historical build and platform. New connection keys, tickets, counters, QPACK state, cookies and request-derived headers must be generated from current context. A renamed file or edited `engine_major` cannot make an incompatible profile equivalent.
 
-Browser-specific behaviour belongs in JSON. A new protocol, algorithm, parser or state-machine primitive is an engine change. An engine change keeps the major as long as the profiles of the latest published release still run on it as they are: 1.1.0 lays the forks over bogdanfinn's latest releases, and 1.0.1's profiles run unchanged, so they stay `engine_major: 1`. Only a change that stops a published profile from running, a key it uses removed or read otherwise, a key every profile must now have, a schema that no longer loads, makes the next major, `latest_released_major + 1`, once for the whole release. See [release status](../support/release-status.md).
+Browser-specific behaviour belongs in JSON. A new protocol, algorithm, parser or state-machine primitive is an engine change. An engine change keeps the major as long as the profiles of the latest published release, 1.1.0, still run on it as they are; 1.1.0 laid the forks over bogdanfinn's latest releases, and 1.0.1's profiles ran on it unchanged, so they stayed `engine_major: 1`. Only a change that stops a published profile from running, a key it uses removed or read otherwise, a key every profile must now have, a schema that no longer loads, makes the next major, `latest_released_major + 1`, once for the whole release. See [release status](../support/release-status.md).
